@@ -1,0 +1,1578 @@
+HIBA 89390500: Locator.wait_for: Timeout 10000ms exceeded.
+Call log:
+  - waiting for locator("tr:has(td:text-is('89390500'))") to be visible
+    - waiting for" https://szvgtoolsshop.hu/administrator/index.php?view=store&keyword=89390500" navigation to finish...
+
+HIBA 814001024VRG3: Locator.wait_for: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("div.selectize-control.tags div.selectize-input input[type='text']").first to be visible
+
+HIBA 814001025VRGK: Locator.wait_for: Timeout 10000ms exceeded.
+Call log:
+  - waiting for locator("tr:has(td:text-is('814001025VRGK'))") to be visible
+
+HIBA 900PCEZ3824: Locator.wait_for: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("div.selectize-control.tags div.selectize-input input[type='text']").first to be visible
+
+HIBA 15013101: Locator.wait_for: Error: strict mode violation: locator("tr:has(td:text-is('15013101'))") resolved to 2 elements:
+    1) <tr id="1095327">…</tr> aka get_by_role("row", name="Tükör lap 15013101 606 Ft 770")
+    2) <tr id="2742348">…</tr> aka get_by_role("row", name="Tükörlap 15013101 982 Ft 1.")
+
+Call log:
+  - waiting for locator("tr:has(td:text-is('15013101'))") to be visible
+    - waiting for navigation to finish...
+    - navigated to "https://szvgtoolsshop.hu/administrator/index.php?view=store&keyword=15013101"
+
+HIBA 15010101: Locator.wait_for: Error: strict mode violation: locator("tr:has(td:text-is('15010101'))") resolved to 2 elements:
+    1) <tr id="1095326">…</tr> aka get_by_role("row", name="Tükör mágneses rögzítéssel 15010101 5.618 Ft 7.134 Ft Segédeszközök Iweld")
+    2) <tr id="2742349">…</tr> aka get_by_role("row", name="Tükör mágneses rögzítéssel 15010101 8.857 Ft 11.248 Ft Egyéb hegesztési tartozé")
+
+Call log:
+  - waiting for locator("tr:has(td:text-is('15010101'))") to be visible
+    - waiting for" https://szvgtoolsshop.hu/administrator/index.php?view=store&keyword=15010101" navigation to finish...
+    - navigated to "https://szvgtoolsshop.hu/administrator/index.php?view=store&keyword=15010101"
+
+HIBA 13001014: Locator.wait_for: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("div.selectize-control.tags div.selectize-input input[type='text']").first to be visible
+
+HIBA 15013101: Locator.wait_for: Error: strict mode violation: locator("tr:has(td:text-is('15013101'))") resolved to 2 elements:
+    1) <tr id="2742348">…</tr> aka get_by_role("row", name="Tükörlap 15013101 982 Ft 1.")
+    2) <tr id="1095327">…</tr> aka get_by_role("row", name="Tükör lap 15013101 606 Ft 770")
+
+Call log:
+  - waiting for locator("tr:has(td:text-is('15013101'))") to be visible
+    - waiting for navigation to finish...
+    - navigated to "https://szvgtoolsshop.hu/administrator/index.php?view=store&keyword=15013101"
+
+HIBA 15010101: Locator.wait_for: Error: strict mode violation: locator("tr:has(td:text-is('15010101'))") resolved to 2 elements:
+    1) <tr id="2742349">…</tr> aka get_by_role("row", name="Tükör mágneses rögzítéssel 15010101 8.857 Ft 11.248 Ft Egyéb hegesztési tartozé")
+    2) <tr id="1095326">…</tr> aka get_by_role("row", name="Tükör mágneses rögzítéssel 15010101 5.618 Ft 7.134 Ft Segédeszközök Iweld")
+
+Call log:
+  - waiting for locator("tr:has(td:text-is('15010101'))") to be visible
+    - waiting for navigation to finish...
+    - navigated to "https://szvgtoolsshop.hu/administrator/index.php?view=store&keyword=15010101"
+
+HIBA 8401P201452: Locator.wait_for: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("div.selectize-control.tags div.selectize-input input[type='text']").first to be visible
+
+HIBA 324P154554: Locator.wait_for: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("div.selectize-control.tags div.selectize-input input[type='text']").first to be visible
+
+HIBA PCTLA11470: Locator.wait_for: Timeout 10000ms exceeded.
+Call log:
+  - waiting for locator("tr:has(td:text-is('PCTLA11470'))") to be visible
+
+HIBA PCTMA33143: Locator.wait_for: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("div.selectize-control.tags div.selectize-input input[type='text']").first to be visible
+
+HIBA PCTMA33146: Locator.wait_for: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("div.selectize-control.tags div.selectize-input input[type='text']").first to be visible
+
+HIBA PCTLA11539: Page.goto: net::ERR_NETWORK_CHANGED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTLA11540: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTLA11696: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTLA11697: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTFU44217: Page.goto: net::ERR_NETWORK_IO_SUSPENDED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTFU44218: Page.goto: Navigation to "https://szvgtoolsshop.hu/administrator/" is interrupted by another navigation to "https://szvgtoolsshop.hu/administrator/"
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTLA11639: Page.goto: net::ERR_NETWORK_CHANGED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTLA11354: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTLA11355: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTLA11656: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTKE22692: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTKE22590: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTKE22591: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTKE22593: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTKE22583: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTKE22584: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTLA11451: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTLA11453: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTKE22610: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTKE22614: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTKE22615: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTKE22620: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTFU44272: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTFU44273: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTFU44279: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTFU44285: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTFU44289: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTFU44298: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTFU44310: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTFU44321: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTFU44341: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTFU44349: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTFU44383: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTFU44382: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTLA11700: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTLA11738: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTMA33245: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTMA33247: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTMA33248: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTMA33249: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTMA33250: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTMA33251: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTMA33252: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTMA33253: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTMA33254: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTMA33255: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTMA33256: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTMA33257: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTKE22667: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTKE22521: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTLA11507: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTEG55138: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTLA11431: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTLA11433: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTLA11323: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTLA11327: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTLA11331: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTLA11632: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTFU44172: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTLA11635: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTLA11636: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTLA11638: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTLA11640: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTLA11641: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTLA11673: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTLA11672: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTLA11759: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTLA11761: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTMA33340: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTLA11614: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTLA11499: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTLA11498: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTLA11501: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTLA11683: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTLA11682: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTFU44324: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTFU44300: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTFU44288: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTMA33188: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTMA33195: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTMA33196: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTMA33202: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTFU44355: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTMA33301: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTMA33303: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTFU44250: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTLA11599: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTLA11600: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTLA11601: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTLA11602: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTLA11603: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTFU44251: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTFU44252: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTFU44253: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTFU44254: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTFU44255: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTFU44209: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTFU44314: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTFU44440: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTFU44441: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTFU44442: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTFU44443: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTKE22727: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTKE22693: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTEG55157: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTEG55158: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTEG55161: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTEG55162: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTEG55164: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTEG55171: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTKE22705: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTKE22706: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTKE22707: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTKE22708: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTEG55187: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTEG55188: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTEG55189: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTEG55190: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTMA33425: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTMA33426: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTMA33428: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTMA33427: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTMA33429: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTMA33436: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTEG55167: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTEG55169: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTEG55168: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTLA11738: Page.goto: net::ERR_HTTP2_PROTOCOL_ERROR at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTLA11501: Page.goto: net::ERR_TIMED_OUT at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTLA11683: Page.goto: net::ERR_TIMED_OUT at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTLA11602: Page.goto: net::ERR_ABORTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTLA11603: Page.goto: net::ERR_HTTP2_PROTOCOL_ERROR at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA PCTEG55157: Locator.wait_for: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("div.selectize-control.tags div.selectize-input input[type='text']").first to be visible
+
+HIBA PCTEG55158: Locator.wait_for: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("div.selectize-control.tags div.selectize-input input[type='text']").first to be visible
+
+HIBA PCTEG55161: Locator.wait_for: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("div.selectize-control.tags div.selectize-input input[type='text']").first to be visible
+
+HIBA PCTEG55162: Locator.wait_for: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("div.selectize-control.tags div.selectize-input input[type='text']").first to be visible
+
+HIBA PCTEG55164: Locator.wait_for: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("div.selectize-control.tags div.selectize-input input[type='text']").first to be visible
+
+HIBA PCTEG55171: Locator.wait_for: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("div.selectize-control.tags div.selectize-input input[type='text']").first to be visible
+
+HIBA PCTKE22705: Locator.wait_for: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("div.selectize-control.tags div.selectize-input input[type='text']").first to be visible
+
+HIBA PCTKE22706: Locator.wait_for: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("div.selectize-control.tags div.selectize-input input[type='text']").first to be visible
+
+HIBA PCTKE22707: Locator.wait_for: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("div.selectize-control.tags div.selectize-input input[type='text']").first to be visible
+
+HIBA PCTKE22708: Locator.wait_for: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("div.selectize-control.tags div.selectize-input input[type='text']").first to be visible
+
+HIBA PCTEG55187: Locator.wait_for: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("div.selectize-control.tags div.selectize-input input[type='text']").first to be visible
+
+HIBA PCTEG55188: Locator.wait_for: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("div.selectize-control.tags div.selectize-input input[type='text']").first to be visible
+
+HIBA PCTEG55189: Locator.wait_for: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("div.selectize-control.tags div.selectize-input input[type='text']").first to be visible
+
+HIBA PCTEG55190: Locator.wait_for: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("div.selectize-control.tags div.selectize-input input[type='text']").first to be visible
+
+HIBA PCTMA33425: Locator.wait_for: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("div.selectize-control.tags div.selectize-input input[type='text']").first to be visible
+
+HIBA PCTMA33426: Locator.wait_for: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("div.selectize-control.tags div.selectize-input input[type='text']").first to be visible
+
+HIBA PCTMA33428: Locator.wait_for: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("div.selectize-control.tags div.selectize-input input[type='text']").first to be visible
+
+HIBA PCTMA33427: Locator.wait_for: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("div.selectize-control.tags div.selectize-input input[type='text']").first to be visible
+
+HIBA PCTMA33429: Locator.wait_for: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("div.selectize-control.tags div.selectize-input input[type='text']").first to be visible
+
+HIBA PCTMA33436: Locator.wait_for: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("div.selectize-control.tags div.selectize-input input[type='text']").first to be visible
+
+HIBA PCTEG55167: Locator.wait_for: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("div.selectize-control.tags div.selectize-input input[type='text']").first to be visible
+
+HIBA PCTEG55169: Locator.wait_for: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("div.selectize-control.tags div.selectize-input input[type='text']").first to be visible
+
+HIBA PCTEG55168: Locator.wait_for: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("div.selectize-control.tags div.selectize-input input[type='text']").first to be visible
+
+HIBA PCTEG55157: Locator.wait_for: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("div.selectize-control.tags div.selectize-input input[type='text']").first to be visible
+
+HIBA PCTEG55158: Locator.wait_for: Target page, context or browser has been closed
+HIBA PCTEG55161: Page.goto: Target page, context or browser has been closed
+HIBA PCTEG55162: Page.goto: Target page, context or browser has been closed
+HIBA PCTEG55164: Page.goto: Target page, context or browser has been closed
+HIBA PCTEG55171: Page.goto: Target page, context or browser has been closed
+HIBA PCTKE22705: Page.goto: Target page, context or browser has been closed
+HIBA PCTKE22706: Page.goto: Target page, context or browser has been closed
+HIBA PCTKE22707: Page.goto: Target page, context or browser has been closed
+HIBA PCTKE22708: Page.goto: Target page, context or browser has been closed
+HIBA PCTEG55187: Page.goto: Target page, context or browser has been closed
+HIBA PCTEG55188: Page.goto: Target page, context or browser has been closed
+HIBA PCTEG55189: Page.goto: Target page, context or browser has been closed
+HIBA PCTEG55190: Page.goto: Target page, context or browser has been closed
+HIBA PCTMA33425: Page.goto: Target page, context or browser has been closed
+HIBA PCTMA33426: Page.goto: Target page, context or browser has been closed
+HIBA PCTMA33428: Page.goto: Target page, context or browser has been closed
+HIBA PCTMA33427: Page.goto: Target page, context or browser has been closed
+HIBA PCTMA33429: Page.goto: Target page, context or browser has been closed
+HIBA PCTMA33436: Page.goto: Target page, context or browser has been closed
+HIBA PCTEG55167: Page.goto: Target page, context or browser has been closed
+HIBA PCTEG55169: Page.goto: Target page, context or browser has been closed
+HIBA PCTEG55168: Page.goto: Target page, context or browser has been closed
+HIBA HMFK8108: Locator.wait_for: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("div.selectize-control.tags div.selectize-input input[type='text']").first to be visible
+
+HIBA ABH30801: Locator.wait_for: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("div.selectize-control.tags div.selectize-input input[type='text']").first to be visible
+
+HIBA HKSPA3088: Page.goto: net::ERR_HTTP2_PROTOCOL_ERROR at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA HKISSD34081: Page.goto: net::ERR_HTTP2_PROTOCOL_ERROR at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA HKISSD12101: Page.goto: Navigation to "https://szvgtoolsshop.hu/administrator/" is interrupted by another navigation to "https://szvgtoolsshop.hu/administrator/"
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 2176DF: Locator.wait_for: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("div.selectize-control.tags div.selectize-input input[type='text']").first to be visible
+
+HIBA 213312DF: Page.goto: net::ERR_CONNECTION_TIMED_OUT at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 2166DF: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 2141: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 21A107: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 314808S: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 314810M: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 414A08S: Locator.wait_for: Timeout 10000ms exceeded.
+Call log:
+  - waiting for locator("tr:has(td:text-is('414A08S'))") to be visible
+    - waiting for navigation to finish...
+
+HIBA 14220303: Page.goto: net::ERR_HTTP2_PROTOCOL_ERROR at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 653543M: Locator.wait_for: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("div.selectize-control.tags div.selectize-input input[type='text']").first to be visible
+
+HIBA 653546M: Locator.wait_for: Timeout 10000ms exceeded.
+Call log:
+  - waiting for locator("tr:has(td:text-is('653546M'))") to be visible
+
+HIBA 653548M: Page.goto: net::ERR_NETWORK_CHANGED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 653550M: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 653552M: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 653555M: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 653558M: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 653560M: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 653565M: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 653017M: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 653019M: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 653021M: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 653022M: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 653024M: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 653027M: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 653030M: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 653032M: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 653033M: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 653036M: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 653041M: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 647518M: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 647520M: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 647522M: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 647524M: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 643532S: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 643534S: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 643548S: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 643540S: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 643536S: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 643556S: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 643544S: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 643538S: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 643552S: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 643542S: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 643560S: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 643546S: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 643550S: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 643554S: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 643558S: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 4791R: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 2792: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 6798P: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 6791: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 4796P: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 4799P: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 4797P: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 4798P: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 3796P: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 9CF-107: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 9CF-207: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 9CF110: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 9BU251: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 9BU251T: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 67E2-08: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 7933-45: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 7934-45: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 6AD17-150: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 6AD23-400: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 6AD10-325: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 6AB21-65: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 6AD10-3P01: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 6AH11: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 6AH12: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 6AH13: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 6AH14: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 6141-06C: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 6141-08C: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 9TE11: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 75302-08G: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 75302-10G: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 19911722: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 19932433: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 19932427: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 19961721: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 199920R: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 76505-05: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 19992427: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 19992730: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 19992732: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 19992733: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 19993032: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 19993233: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 19993238: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 9HBN01: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 20A16MR: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 20A17MR: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 4306MRN: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 9BK11: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 131744BHN: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 1317401PN: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 1317046SN: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 1317057SN: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 131755BHN: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 1317501ZN: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 131766BHN: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 1317602PN: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 1317702ZN: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 1317012PN: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 1317012ZN: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 1317115TN: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 1317225TN: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 1317340TN: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 9BC11: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 21-20-102: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 21-20-101: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 21-20-101DK: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 21-20-101P02: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 9BU111: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 9BU111T: Page.goto: net::ERR_CONNECTION_REFUSED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 76301-05: Page.goto: net::ERR_NETWORK_CHANGED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 76302-05: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 76303-05: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 76304-05: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 74250: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 74270: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 74260: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 74060: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 74010: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 74020: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 74030: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 74410: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 9AT3-E01: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 79900-04: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 79900-10: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 3204: Locator.wait_for: Error: strict mode violation: locator("tr:has(td:text-is('3204'))") resolved to 2 elements:
+    1) <tr id="10113558">…</tr> aka get_by_role("row", name="Olajszuro leszedo láncos D=60")
+    2) <tr id="10123072">…</tr> aka get_by_role("row", name="Olajszűrő leszedő láncos D=60")
+
+Call log:
+  - waiting for locator("tr:has(td:text-is('3204'))") to be visible
+
+HIBA 3203: Locator.wait_for: Error: strict mode violation: locator("tr:has(td:text-is('3203'))") resolved to 2 elements:
+    1) <tr id="10113556">…</tr> aka get_by_role("row", name="Olajszuro leszedo szíjas D=60")
+    2) <tr id="10123070">…</tr> aka get_by_role("row", name="Olajszűrő leszedő szíjas D=60")
+
+Call log:
+  - waiting for locator("tr:has(td:text-is('3203'))") to be visible
+    - waiting for" https://szvgtoolsshop.hu/administrator/index.php?view=store&keyword=3203" navigation to finish...
+    - navigated to "https://szvgtoolsshop.hu/administrator/index.php?view=store&keyword=3203"
+
+HIBA 902-089MR01: Page.goto: net::ERR_CONNECTION_TIMED_OUT at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 902-062MR: Page.goto: net::ERR_NETWORK_CHANGED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 902-068MR: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 902-103MR: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 87401-2: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 87401-3: Page.goto: net::ERR_INTERNET_DISCONNECTED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 114330R: Locator.wait_for: Timeout 10000ms exceeded.
+Call log:
+  - waiting for locator("tr:has(td:text-is('114330R'))") to be visible
+
+HIBA 3204: Locator.wait_for: Error: strict mode violation: locator("tr:has(td:text-is('3204'))") resolved to 2 elements:
+    1) <tr id="10113558">…</tr> aka get_by_role("row", name="Olajszuro leszedo láncos D=60")
+    2) <tr id="10123072">…</tr> aka get_by_role("row", name="Olajszűrő leszedő láncos D=60")
+
+Call log:
+  - waiting for locator("tr:has(td:text-is('3204'))") to be visible
+    - waiting for navigation to finish...
+    - navigated to "https://szvgtoolsshop.hu/administrator/index.php?view=store&keyword=3204"
+
+HIBA 3203: Locator.wait_for: Error: strict mode violation: locator("tr:has(td:text-is('3203'))") resolved to 2 elements:
+    1) <tr id="10113556">…</tr> aka get_by_role("row", name="Olajszuro leszedo szíjas D=60")
+    2) <tr id="10123070">…</tr> aka get_by_role("row", name="Olajszűrő leszedő szíjas D=60")
+
+Call log:
+  - waiting for locator("tr:has(td:text-is('3203'))") to be visible
+    - waiting for" https://szvgtoolsshop.hu/administrator/index.php?view=store&keyword=3203" navigation to finish...
+    - navigated to "https://szvgtoolsshop.hu/administrator/index.php?view=store&keyword=3203"
+
+HIBA 425 170 0: Locator.click: Timeout 10000ms exceeded.
+Call log:
+  - waiting for locator("div.selectize-dropdown.tags").first.locator("div.option[data-value='csapszegkiütő készlet'], div.create:has-text('Új címke: csapszegkiütő készlet')").first
+
+HIBA 393 003 0: Locator.wait_for: Error: strict mode violation: locator("tr:has(td:text-is('393 003 0'))") resolved to 2 elements:
+    1) <tr id="1071117">…</tr> aka get_by_role("row", name="Furatvéső lapos 120X 3mm 8szö")
+    2) <tr id="1071118">…</tr> aka get_by_role("row", name="Furatvéső lapos 125X 2mm 8szö")
+
+Call log:
+  - waiting for locator("tr:has(td:text-is('393 003 0'))") to be visible
+    - waiting for" https://szvgtoolsshop.hu/administrator/index.php?view=store&keyword=393+003+0" navigation to finish...
+    - navigated to "https://szvgtoolsshop.hu/administrator/index.php?view=store&keyword=393+003+0"
+
+HIBA 393 003 0: Locator.wait_for: Error: strict mode violation: locator("tr:has(td:text-is('393 003 0'))") resolved to 2 elements:
+    1) <tr id="1071117">…</tr> aka get_by_role("row", name="Furatvéső lapos 120X 3mm 8szö")
+    2) <tr id="1071118">…</tr> aka get_by_role("row", name="Furatvéső lapos 125X 2mm 8szö")
+
+Call log:
+  - waiting for locator("tr:has(td:text-is('393 003 0'))") to be visible
+    - waiting for navigation to finish...
+    - navigated to "https://szvgtoolsshop.hu/administrator/index.php?view=store&keyword=393+003+0"
+
+HIBA 633 305 3: Locator.wait_for: Error: strict mode violation: locator("tr:has(td:text-is('633 305 3'))") resolved to 2 elements:
+    1) <tr id="1067667">…</tr> aka get_by_role("row", name="Mechanikus krimpelő fogóhoz betétpár, MPZ55-höz Cu120 mm2, szigeteletlen")
+    2) <tr id="1067660">…</tr> aka get_by_role("row", name="Mechanikus krimpelő fogóhoz betétpár, MPZ55-höz Cu120mm2, szigeteletlen saruhoz")
+
+Call log:
+  - waiting for locator("tr:has(td:text-is('633 305 3'))") to be visible
+    - waiting for navigation to finish...
+    - navigated to "https://szvgtoolsshop.hu/administrator/index.php?view=store&keyword=633+305+3"
+
+HIBA 633 305 3: Locator.wait_for: Error: strict mode violation: locator("tr:has(td:text-is('633 305 3'))") resolved to 2 elements:
+    1) <tr id="1067667">…</tr> aka get_by_role("row", name="Mechanikus krimpelő fogóhoz betétpár, MPZ55-höz Cu120 mm2, szigeteletlen")
+    2) <tr id="1067660">…</tr> aka get_by_role("row", name="Mechanikus krimpelő fogóhoz betétpár, MPZ55-höz Cu120mm2, szigeteletlen saruhoz")
+
+Call log:
+  - waiting for locator("tr:has(td:text-is('633 305 3'))") to be visible
+    - waiting for navigation to finish...
+    - navigated to "https://szvgtoolsshop.hu/administrator/index.php?view=store&keyword=633+305+3"
+
+HIBA 707020: Page.goto: net::ERR_CONNECTION_TIMED_OUT at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 610 087 3: Page.goto: net::ERR_CONNECTION_TIMED_OUT at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 610 088 3: Page.goto: net::ERR_CONNECTION_TIMED_OUT at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 8720010161: Page.goto: net::ERR_CONNECTION_TIMED_OUT at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 470 004 3: Page.goto: net::ERR_NETWORK_IO_SUSPENDED at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 113090: Locator.wait_for: Error: strict mode violation: locator("tr:has(td:text-is('113090'))") resolved to 2 elements:
+    1) <tr id="30179">…</tr> aka get_by_role("row", name="Parkettatömítő, 280 ml Szín:")
+    2) <tr id="10124432">…</tr> aka get_by_role("row", name="Kézi menetfúró készlet, WS PG")
+
+Call log:
+  - waiting for locator("tr:has(td:text-is('113090'))") to be visible
+    - waiting for navigation to finish...
+    - navigated to "https://szvgtoolsshop.hu/administrator/index.php?view=store&keyword=113090"
+
+HIBA 133120: Locator.wait_for: Error: strict mode violation: locator("tr:has(td:text-is('133120'))") resolved to 2 elements:
+    1) <tr id="277102">…</tr> aka get_by_role("row", name="STABILO Professional egyré")
+    2) <tr id="10124584">…</tr> aka get_by_role("row", name="Kombinált csigafúró-menetfúr")
+
+Call log:
+  - waiting for locator("tr:has(td:text-is('133120'))") to be visible
+    - waiting for navigation to finish...
+    - navigated to "https://szvgtoolsshop.hu/administrator/index.php?view=store&keyword=133120"
+
+HIBA 744801: Locator.click: Timeout 10000ms exceeded.
+Call log:
+  - waiting for locator("div.selectize-dropdown.tags").first.locator("div.option[data-value='kúpsüllyesztő'], div.create:has-text('Új címke: kúpsüllyesztő')").first
+
+HIBA 290030: Locator.wait_for: Error: strict mode violation: locator("tr:has(td:text-is('290030'))") resolved to 2 elements:
+    1) <tr id="2743169">…</tr> aka get_by_role("row", name="290030 gépi dugókulcs átalakí")
+    2) <tr id="10124648">…</tr> aka get_by_role("row", name="Menetmetszo, DIN-EN 22568,")
+
+Call log:
+  - waiting for locator("tr:has(td:text-is('290030'))") to be visible
+
+HIBA 245100: Locator.wait_for: Error: strict mode violation: locator("tr:has(td:text-is('245100'))") resolved to 2 elements:
+    1) <tr id="10124826">…</tr> aka get_by_role("row", name="Menetmetszo, DIN-EN 22568,")
+    2) <tr id="109277">…</tr> aka get_by_role("row", name="delta csiszolópapír, lyukas")
+
+Call log:
+  - waiting for locator("tr:has(td:text-is('245100'))") to be visible
+    - waiting for" https://szvgtoolsshop.hu/administrator/index.php?view=store&keyword=245100" navigation to finish...
+    - navigated to "https://szvgtoolsshop.hu/administrator/index.php?view=store&keyword=245100"
+
+HIBA 245120: Locator.wait_for: Error: strict mode violation: locator("tr:has(td:text-is('245120'))") resolved to 2 elements:
+    1) <tr id="10124821">…</tr> aka get_by_role("row", name="Menetmetszo, DIN-EN 22568,")
+    2) <tr id="109278">…</tr> aka get_by_role("row", name="delta csiszolópapír, lyukas")
+
+Call log:
+  - waiting for locator("tr:has(td:text-is('245120'))") to be visible
+    - waiting for navigation to finish...
+    - navigated to "https://szvgtoolsshop.hu/administrator/index.php?view=store&keyword=245120"
+
+HIBA 242100: Locator.wait_for: Error: strict mode violation: locator("tr:has(td:text-is('242100'))") resolved to 2 elements:
+    1) <tr id="10124853">…</tr> aka get_by_role("row", name="Menetmetszo, DIN-EN 24231,")
+    2) <tr id="109234">…</tr> aka get_by_role("row", name="csiszolópapír, tépőzáras, 93×")
+
+Call log:
+  - waiting for locator("tr:has(td:text-is('242100'))") to be visible
+    - waiting for" https://szvgtoolsshop.hu/administrator/index.php?view=store&keyword=242100" navigation to finish...
+    - navigated to "https://szvgtoolsshop.hu/administrator/index.php?view=store&keyword=242100"
+
+HIBA 242118: Locator.wait_for: Error: strict mode violation: locator("tr:has(td:text-is('242118'))") resolved to 2 elements:
+    1) <tr id="1076790">…</tr> aka get_by_role("row", name="Gyorsítófej marógépekhez,")
+    2) <tr id="10124854">…</tr> aka get_by_role("row", name="Menetmetszo, DIN-EN 24231,")
+
+Call log:
+  - waiting for locator("tr:has(td:text-is('242118'))") to be visible
+    - waiting for navigation to finish...
+    - navigated to "https://szvgtoolsshop.hu/administrator/index.php?view=store&keyword=242118"
+
+HIBA 242120: Locator.wait_for: Error: strict mode violation: locator("tr:has(td:text-is('242120'))") resolved to 2 elements:
+    1) <tr id="10124849">…</tr> aka get_by_role("row", name="Menetmetszo, DIN-EN 24231,")
+    2) <tr id="109235">…</tr> aka get_by_role("row", name="csiszolópapír, tépőzáras, 93×")
+
+Call log:
+  - waiting for locator("tr:has(td:text-is('242120'))") to be visible
+    - waiting for navigation to finish...
+    - navigated to "https://szvgtoolsshop.hu/administrator/index.php?view=store&keyword=242120"
+
+HIBA 241380: Locator.wait_for: Error: strict mode violation: locator("tr:has(td:text-is('241380'))") resolved to 2 elements:
+    1) <tr id="10124875">…</tr> aka get_by_role("row", name="Menetmetszo, HSS BSW3/8")
+    2) <tr id="1077669">…</tr> aka get_by_role("row", name="Tisztítótárcsa, Négertárcsa")
+
+Call log:
+  - waiting for locator("tr:has(td:text-is('241380'))") to be visible
+    - waiting for navigation to finish...
+    - navigated to "https://szvgtoolsshop.hu/administrator/index.php?view=store&keyword=241380"
+
+HIBA 250081: Page.goto: Timeout 60000ms exceeded.
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 300060: Locator.wait_for: Error: strict mode violation: locator("tr:has(td:text-is('300060'))") resolved to 2 elements:
+    1) <tr id="10124690">…</tr> aka get_by_role("row", name="Menetmetszo tereloéles, DIN-")
+    2) <tr id="1078047">…</tr> aka get_by_role("row", name="Felfogó gumitányér, Quick")
+
+Call log:
+  - waiting for locator("tr:has(td:text-is('300060'))") to be visible
+    - waiting for" https://szvgtoolsshop.hu/administrator/index.php?view=store&keyword=300060" navigation to finish...
+    - navigated to "https://szvgtoolsshop.hu/administrator/index.php?view=store&keyword=300060"
+
+HIBA 113090: Locator.wait_for: Error: strict mode violation: locator("tr:has(td:text-is('113090'))") resolved to 2 elements:
+    1) <tr id="30179">…</tr> aka get_by_role("row", name="Parkettatömítő, 280 ml Szín:")
+    2) <tr id="10124432">…</tr> aka get_by_role("row", name="Kézi menetfúró készlet, WS PG")
+
+Call log:
+  - waiting for locator("tr:has(td:text-is('113090'))") to be visible
+    - waiting for navigation to finish...
+    - navigated to "https://szvgtoolsshop.hu/administrator/index.php?view=store&keyword=113090"
+
+HIBA 133120: Locator.wait_for: Error: strict mode violation: locator("tr:has(td:text-is('133120'))") resolved to 2 elements:
+    1) <tr id="277102">…</tr> aka get_by_role("row", name="STABILO Professional egyré")
+    2) <tr id="10124584">…</tr> aka get_by_role("row", name="Kombinált csigafúró-menetfúr")
+
+Call log:
+  - waiting for locator("tr:has(td:text-is('133120'))") to be visible
+    - waiting for navigation to finish...
+    - navigated to "https://szvgtoolsshop.hu/administrator/index.php?view=store&keyword=133120"
+
+HIBA 290030: Locator.wait_for: Error: strict mode violation: locator("tr:has(td:text-is('290030'))") resolved to 2 elements:
+    1) <tr id="2743169">…</tr> aka get_by_role("row", name="290030 gépi dugókulcs átalakí")
+    2) <tr id="10124648">…</tr> aka get_by_role("row", name="Menetmetszo, DIN-EN 22568,")
+
+Call log:
+  - waiting for locator("tr:has(td:text-is('290030'))") to be visible
+    - waiting for navigation to finish...
+    - navigated to "https://szvgtoolsshop.hu/administrator/index.php?view=store&keyword=290030"
+
+HIBA 245100: Locator.wait_for: Error: strict mode violation: locator("tr:has(td:text-is('245100'))") resolved to 2 elements:
+    1) <tr id="10124826">…</tr> aka get_by_role("row", name="Menetmetszo, DIN-EN 22568,")
+    2) <tr id="109277">…</tr> aka get_by_role("row", name="delta csiszolópapír, lyukas")
+
+Call log:
+  - waiting for locator("tr:has(td:text-is('245100'))") to be visible
+
+HIBA 245120: Locator.wait_for: Timeout 10000ms exceeded.
+Call log:
+  - waiting for locator("tr:has(td:text-is('245120'))") to be visible
+    - waiting for navigation to finish...
+
+HIBA 242100: Locator.wait_for: Error: strict mode violation: locator("tr:has(td:text-is('242100'))") resolved to 2 elements:
+    1) <tr id="10124853">…</tr> aka get_by_role("row", name="Menetmetszo, DIN-EN 24231,")
+    2) <tr id="109234">…</tr> aka get_by_role("row", name="csiszolópapír, tépőzáras, 93×")
+
+Call log:
+  - waiting for locator("tr:has(td:text-is('242100'))") to be visible
+    - waiting for navigation to finish...
+    - navigated to "https://szvgtoolsshop.hu/administrator/index.php?view=store&keyword=242100"
+
+HIBA 242118: Locator.wait_for: Error: strict mode violation: locator("tr:has(td:text-is('242118'))") resolved to 2 elements:
+    1) <tr id="1076790">…</tr> aka get_by_role("row", name="Gyorsítófej marógépekhez,")
+    2) <tr id="10124854">…</tr> aka get_by_role("row", name="Menetmetszo, DIN-EN 24231,")
+
+Call log:
+  - waiting for locator("tr:has(td:text-is('242118'))") to be visible
+    - waiting for navigation to finish...
+    - navigated to "https://szvgtoolsshop.hu/administrator/index.php?view=store&keyword=242118"
+
+HIBA 242120: Locator.wait_for: Error: strict mode violation: locator("tr:has(td:text-is('242120'))") resolved to 2 elements:
+    1) <tr id="10124849">…</tr> aka get_by_role("row", name="Menetmetszo, DIN-EN 24231,")
+    2) <tr id="109235">…</tr> aka get_by_role("row", name="csiszolópapír, tépőzáras, 93×")
+
+Call log:
+  - waiting for locator("tr:has(td:text-is('242120'))") to be visible
+    - waiting for navigation to finish...
+    - navigated to "https://szvgtoolsshop.hu/administrator/index.php?view=store&keyword=242120"
+
+HIBA 241380: Locator.wait_for: Error: strict mode violation: locator("tr:has(td:text-is('241380'))") resolved to 2 elements:
+    1) <tr id="1077669">…</tr> aka get_by_role("row", name="Tisztítótárcsa, Négertárcsa")
+    2) <tr id="10124875">…</tr> aka get_by_role("row", name="Menetmetszo, HSS BSW3/8")
+
+Call log:
+  - waiting for locator("tr:has(td:text-is('241380'))") to be visible
+    - waiting for navigation to finish...
+    - navigated to "https://szvgtoolsshop.hu/administrator/index.php?view=store&keyword=241380"
+
+HIBA 300060: Locator.wait_for: Error: strict mode violation: locator("tr:has(td:text-is('300060'))") resolved to 2 elements:
+    1) <tr id="10124690">…</tr> aka get_by_role("row", name="Menetmetszo tereloéles, DIN-")
+    2) <tr id="1078047">…</tr> aka get_by_role("row", name="Felfogó gumitányér, Quick")
+
+Call log:
+  - waiting for locator("tr:has(td:text-is('300060'))") to be visible
+    - waiting for navigation to finish...
+    - navigated to "https://szvgtoolsshop.hu/administrator/index.php?view=store&keyword=300060"
+

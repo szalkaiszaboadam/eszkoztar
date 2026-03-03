@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hangos Leltár Szkenner</title>
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; background: #f0f2f5; margin: 0; padding: 10px; }
+        
+        h2 { color: #333; margin-bottom: 15px; }
+
+        /* Kamera doboz */
+        #reader {
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto 10px auto;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #000;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
+        /* Vezérlők */
+        .controls { 
+            background: white; 
+            padding: 15px; 
+            border-radius: 10px; 
+            max-width: 500px; 
+            margin: 0 auto 20px auto; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .btn-group { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-bottom: 15px; }
+        
+        button { padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; color: white; font-weight: bold; font-size: 14px; }
+        #clear-btn { background-color: #e76f51; }
+        #export-btn { background-color: #264653; }
+        #torch-btn { background-color: #e9c46a; color: #333; display: none; }
+
+        /* Zoom */
+        #zoom-container { 
+            display: none; 
+            width: 90%; 
+            margin: 0 auto; 
+        }
+        input[type=range] { width: 100%; cursor: pointer; }
+        label { font-size: 14px; font-weight: bold; color: #555; }
+
+        /* Táblázat */
+        .table-container {
+            width: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            overflow-x: auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #2a9d8f; color: white; text-transform: uppercase; font-size: 0.9rem; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+        .highlight { background-color: #d4edda !important; transition: background-color 1s ease; }
+        .qty-col { font-weight: bold; color: #264653; font-size: 1.1rem; text-align: center; }
+    </style>
+</head>
+<body>
+
+    <h2>🔊 Hangos Leltár Szkenner</h2>
+    
+    <div id="reader"></div>
+
+    <div class="controls">
+        <div id="zoom-container">
+            <label for="zoom-slider">🔍 Nagyítás (Zoom):</label><br>
+            <input type="range" id="zoom-slider" min="1" max="5" step="0.1" value="1" oninput="applyZoom(this.value)">
+        </div>
+        
+        <hr style="margin: 15px 0; border: 0; border-top: 1px solid #eee;">
+
+        <div class="btn-group">
+            <button id="torch-btn" onclick="toggleTorch()">🔦 Lámpa</button>
+            <button id="clear-btn" onclick="clearData()">🗑️ Törlés</button>
+            <button id="export-btn" onclick="exportToCSV()">💾 Excel</button>
+        </div>
+        <div style="font-size: 12px; color: #888;">Tipp: Ha nincs hang iPhone-on, ellenőrizd, hogy nincs-e lenémítva!</div>
+    </div>
+
+    <div class="table-container">
+        <table id="inventory-table">
+            <thead>
+                <tr>
+                    <th>Cikkszám / Vonalkód</th>
+                    <th class="qty-col">Db</th>
+                </tr>
+            </thead>
+            <tbody id="table-body"></tbody>
+        </table>
+    </div>
+
+    <script>
+        let html5QrCode;
+        let isTorchOn = false;
+        let videoTrack; 
+        let inventoryData = {}; 
+
+        // --- HANG GENERÁLÁS (WEB AUDIO API) ---
+        // Ez hozza létre a "csipogást"
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playBeep() {
+            // iPhone-on néha újra kell indítani a hangmotort
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            oscillator.type = 'square'; // "Szögletes" jel = élesebb csipogás
+            oscillator.frequency.value = 800; // Hangmagasság (Hz)
+            gainNode.gain.value = 0.1; // Hangerő (ne legyen túl hangos)
+
+            oscillator.start();
+            setTimeout(() => {
+                oscillator.stop();
+            }, 150); // 150 milliszekundumig szól
+        }
+
+        // iPhone trükk: Az első kattintásra "feloldjuk" a hangot
+        document.body.addEventListener('click', function() {
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }, { once: true });
+
+
+        function startScanner() {
+            html5QrCode = new Html5Qrcode("reader");
+
+            const cameraIdOrConfig = { facingMode: "environment" };
+            
+            const config = { 
+                fps: 10, 
+                qrbox: { width: 250, height: 250 },
+                aspectRatio: 1.0,
+                videoConstraints: {
+                    facingMode: "environment",
+                    width: { min: 640, ideal: 1280, max: 1920 }, 
+                    height: { min: 480, ideal: 720, max: 1080 },
+                    focusMode: "continuous"
+                }
+            };
+            
+            html5QrCode.start(cameraIdOrConfig, config, onScanSuccess)
+            .then(() => { setupCameraControls(); })
+            .catch(err => { 
+                console.error(err);
+                alert("Kamera hiba: " + err); 
+            });
+        }
+
+        // --- BEOLVASÁS ---
+        function onScanSuccess(decodedText) {
+            const code = decodedText.trim();
+
+            // 1. REZGÉS (Android)
+            if (navigator.vibrate) navigator.vibrate(200); 
+
+            // 2. HANG (iPhone + Android)
+            playBeep();
+
+            if (inventoryData[code]) {
+                inventoryData[code]++;
+            } else {
+                inventoryData[code] = 1;
+            }
+
+            updateTable(code);
+            
+            html5QrCode.pause();
+            setTimeout(() => { html5QrCode.resume(); }, 1000);
+        }
+
+        function updateTable(highlightCode = null) {
+            const tbody = document.getElementById("table-body");
+            tbody.innerHTML = ""; 
+            Object.keys(inventoryData).forEach(code => {
+                const qty = inventoryData[code];
+                const row = document.createElement("tr");
+                if (code === highlightCode) {
+                    row.classList.add("highlight");
+                    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                row.innerHTML = `<td>${code}</td><td class="qty-col">${qty}</td>`;
+                tbody.prepend(row); 
+            });
+        }
+
+        function clearData() {
+            if (confirm("Minden adat törlődik!")) {
+                inventoryData = {};
+                updateTable();
+            }
+        }
+
+        function exportToCSV() {
+            let csvContent = "data:text/csv;charset=utf-8,Vonalkod,Darabszam\n";
+            Object.keys(inventoryData).forEach(code => {
+                csvContent += `${code},${inventoryData[code]}\n`;
+            });
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "leltar.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function setupCameraControls() {
+            setTimeout(() => {
+                const videoElement = document.querySelector("#reader video");
+                if (videoElement && videoElement.srcObject) {
+                    const stream = videoElement.srcObject;
+                    videoTrack = stream.getVideoTracks()[0];
+                    
+                    const capabilities = videoTrack.getCapabilities();
+                    const settings = videoTrack.getSettings();
+
+                    if (capabilities.zoom) {
+                        const zoomContainer = document.getElementById("zoom-container");
+                        const zoomSlider = document.getElementById("zoom-slider");
+                        zoomContainer.style.display = "block";
+                        zoomSlider.min = capabilities.zoom.min;
+                        zoomSlider.max = capabilities.zoom.max;
+                        zoomSlider.step = capabilities.zoom.step;
+                        zoomSlider.value = settings.zoom || 1;
+                    }
+
+                    if (capabilities.torch) {
+                        document.getElementById("torch-btn").style.display = "inline-block";
+                    }
+                }
+            }, 500);
+        }
+
+        function applyZoom(value) {
+            if (videoTrack) {
+                videoTrack.applyConstraints({
+                    advanced: [{ zoom: parseFloat(value) }]
+                }).catch(e => console.log("Zoom hiba:", e));
+            }
+        }
+
+        function toggleTorch() {
+            if (!videoTrack) return;
+            isTorchOn = !isTorchOn;
+            videoTrack.applyConstraints({ advanced: [{ torch: isTorchOn }] })
+            .catch(e => console.log(e));
+        }
+
+        window.onload = startScanner;
+    </script>
+</body>
+</html>

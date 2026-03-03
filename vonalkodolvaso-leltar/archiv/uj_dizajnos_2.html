@@ -1,0 +1,2071 @@
+<!DOCTYPE html>
+<html lang="hu">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Leltár Pro</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        *, *::before, *::after {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            /* Core Palette */
+            --bg:          #07080D;
+            --surface-1:   #0E1018;
+            --surface-2:   #161923;
+            --surface-3:   #1E2330;
+            --border:      rgba(255,255,255,0.07);
+            --border-hi:   rgba(255,255,255,0.13);
+
+            /* Accent */
+            --accent:       #3B7BFF;
+            --accent-dim:   rgba(59,123,255,0.15);
+            --accent-glow:  rgba(59,123,255,0.35);
+            --accent-2:     #00E5B0;
+
+            /* Text */
+            --text-1:  #F0F2F7;
+            --text-2:  #8891A4;
+            --text-3:  #4E5668;
+
+            /* Status */
+            --danger:   #FF3B5C;
+            --warning:  #FFB830;
+            --success:  #00C97A;
+
+            /* Typography */
+            --font-display: 'Syne', sans-serif;
+            --font-body:    'Inter', sans-serif;
+            --font-mono:    'JetBrains Mono', monospace;
+
+            /* Sizing */
+            --nav-w:    260px;
+            --nav-h:    64px;
+            --radius:   12px;
+            --radius-lg: 18px;
+        }
+
+        /* ─── RESET ──────────────────────────────────────────────── */
+        html, body { margin: 0; padding: 0; height: 100%; }
+        * { font-family: var(--font-body); }
+
+        body {
+            background: var(--bg);
+            color: var(--text-1);
+            height: 100dvh;
+            overflow: hidden;
+        }
+
+        /* ─── SCROLLBAR ──────────────────────────────────────────── */
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 2px; }
+
+        /* ─── NAV — MOBILE BOTTOM BAR ────────────────────────────── */
+        nav {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%;
+            display: flex;
+            background: rgba(14,16,24,0.96);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            z-index: 5000;
+            padding-top: env(safe-area-inset-top);
+            height: calc(var(--nav-h) + env(safe-area-inset-top));
+            padding-left: 8px;
+            padding-right: 8px;
+            align-items: flex-end;
+            padding-bottom: 0;
+        }
+
+        .nav-brand {
+            display: none; /* mobile: hidden */
+            align-items: center;
+            gap: 10px;
+            padding: 0 20px 0 16px;
+            font-family: var(--font-display);
+            font-weight: 800;
+            font-size: 17px;
+            letter-spacing: -0.3px;
+            color: var(--text-1);
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .nav-brand .brand-dot {
+            width: 8px; height: 8px;
+            background: var(--accent);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 10px 4px 12px;
+            border: none;
+            background: none;
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-3);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            cursor: pointer;
+            transition: color 0.2s;
+            position: relative;
+        }
+        .tab-btn::after {
+            content: '';
+            position: absolute;
+            bottom: 0; left: 50%;
+            transform: translateX(-50%) scaleX(0);
+            width: 24px; height: 2px;
+            background: var(--accent);
+            border-radius: 2px 2px 0 0;
+            transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        .tab-btn.active { color: var(--accent); }
+        .tab-btn.active::after { transform: translateX(-50%) scaleX(1); }
+        .tab-btn i { width: 20px; height: 20px; stroke-width: 1.8px; }
+
+        /* ─── CONTENT AREAS ──────────────────────────────────────── */
+        .content-area {
+            position: fixed;
+            top: calc(var(--nav-h) + env(safe-area-inset-top));
+            bottom: 0; left: 0; right: 0;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            background: var(--bg);
+        }
+        .content-area.active { display: flex !important; }
+
+        /* ─── SCANNER PAGE ───────────────────────────────────────── */
+        #scanner {
+            background: #000;
+            position: relative;
+        }
+
+        #reader {
+            width: 100% !important;
+            height: 100% !important;
+            border: none !important;
+            z-index: 1000;
+        }
+        #reader video {
+            object-fit: cover !important;
+            background: #000;
+        }
+        /* Hide html5-qrcode default UI */
+        #reader img, #reader select, #reader button:not(.control-btn),
+        #reader div[id$="scan-region-highlight"] { display: none !important; }
+
+        .scan-overlay {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 260px; height: 180px;
+            border: none;
+            border-radius: 20px;
+            box-shadow: 0 0 0 5000px rgba(0,0,0,0.72);
+            pointer-events: none;
+            z-index: 3000;
+        }
+        /* Corner marks */
+        .scan-overlay::before, .scan-overlay::after {
+            content: '';
+            position: absolute;
+            width: 28px; height: 28px;
+            border-color: var(--accent);
+            border-style: solid;
+            border-radius: 4px;
+        }
+        .scan-overlay::before {
+            top: -2px; left: -2px;
+            border-width: 3px 0 0 3px;
+        }
+        .scan-overlay::after {
+            bottom: -2px; right: -2px;
+            border-width: 0 3px 3px 0;
+        }
+        /* Extra corners via pseudo-element on a child */
+        .scan-overlay .corner-br, .scan-overlay .corner-tl-inner { display: none; }
+
+        /* Animated scan line */
+        .scan-laser {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 220px;
+            height: 1px;
+            pointer-events: none;
+            z-index: 3001;
+        }
+        .scan-laser::after {
+            content: '';
+            display: block;
+            width: 100%; height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent), var(--accent-2), var(--accent), transparent);
+            border-radius: 1px;
+            box-shadow: 0 0 12px var(--accent-glow);
+            animation: scanLine 2s ease-in-out infinite;
+        }
+        @keyframes scanLine {
+            0%, 100% { transform: translateY(-80px); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            50% { transform: translateY(80px); }
+        }
+
+        .scan-overlay.success-flash {
+            box-shadow: 0 0 0 5000px rgba(0,0,0,0.72), 0 0 0 3px var(--success) inset, 0 0 40px var(--success);
+            transition: 0.15s;
+        }
+        .scan-overlay.success-flash::before,
+        .scan-overlay.success-flash::after {
+            border-color: var(--success);
+        }
+        .scan-overlay.cooldown::after { display: none; }
+
+        /* Status message */
+        #scan-status-msg {
+            position: absolute;
+            top: 12%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(10,12,20,0.92);
+            color: var(--text-1);
+            padding: 12px 22px;
+            border-radius: var(--radius);
+            font-size: 14px;
+            font-weight: 600;
+            font-family: var(--font-mono);
+            letter-spacing: 0.3px;
+            text-align: center;
+            white-space: pre-line;
+            z-index: 4000;
+            display: none;
+            pointer-events: none;
+            border: 1px solid var(--border-hi);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        }
+
+        /* Mode switcher */
+        .mode-switcher-container {
+            position: absolute;
+            top: 18px; left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            background: rgba(10,12,20,0.85);
+            backdrop-filter: blur(12px);
+            padding: 3px;
+            border-radius: 10px;
+            z-index: 4500;
+            border: 1px solid var(--border-hi);
+            gap: 2px;
+        }
+        .mode-opt {
+            padding: 7px 16px;
+            border-radius: 8px;
+            color: var(--text-2);
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-family: var(--font-body);
+        }
+        .mode-opt i { width: 14px; height: 14px; }
+        .mode-opt.active {
+            background: var(--accent);
+            color: #fff;
+            box-shadow: 0 2px 12px var(--accent-glow);
+        }
+
+        /* Camera controls */
+        .camera-controls {
+            position: absolute;
+            bottom: 50px; left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            z-index: 4000;
+        }
+        .control-btn {
+            width: 52px; height: 52px;
+            border-radius: 50%;
+            background: rgba(14,16,24,0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-hi);
+            color: var(--text-1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .control-btn:hover, .control-btn:active {
+            background: var(--surface-3);
+            border-color: var(--accent);
+        }
+        .control-btn.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+        .control-btn i { width: 20px; height: 20px; stroke-width: 1.8px; }
+
+        /* Desktop scanner */
+        .desktop-only-scanner {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 60vh;
+            gap: 20px;
+        }
+
+        /* ─── WORKSHEETS PAGE ────────────────────────────────────── */
+        #worksheets {
+            background: var(--bg);
+        }
+
+        /* Top header bar */
+        .ws-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 18px;
+            background: var(--surface-1);
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+        #active-ws-title {
+            margin: 0;
+            font-family: var(--font-display);
+            font-size: 17px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+            color: var(--text-1);
+        }
+
+        /* Inventory list */
+        #inventory-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0;
+        }
+
+        .item-card {
+            background: transparent;
+            padding: 14px 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            transition: background 0.15s;
+        }
+        .item-card:hover { background: var(--surface-1); }
+        .item-card:active { background: var(--surface-2); }
+        .item-code {
+            font-size: 14px;
+            font-weight: 600;
+            font-family: var(--font-mono);
+            color: var(--text-1);
+            letter-spacing: 0.3px;
+        }
+        .item-qty {
+            color: var(--accent);
+            font-weight: 700;
+            font-size: 12px;
+            font-family: var(--font-mono);
+            margin-top: 2px;
+        }
+
+        /* Bottom tab bar */
+        .ws-bottom-bar {
+            background: var(--surface-1);
+            display: flex;
+            align-items: stretch;
+            border-top: 1px solid var(--border);
+            flex-shrink: 0;
+            min-height: 46px;
+        }
+
+        .add-ws-btn {
+            background: transparent;
+            border: none;
+            border-right: 1px solid var(--border);
+            padding: 0 14px;
+            cursor: pointer;
+            color: var(--text-2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.2s, background 0.2s;
+            flex-shrink: 0;
+        }
+        .add-ws-btn:hover { color: var(--text-1); background: var(--surface-2); }
+        .add-ws-btn i { width: 16px; height: 16px; stroke-width: 2px; }
+
+        #ws-tabs-bar {
+            display: flex;
+            gap: 0;
+            overflow-x: auto;
+            flex: 1;
+            scrollbar-width: none;
+        }
+        #ws-tabs-bar::-webkit-scrollbar { display: none; }
+
+        .ws-browser-tab {
+            padding: 0 14px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-3);
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border: none;
+            border-right: 1px solid var(--border);
+            background: transparent;
+            transition: all 0.2s;
+            min-height: 46px;
+            font-family: var(--font-body);
+        }
+        .ws-browser-tab:hover { color: var(--text-2); background: var(--surface-2); }
+        .ws-browser-tab.active {
+            background: var(--accent-dim);
+            color: var(--accent);
+            border-bottom: 2px solid var(--accent);
+        }
+        .ws-browser-tab span { font-family: var(--font-body); }
+        .tab-more-icon {
+            opacity: 0.4;
+            transition: opacity 0.2s;
+            cursor: pointer;
+            width: 14px; height: 14px;
+        }
+        .tab-more-icon:hover { opacity: 1; }
+
+        /* ─── BUTTONS ────────────────────────────────────────────── */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            padding: 8px 16px;
+            border-radius: var(--radius);
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.18s;
+            font-size: 13px;
+            font-family: var(--font-body);
+            letter-spacing: 0.1px;
+        }
+        .btn i { width: 16px; height: 16px; stroke-width: 2px; }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #fff;
+            box-shadow: 0 4px 16px var(--accent-glow);
+        }
+        .btn-primary:hover {
+            background: #5590FF;
+            box-shadow: 0 6px 24px var(--accent-glow);
+            transform: translateY(-1px);
+        }
+
+        .btn-dark {
+            background: var(--surface-3);
+            color: var(--text-1);
+            border: 1px solid var(--border-hi);
+        }
+        .btn-dark:hover { background: var(--surface-2); border-color: var(--border-hi); }
+
+        .btn-outline {
+            background: transparent;
+            color: var(--text-2);
+            border: 1px solid var(--border-hi);
+        }
+        .btn-outline:hover { background: var(--surface-2); color: var(--text-1); border-color: var(--border-hi); }
+        .btn-outline.btn-sm { padding: 6px 12px; font-size: 12px; }
+
+        .btn-danger {
+            background: rgba(255,59,92,0.12);
+            color: var(--danger);
+            border: 1px solid rgba(255,59,92,0.2);
+        }
+        .btn-danger:hover { background: rgba(255,59,92,0.2); }
+
+        .btn-ok-large {
+            width: 100%;
+            height: 56px;
+            font-size: 14px;
+            font-weight: 700;
+            font-family: var(--font-display);
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            background: var(--accent);
+            color: #fff;
+            border-radius: var(--radius);
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 24px var(--accent-glow);
+        }
+        .btn-ok-large:hover {
+            background: #5590FF;
+            transform: translateY(-1px);
+            box-shadow: 0 8px 32px var(--accent-glow);
+        }
+
+        /* Qty controls */
+        .qty-controls {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .btn-qty {
+            width: 32px; height: 32px;
+            padding: 0;
+            border-radius: 8px;
+        }
+        .btn-qty i { width: 14px; height: 14px; }
+
+        /* ─── EMPTY STATE ────────────────────────────────────────── */
+        #empty-state {
+            background: var(--bg);
+        }
+        #empty-state i {
+            color: var(--surface-3) !important;
+        }
+        #empty-state h2 {
+            color: var(--text-2);
+            font-family: var(--font-display);
+            font-weight: 700;
+        }
+
+        /* ─── DRAWER ─────────────────────────────────────────────── */
+        #backdrop {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.72);
+            backdrop-filter: blur(4px);
+            display: none;
+            z-index: 8000;
+        }
+        #backdrop.active { display: block; }
+
+        #drawer {
+            position: fixed;
+            bottom: -100%;
+            left: 0; right: 0;
+            background: var(--surface-1);
+            border-radius: 24px 24px 0 0;
+            padding: 0 24px calc(28px + env(safe-area-inset-bottom));
+            transition: bottom 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 9000;
+            color: var(--text-1);
+            border-top: 1px solid var(--border-hi);
+            box-shadow: 0 -20px 60px rgba(0,0,0,0.6);
+        }
+        #drawer.open { bottom: 0; }
+
+        .drawer-handle {
+            width: 36px; height: 3px;
+            background: var(--surface-3);
+            border-radius: 2px;
+            margin: 14px auto 20px;
+        }
+
+        #drawer-code {
+            font-size: 1.7rem;
+            font-weight: 700;
+            font-family: var(--font-mono);
+            color: var(--text-1);
+            margin-bottom: 4px;
+            word-break: break-all;
+            letter-spacing: 0.5px;
+        }
+        #drawer-info {
+            font-size: 13px;
+            color: var(--text-3);
+            margin-bottom: 22px;
+            font-family: var(--font-body);
+        }
+
+        /* Picker */
+        .picker-container {
+            position: relative;
+            height: 150px;
+            width: 100%;
+            margin: 10px auto;
+            overflow: hidden;
+            touch-action: pan-y;
+            mask-image: linear-gradient(to bottom, transparent, black 30%, black 70%, transparent);
+            -webkit-mask-image: linear-gradient(to bottom, transparent, black 30%, black 70%, transparent);
+        }
+        .picker-wheel {
+            height: 100%;
+            overflow-y: scroll;
+            overflow-x: hidden;
+            scroll-snap-type: y mandatory;
+            scrollbar-width: none;
+            touch-action: pan-y;
+            padding: 50px 0;
+        }
+        .picker-wheel::-webkit-scrollbar { display: none; }
+        .picker-item {
+            height: 50px;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            font-weight: 700;
+            font-family: var(--font-mono);
+            color: var(--text-3);
+            scroll-snap-align: center;
+            transition: color 0.15s;
+        }
+        .picker-item.active { color: var(--accent); }
+        .picker-selection-frame {
+            position: absolute;
+            top: 50%; left: 0; right: 0;
+            height: 50px;
+            transform: translateY(-50%);
+            border-top: 1px solid var(--border-hi);
+            border-bottom: 1px solid var(--border-hi);
+            pointer-events: none;
+            background: rgba(59,123,255,0.04);
+        }
+        .picker-item input {
+            width: 100%; height: 100%;
+            background: transparent;
+            border: none;
+            text-align: center;
+            font-size: 22px;
+            font-weight: 700;
+            font-family: var(--font-mono);
+            color: inherit;
+            outline: none;
+            pointer-events: none;
+            opacity: 0.5;
+            transition: 0.2s;
+        }
+        .picker-item input::-webkit-inner-spin-button,
+        .picker-item input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        .picker-item.active input { pointer-events: auto; opacity: 1; }
+
+        /* Qty ribbon */
+        .qty-selector-container {
+            width: 100%;
+            overflow-x: auto;
+            padding: 14px 0;
+            margin-bottom: 4px;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            display: flex;
+        }
+        .qty-selector-container::-webkit-scrollbar { display: none; }
+        .qty-ribbon {
+            display: flex;
+            gap: 8px;
+            padding: 0 40%;
+        }
+        .qty-chip {
+            min-width: 54px; height: 54px;
+            border-radius: 10px;
+            background: var(--surface-2);
+            color: var(--text-2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1rem;
+            font-family: var(--font-mono);
+            cursor: pointer;
+            transition: all 0.18s;
+            border: 1px solid var(--border);
+        }
+        .qty-chip:hover { background: var(--surface-3); color: var(--text-1); border-color: var(--border-hi); }
+        .qty-chip.selected {
+            background: var(--accent);
+            color: #fff;
+            border-color: var(--accent);
+            transform: scale(1.08);
+            box-shadow: 0 4px 16px var(--accent-glow);
+        }
+
+        /* Duplicate */
+        @keyframes flash-dup {
+            0% { background: var(--surface-1); }
+            50% { background: rgba(255,184,48,0.12); }
+            100% { background: var(--surface-1); }
+        }
+        .duplicate-active { animation: flash-dup 0.8s ease-in-out; border-top: 2px solid var(--warning) !important; }
+        .duplicate-text {
+            color: var(--warning) !important;
+            font-weight: 700;
+            font-size: 0.78rem;
+            display: block;
+            margin-top: 6px;
+            background: rgba(255,184,48,0.1);
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-family: var(--font-body);
+        }
+
+        /* ─── SETTINGS PAGE ──────────────────────────────────────── */
+        #settings {
+            padding: 24px 20px;
+            overflow-y: auto;
+        }
+        #settings h3 {
+            font-family: var(--font-display);
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--text-1);
+            margin: 0 0 20px;
+            letter-spacing: -0.5px;
+        }
+
+        .settings-card {
+            background: var(--surface-1);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .settings-card label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-2);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+        .settings-card b { color: var(--text-1); font-family: var(--font-mono); }
+
+        input[type="range"] {
+            width: 100%;
+            margin-top: 14px;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+
+        .settings-section-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: var(--text-3);
+            margin-bottom: 10px;
+            padding: 0 2px;
+        }
+
+        .settings-action-btn {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 16px 18px;
+            background: var(--surface-1);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            cursor: pointer;
+            color: var(--text-1);
+            font-size: 14px;
+            font-weight: 500;
+            font-family: var(--font-body);
+            transition: all 0.18s;
+            text-align: left;
+        }
+        .settings-action-btn:hover { background: var(--surface-2); border-color: var(--border-hi); }
+        .settings-action-btn i { width: 20px; height: 20px; color: var(--accent); flex-shrink: 0; }
+        .settings-action-hint {
+            font-size: 12px;
+            color: var(--text-3);
+            margin-top: 8px;
+            padding: 0 4px;
+            line-height: 1.5;
+        }
+
+        /* ─── MODALS ─────────────────────────────────────────────── */
+        #manual-backdrop {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(6px);
+            display: none;
+            z-index: 9999;
+        }
+        #manual-modal {
+            display: none;
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--surface-2);
+            border: 1px solid var(--border-hi);
+            z-index: 10000;
+            width: 88%;
+            max-width: 400px;
+            padding: 28px 24px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+        }
+        #manual-modal h3 {
+            margin: 0 0 18px;
+            font-family: var(--font-display);
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--text-1);
+        }
+        #manual-input-field {
+            width: 100%;
+            padding: 14px 16px;
+            background: var(--surface-3);
+            border: 1px solid var(--border-hi);
+            border-radius: var(--radius);
+            font-size: 18px;
+            font-family: var(--font-mono);
+            font-weight: 600;
+            color: var(--text-1);
+            margin-bottom: 18px;
+            outline: none;
+            transition: border-color 0.2s;
+            box-sizing: border-box;
+        }
+        #manual-input-field::placeholder { color: var(--text-3); font-weight: 400; }
+        #manual-input-field:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+
+        /* ─── CONTEXT / DROPDOWN MENUS ──────────────────────────── */
+        #tab-context-menu {
+            background: var(--surface-2) !important;
+            border: 1px solid var(--border-hi) !important;
+            border-radius: var(--radius-lg) !important;
+            box-shadow: 0 16px 48px rgba(0,0,0,0.5) !important;
+            overflow: hidden;
+            min-width: 190px;
+        }
+        #tab-context-menu > div {
+            color: var(--text-1) !important;
+            font-size: 13px;
+            font-weight: 500;
+            transition: background 0.15s;
+        }
+        #tab-context-menu > div:hover { background: var(--surface-3) !important; }
+        #tab-context-menu > div:last-child { color: var(--danger) !important; }
+        #tab-context-menu i { color: var(--text-2); }
+        #tab-context-menu > div:last-child i { color: var(--danger); }
+
+        #ws-list-dropdown {
+            background: var(--surface-2) !important;
+            border: 1px solid var(--border-hi) !important;
+            border-radius: var(--radius-lg) !important;
+            box-shadow: 0 -8px 48px rgba(0,0,0,0.5) !important;
+            overflow: hidden;
+        }
+        #ws-list-dropdown > div { color: var(--text-1) !important; }
+        #ws-list-dropdown > div:hover { background: var(--surface-3) !important; }
+
+        /* Active ws view layout */
+        #active-ws-view {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            width: 100%;
+        }
+
+        /* ─── DESKTOP LAYOUT ─────────────────────────────────────── */
+        @media (min-width: 768px) {
+            body {
+                display: flex;
+                flex-direction: row;
+                overflow: hidden;
+            }
+
+            nav {
+                position: relative;
+                top: auto; left: auto;
+                width: var(--nav-w);
+                height: 100dvh;
+                flex-direction: column;
+                border-right: 1px solid var(--border);
+                border-bottom: none;
+                padding: 0;
+                align-items: stretch;
+                justify-content: flex-start;
+                background: var(--surface-1);
+            }
+
+            .nav-brand {
+                display: flex;
+                height: 64px;
+                border-bottom: 1px solid var(--border);
+            }
+
+            .tab-btn {
+                flex: none;
+                width: 100%;
+                flex-direction: row;
+                justify-content: flex-start;
+                padding: 13px 18px;
+                gap: 12px;
+                font-size: 13px;
+                letter-spacing: 0.3px;
+                text-transform: none;
+                border-radius: 0;
+                margin: 0;
+                font-weight: 500;
+                text-align: left;
+            }
+            .tab-btn::after {
+                display: none;
+            }
+            .tab-btn.active {
+                background: var(--accent-dim);
+                color: var(--accent);
+                font-weight: 600;
+            }
+            .tab-btn i { width: 18px; height: 18px; }
+
+            .nav-spacer {
+                flex: 1;
+            }
+            .nav-bottom {
+                padding: 16px;
+                border-top: 1px solid var(--border);
+                font-size: 11px;
+                color: var(--text-3);
+                letter-spacing: 0.3px;
+            }
+
+            .content-area {
+                position: relative;
+                top: auto; bottom: auto; left: auto; right: auto;
+                height: 100dvh;
+                flex: 1;
+            }
+
+            /* Desktop: hide camera UI */
+            #reader, .scan-overlay, .camera-controls, .mode-switcher-container, .scan-laser {
+                display: none !important;
+            }
+            .desktop-only-scanner {
+                display: flex !important;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                height: 100%;
+                gap: 24px;
+                background: var(--bg);
+                padding: 40px;
+            }
+
+            /* Desktop scanner input */
+            #desktop-barcode-input {
+                width: 420px;
+                padding: 18px 24px;
+                font-size: 22px;
+                font-family: var(--font-mono);
+                font-weight: 600;
+                color: var(--text-1);
+                background: var(--surface-1);
+                border: 1px solid var(--border-hi);
+                border-radius: var(--radius-lg);
+                outline: none;
+                text-align: center;
+                transition: all 0.2s;
+                box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            }
+            #desktop-barcode-input::placeholder { color: var(--text-3); }
+            #desktop-barcode-input:focus {
+                border-color: var(--accent);
+                box-shadow: 0 0 0 4px var(--accent-dim), 0 8px 32px rgba(0,0,0,0.3);
+            }
+
+            /* Desktop worksheet header */
+            .ws-header {
+                padding: 18px 28px;
+                background: var(--surface-1);
+                border-bottom: 1px solid var(--border);
+            }
+            #active-ws-title { font-size: 18px; }
+
+            /* Desktop item list */
+            .item-card { padding: 16px 28px; }
+            .item-code { font-size: 15px; }
+
+            /* Bottom bar desktop */
+            .ws-bottom-bar {
+                background: var(--surface-1);
+                border-top: 1px solid var(--border);
+            }
+        }
+
+        /* Desktop scanner icon area */
+        .scanner-icon-wrap {
+            width: 90px; height: 90px;
+            background: var(--accent-dim);
+            border: 1px solid rgba(59,123,255,0.25);
+            border-radius: 24px;
+            display: flex; align-items: center; justify-content: center;
+            margin-bottom: 8px;
+        }
+        .scanner-icon-wrap i { width: 42px; height: 42px; color: var(--accent); stroke-width: 1.5px; }
+        .desktop-scanner-title {
+            font-family: var(--font-display);
+            font-size: 26px;
+            font-weight: 800;
+            color: var(--text-1);
+            letter-spacing: -0.5px;
+            margin: 0;
+        }
+        .desktop-scanner-sub {
+            font-size: 14px;
+            color: var(--text-3);
+            margin: 0;
+            text-align: center;
+            max-width: 320px;
+            line-height: 1.6;
+        }
+
+        /* Inventory empty state */
+        .inv-empty {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-3);
+        }
+        .inv-empty p { font-size: 14px; margin-bottom: 20px; }
+
+        /* Nav tab padding on desktop (top offset for first tab) */
+        @media (min-width: 768px) {
+            nav > .tab-btn:first-of-type {
+                margin-top: 8px;
+            }
+        }
+
+        /* Misc */
+        h3 { margin: 0 0 20px; font-weight: 800; }
+
+        /* Hide default drawer qty input */
+        #drawer-qty { display: none; }
+
+        /* backdrop/manual backdrop initial state */
+        #backdrop { display: none; }
+        #manual-backdrop { display: none; }
+
+        /* Pulse animation for scan active state */
+        @keyframes pulseRing {
+            0% { box-shadow: 0 0 0 0 var(--accent-glow); }
+            70% { box-shadow: 0 0 0 16px transparent; }
+            100% { box-shadow: 0 0 0 0 transparent; }
+        }
+
+        /* Nav separator */
+        .nav-sep {
+            height: 1px;
+            background: var(--border);
+            margin: 8px 16px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav>
+        <!-- Brand (desktop only) -->
+        <div class="nav-brand">
+            <div class="brand-dot"></div>
+            Leltár<span style="color:var(--accent)">Pro</span>
+        </div>
+
+        <button class="tab-btn active" onclick="showTab('worksheets', this)">
+            <i data-lucide="layers"></i>Munkalapok
+        </button>
+        <button class="tab-btn" id="nav-scan-btn" onclick="showTab('scanner', this)" style="display:none;">
+            <i data-lucide="scan-line"></i>Szkenner
+        </button>
+
+        <!-- Desktop spacer -->
+        <div class="nav-spacer" style="display:none;" id="nav-spacer"></div>
+        <div class="nav-sep" style="display:none;" id="nav-sep-2"></div>
+
+        <button class="tab-btn" onclick="showTab('settings', this)">
+            <i data-lucide="sliders-horizontal"></i>Beállítások
+        </button>
+
+        <div class="nav-bottom" id="nav-bottom" style="display:none;">
+            <span style="opacity:0.5;">v2.0 · Firebase Sync</span>
+        </div>
+    </nav>
+
+    <!-- ═══════════════════════════════════════════════════════ WORKSHEETS -->
+    <div id="worksheets" class="content-area active">
+        <div id="empty-state"
+            style="display:none; flex:1; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:40px; gap:16px;">
+            <div style="width:72px;height:72px;background:var(--surface-2);border-radius:20px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border);margin-bottom:8px;">
+                <i data-lucide="layers" style="width:36px;height:36px;color:var(--text-3);stroke-width:1.5px;"></i>
+            </div>
+            <h2 style="margin:0;font-family:var(--font-display);font-size:22px;font-weight:800;color:var(--text-2);letter-spacing:-0.3px;">Nincs aktív munkalap</h2>
+            <p style="margin:0;font-size:14px;color:var(--text-3);">Hozd létre az első munkalapot a kezdéshez.</p>
+            <button class="btn btn-primary" onclick="createNewWorksheet()" style="padding:12px 28px;font-size:14px;">
+                <i data-lucide="plus"></i> Munkalap létrehozása
+            </button>
+        </div>
+
+        <div id="active-ws-view">
+            <div class="ws-header">
+                <h3 id="active-ws-title" style="font-family:var(--font-display);font-size:17px;font-weight:700;margin:0;letter-spacing:-0.3px;">---</h3>
+                <div style="display:flex;gap:8px;">
+                    <button class="btn btn-outline btn-sm" onclick="exportToExcel()">
+                        <i data-lucide="download" style="width:15px;height:15px;"></i> Export
+                    </button>
+                </div>
+            </div>
+
+            <div id="inventory-container"></div>
+
+            <div class="ws-bottom-bar">
+                <button class="add-ws-btn" onclick="createNewWorksheet()" title="Új munkalap">
+                    <i data-lucide="plus"></i>
+                </button>
+                <button class="add-ws-btn" id="ws-list-toggle-btn" onclick="toggleWsListMenu(event)" title="Munkalapok">
+                    <i data-lucide="list"></i>
+                </button>
+                <div id="ws-tabs-bar"></div>
+            </div>
+        </div>
+
+        <!-- Context menu -->
+        <div id="tab-context-menu" style="display:none; position:fixed; z-index:10000;">
+            <div onclick="renameWorksheet()" style="padding:13px 16px; cursor:pointer; display:flex; align-items:center; gap:10px; border-bottom:1px solid var(--border);">
+                <i data-lucide="edit-2" style="width:16px;"></i> Átnevezés
+            </div>
+            <div onclick="askClearAll()" style="padding:13px 16px; cursor:pointer; display:flex; align-items:center; gap:10px; border-bottom:1px solid var(--border);">
+                <i data-lucide="eraser" style="width:16px;"></i> Tartalom törlése
+            </div>
+            <div onclick="deleteActiveWorksheet()" style="padding:13px 16px; cursor:pointer; display:flex; align-items:center; gap:10px;">
+                <i data-lucide="trash-2" style="width:16px;"></i> Munkalap törlése
+            </div>
+        </div>
+
+        <!-- Worksheet list dropdown -->
+        <div id="ws-list-dropdown" style="display:none; position:fixed; z-index:10000; min-width:230px; max-height:50vh; overflow-y:auto;"></div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════ SCANNER -->
+    <div id="scanner" class="content-area">
+        <div class="mode-switcher-container">
+            <div id="opt-interactive" class="mode-opt active" onclick="setScanMode(false)">
+                <i data-lucide="layers" style="width:13px"></i> Interaktív
+            </div>
+            <div id="opt-continuous" class="mode-opt" onclick="setScanMode(true)">
+                <i data-lucide="zap" style="width:13px"></i> Gyors
+            </div>
+        </div>
+
+        <div id="reader"></div>
+        <div class="scan-laser" id="scan-laser"></div>
+
+        <!-- Desktop input -->
+        <div class="desktop-only-scanner">
+            <div class="scanner-icon-wrap">
+                <i data-lucide="scan-line"></i>
+            </div>
+            <p class="desktop-scanner-title">Asztali Beolvasó</p>
+            <p class="desktop-scanner-sub">Használj kézi szkennert vagy gépeld be a kódot, majd nyomj Enter-t a rögzítéshez.</p>
+            <input type="text" id="desktop-barcode-input" placeholder="Szkennelj ide...">
+        </div>
+
+        <div id="scan-status-msg">Várj...</div>
+        <div class="scan-overlay" id="overlay"></div>
+
+        <div class="camera-controls">
+            <button id="manual-btn" class="control-btn" onclick="manualEntry()" title="Kézi bevitel">
+                <i data-lucide="keyboard"></i>
+            </button>
+            <button id="restart-cam-btn" class="control-btn" onclick="restartCamera()" title="Kamera újraindítás">
+                <i data-lucide="refresh-cw"></i>
+            </button>
+            <button id="torch-btn" class="control-btn" onclick="toggleTorch()" style="display:none;" title="Vaku">
+                <i data-lucide="zap"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════ SETTINGS -->
+    <div id="settings" class="content-area" style="overflow-y:auto;">
+        <div style="padding:24px 20px; max-width:600px;">
+            <h3>Beállítások</h3>
+
+            <p class="settings-section-label">Kamera</p>
+            <div class="settings-card">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                    <label>Zoom szint</label>
+                    <b id="zoom-label">2.0x</b>
+                </div>
+                <input type="range" id="zoom-slider" min="1" max="5" step="0.1" value="2.0" oninput="applyZoom(this.value)">
+            </div>
+
+            <p class="settings-section-label" style="margin-top:24px;">Adatmentés</p>
+            <button class="settings-action-btn" onclick="exportAllWorksheets()">
+                <i data-lucide="archive"></i>
+                <div>
+                    <div style="font-weight:600; color:var(--text-1); margin-bottom:2px;">Összes munkalap exportálása</div>
+                    <div style="font-size:12px; color:var(--text-3);">Minden munkalap egyetlen .xlsx fájlba</div>
+                </div>
+            </button>
+            <p class="settings-action-hint">Az összes létező munkalap kimentésre kerül egyetlen Excel fájlba, külön fülekre bontva.</p>
+
+            <p class="settings-section-label" style="margin-top:28px;">Verzió</p>
+            <div class="settings-card" style="display:flex; justify-content:space-between; align-items:center; padding:16px 20px;">
+                <span style="font-size:13px; color:var(--text-2); font-weight:500;">Leltár Pro</span>
+                <span style="font-family:var(--font-mono); font-size:12px; color:var(--text-3); background:var(--surface-3); padding:4px 10px; border-radius:6px;">v2.0</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════ OVERLAYS -->
+    <div id="backdrop" onclick="closeDrawer(false)"></div>
+
+    <div id="drawer">
+        <div class="drawer-handle"></div>
+        <div style="text-align:center;">
+            <div id="drawer-code">---</div>
+            <div id="drawer-info">Készleten: 0 db</div>
+
+            <div class="qty-selector-container">
+                <div class="qty-ribbon" id="qty-ribbon"></div>
+            </div>
+
+            <div class="picker-container">
+                <div class="picker-selection-frame"></div>
+                <div class="picker-wheel" id="picker-wheel" onscroll="handlePickerScroll()"></div>
+            </div>
+
+            <input type="number" id="drawer-qty" value="1">
+
+            <button class="btn-ok-large" onclick="addFromDrawer(document.getElementById('drawer-qty').value)">
+                Hozzáadás
+            </button>
+            <button class="btn" style="color:var(--text-3); background:none; margin-top:14px; width:100%; font-size:13px;" onclick="closeDrawer(false)">
+                Mégse
+            </button>
+        </div>
+    </div>
+
+    <!-- Manual modal -->
+    <div id="manual-backdrop" onclick="closeManualModal()"></div>
+    <div id="manual-modal">
+        <h3>Kézi bevitel</h3>
+        <input type="text" id="manual-input-field" placeholder="Vonalkód...">
+        <div style="display:flex; gap:10px;">
+            <button class="btn btn-outline" style="flex:1;" onclick="closeManualModal()">Mégse</button>
+            <button class="btn btn-primary" style="flex:1;" onclick="submitManualModal()">
+                <i data-lucide="check"></i> Rögzítés
+            </button>
+        </div>
+    </div>
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+    <script>
+        // Show desktop-only nav elements
+        if (window.innerWidth >= 768) {
+            document.getElementById('nav-spacer').style.display = 'block';
+            document.getElementById('nav-sep-2').style.display = 'block';
+            document.getElementById('nav-bottom').style.display = 'block';
+        }
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCo0H9W1BDmtlctkEQbV3AYiPmgF9ZO2p4",
+            authDomain: "leltar-app-3ec39.firebaseapp.com",
+            databaseURL: "https://leltar-app-3ec39-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "leltar-app-3ec39",
+            storageBucket: "leltar-app-3ec39.firebasestorage.app",
+            messagingSenderId: "235882317421",
+            appId: "1:235882317421:web:eff986788eec4d6368a164",
+            measurementId: "G-M46QXLXC1D"
+        };
+
+        let openTabs = [];
+        const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        let isResetting = false;
+        let isContinuousMode = false;
+        let canScan = true;
+        let allWorksheetsData = {};
+        let currentItemsRef = null;
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        let currentWorksheetId = null;
+        let inventoryData = {};
+
+        db.ref('worksheets').on('value', (snapshot) => {
+            allWorksheetsData = snapshot.val() || {};
+            const wsIds = Object.keys(allWorksheetsData).sort((a, b) =>
+                (allWorksheetsData[a].createdAt || 0) - (allWorksheetsData[b].createdAt || 0)
+            );
+
+            if (wsIds.length === 0) {
+                document.getElementById('empty-state').style.display = 'flex';
+                document.getElementById('active-ws-view').style.setProperty('display', 'none', 'important');
+                document.getElementById('nav-scan-btn').style.display = 'none';
+                currentWorksheetId = null;
+            } else {
+                document.getElementById('empty-state').style.display = 'none';
+                document.getElementById('active-ws-view').style.display = 'flex';
+                document.getElementById('nav-scan-btn').style.display = 'flex';
+
+                if (!currentWorksheetId || !allWorksheetsData[currentWorksheetId]) {
+                    selectWorksheet(wsIds[0]);
+                } else {
+                    renderTabs();
+                    document.getElementById('active-ws-title').innerText = allWorksheetsData[currentWorksheetId].name;
+                }
+            }
+        });
+
+        function createNewWorksheet() {
+            const wsCount = allWorksheetsData ? Object.keys(allWorksheetsData).length : 0;
+            const nextNum = wsCount + 1;
+            const name = `Munkalap(${nextNum})`;
+            const safeId = 'ws_' + Date.now();
+
+            db.ref('worksheets/' + safeId).set({
+                name: name,
+                createdAt: firebase.database.ServerValue.TIMESTAMP,
+                items: {}
+            }).then(() => {
+                selectWorksheet(safeId);
+            });
+        }
+
+        document.getElementById('desktop-barcode-input').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                const code = this.value.trim();
+                if (code) {
+                    onScanSuccess(code);
+                    this.value = '';
+                    this.focus();
+                }
+            }
+        });
+
+        function renderWorksheetList(data) {
+            const container = document.getElementById('ws-list-container');
+            if (!container) return;
+            container.innerHTML = '';
+            if (!data) return;
+            Object.keys(data).forEach(id => {
+                const ws = data[id];
+                const itemCount = ws.items ? Object.keys(ws.items).length : 0;
+                const totalQty = ws.items ? Object.values(ws.items).reduce((a, b) => a + b, 0) : 0;
+                const div = document.createElement('div');
+                div.className = 'item-card ws-card';
+                div.style.cssText = `cursor:pointer;padding:20px;border-radius:16px;background:var(--surface-1);display:flex;flex-direction:column;gap:10px;transition:0.3s;border:${id === currentWorksheetId ? '2px solid var(--accent)' : '1px solid var(--border)'};`;
+                div.innerHTML = `
+                    <div onclick="selectWorksheet('${id}')" style="flex:1">
+                        <div style="font-weight:800;font-size:18px;color:var(--text-1);font-family:var(--font-display);">${ws.name}</div>
+                        <div style="font-size:12px;color:var(--text-3);margin-bottom:10px;">${new Date(ws.createdAt).toLocaleDateString()}</div>
+                        <div style="display:flex;gap:10px;">
+                            <span style="font-size:12px;background:var(--accent-dim);color:var(--accent);padding:4px 10px;border-radius:6px;font-weight:600;font-family:var(--font-mono);"><b>${itemCount}</b> típus</span>
+                            <span style="font-size:12px;background:var(--surface-3);color:var(--text-2);padding:4px 10px;border-radius:6px;font-weight:600;font-family:var(--font-mono);"><b>${totalQty}</b> db</span>
+                        </div>
+                    </div>
+                    <div style="display:flex;justify-content:flex-end;border-top:1px solid var(--border);padding-top:10px;">
+                        <button class="btn btn-danger" style="padding:6px 12px;font-size:12px;" onclick="deleteWorksheet('${id}')">
+                            <i data-lucide="trash-2" style="width:14px;"></i> Törlés
+                        </button>
+                    </div>`;
+                container.appendChild(div);
+            });
+            lucide.createIcons();
+        }
+
+        function selectWorksheet(id) {
+            currentWorksheetId = id;
+            if (currentItemsRef) currentItemsRef.off();
+
+            const wsName = allWorksheetsData[id].name;
+            document.getElementById('active-ws-title').innerText = wsName;
+            document.getElementById('nav-scan-btn').style.display = "flex";
+
+            currentItemsRef = db.ref('worksheets/' + id + '/items');
+            currentItemsRef.on('value', (snapshot) => {
+                inventoryData = snapshot.val() || {};
+                updateUI();
+            });
+            renderTabs();
+        }
+
+        function renderTabs() {
+            const tabsBar = document.getElementById('ws-tabs-bar');
+            tabsBar.innerHTML = "";
+            if (!allWorksheetsData) return;
+
+            const sortedIds = Object.keys(allWorksheetsData).sort((a, b) =>
+                allWorksheetsData[a].createdAt - allWorksheetsData[b].createdAt
+            );
+
+            sortedIds.forEach(id => {
+                const ws = allWorksheetsData[id];
+                const tab = document.createElement('div');
+                tab.className = `ws-browser-tab ${id === currentWorksheetId ? 'active' : ''}`;
+                tab.innerHTML = `
+                    <span onclick="selectWorksheet('${id}')">${ws.name}</span>
+                    <i data-lucide="chevron-up" class="tab-more-icon" onclick="toggleWsMenu(event, '${id}')"></i>`;
+                tabsBar.appendChild(tab);
+            });
+            lucide.createIcons();
+        }
+
+        function closeTab(event, id) {
+            event.stopPropagation();
+            openTabs = openTabs.filter(tabId => tabId !== id);
+            if (currentWorksheetId === id) {
+                if (openTabs.length > 0) {
+                    selectWorksheet(openTabs[openTabs.length - 1]);
+                } else {
+                    currentWorksheetId = null;
+                    document.getElementById('nav-scan-btn').style.display = "none";
+                }
+            }
+            renderTabs();
+        }
+
+        function deleteWorksheet(id) {
+            if (confirm("Biztosan törlöd ezt a munkalapot az összes adattal?")) {
+                db.ref('worksheets/' + id).remove();
+                if (currentWorksheetId === id) location.reload();
+            }
+        }
+
+        let html5QrCode;
+        let videoTrack;
+        let isScanningPaused = false;
+        let lastScannedCode = "";
+        let audioCtx;
+        let autoCloseTimeout = null;
+
+        const quickValues = [1, 2, 3, 4, 5, 10, 12, 20, 24, 50, 100];
+
+        async function showTab(tabId, btn) {
+            document.querySelectorAll('.content-area').forEach(el => {
+                el.style.display = 'none';
+                el.classList.remove('active');
+            });
+            const target = document.getElementById(tabId);
+            if (target) {
+                target.style.display = 'flex';
+                target.classList.add('active');
+            }
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+
+            if (document.getElementById('tab-context-menu')) {
+                document.getElementById('tab-context-menu').style.display = 'none';
+            }
+            closeDrawer(false);
+
+            if (tabId === 'scanner') {
+                if (!isMobileDevice) {
+                    setTimeout(() => { document.getElementById('desktop-barcode-input').focus(); }, 300);
+                    return;
+                }
+                setTimeout(async () => { await startCam(); }, 300);
+            } else {
+                if (html5QrCode && html5QrCode.isScanning) {
+                    await html5QrCode.stop().catch(e => console.log("Stop hiba", e));
+                }
+            }
+        }
+
+        async function startCam() {
+            if (!isMobileDevice) return;
+            if (html5QrCode && html5QrCode.isScanning) {
+                try { await html5QrCode.stop(); } catch (e) { }
+            }
+            if (!html5QrCode) {
+                html5QrCode = new Html5Qrcode("reader");
+            }
+            const config = {
+                fps: 25,
+                qrbox: { width: 260, height: 180 },
+                aspectRatio: 1.0
+            };
+            html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
+                .then(() => {
+                    isScanningPaused = false;
+                    setupExtras();
+                })
+                .catch(err => { console.error("Kamera hiba:", err); });
+        }
+
+        window.onload = () => {
+            lucide.createIcons();
+            loadData();
+            renderQtyPicker();
+            setTimeout(() => lucide.createIcons(), 500);
+
+            // Show desktop nav extras
+            if (window.innerWidth >= 768) {
+                document.getElementById('nav-spacer').style.display = 'block';
+                document.getElementById('nav-sep-2').style.display = 'block';
+                document.getElementById('nav-bottom').style.display = 'block';
+            }
+        };
+
+        function initCam() {
+            if (html5QrCode && html5QrCode.isScanning) return;
+            if (html5QrCode) {
+                html5QrCode.stop().then(() => startCam()).catch(() => startCam());
+            } else {
+                startCam();
+            }
+        }
+
+        async function restartCamera() {
+            const btn = document.getElementById('restart-cam-btn');
+            btn.style.transform = "rotate(180deg)";
+            try {
+                if (html5QrCode && html5QrCode.isScanning) {
+                    await html5QrCode.stop();
+                }
+                startCam();
+            } catch (err) {
+                console.error("Reset hiba:", err);
+                startCam();
+            }
+            setTimeout(() => { btn.style.transform = "rotate(0deg)"; }, 500);
+        }
+
+        function setupExtras() {
+            const video = document.querySelector("#reader video");
+            if (video && video.srcObject) {
+                videoTrack = video.srcObject.getVideoTracks()[0];
+                const caps = videoTrack.getCapabilities();
+                const torchBtn = document.getElementById("torch-btn");
+                torchBtn.classList.remove('active');
+                const savedZoom = localStorage.getItem("app_zoom") || 2.0;
+                applyZoom(savedZoom);
+                document.getElementById("zoom-slider").value = savedZoom;
+                if (caps.torch) { torchBtn.style.display = "flex"; }
+                else { torchBtn.style.display = "none"; }
+            }
+        }
+
+        function toggleTorch() {
+            if (videoTrack) {
+                const settings = videoTrack.getSettings();
+                const newState = !settings.torch;
+                videoTrack.applyConstraints({ advanced: [{ torch: newState }] })
+                    .then(() => { document.getElementById('torch-btn').classList.toggle('active', newState); });
+            }
+        }
+
+        async function toggleScanMode() {
+            isContinuousMode = !isContinuousMode;
+            if (html5QrCode && html5QrCode.isScanning) {
+                isScanningPaused = true;
+                showStatus("Módváltás...", 1000);
+                await html5QrCode.stop();
+                setTimeout(() => startCam(), 100);
+            }
+        }
+
+        function showStatus(text, duration) {
+            const msg = document.getElementById('scan-status-msg');
+            msg.innerText = text;
+            msg.style.display = 'block';
+            setTimeout(() => { msg.style.display = 'none'; }, duration);
+        }
+
+        async function setScanMode(isFast) {
+            if (isContinuousMode === isFast) return;
+            isContinuousMode = isFast;
+            document.getElementById('opt-interactive').classList.toggle('active', !isFast);
+            document.getElementById('opt-continuous').classList.toggle('active', isFast);
+            if (html5QrCode && html5QrCode.isScanning) {
+                isScanningPaused = true;
+                showStatus("Üzemmód váltása...", 800);
+                await html5QrCode.stop();
+                setTimeout(() => startCam(), 150);
+            }
+        }
+
+        function manualEntry() {
+            isScanningPaused = true;
+            const backdrop = document.getElementById('manual-backdrop');
+            const modal = document.getElementById('manual-modal');
+            const input = document.getElementById('manual-input-field');
+            if (!backdrop) { alert("Hiba a kézi bevitel indításakor."); return; }
+            backdrop.style.display = 'block';
+            modal.style.display = 'block';
+            input.value = "";
+            setTimeout(() => {
+                input.focus();
+                input.onkeypress = (e) => { if (e.key === 'Enter') submitManualModal(); };
+            }, 200);
+        }
+
+        function closeManualModal() {
+            document.getElementById('manual-backdrop').style.display = 'none';
+            document.getElementById('manual-modal').style.display = 'none';
+            if (!document.getElementById('drawer').classList.contains('open')) {
+                isScanningPaused = false;
+            }
+        }
+
+        function submitManualModal() {
+            const code = document.getElementById('manual-input-field').value.trim();
+            if (code !== "") {
+                closeManualModal();
+                onScanSuccess(code);
+            }
+        }
+
+        function onScanSuccess(code) {
+            if (!canScan) return;
+            lastScannedCode = code;
+            playBeep();
+            const overlay = document.getElementById('overlay');
+
+            if (isContinuousMode) {
+                canScan = false;
+                isScanningPaused = true;
+                const currentQty = inventoryData[code] || 0;
+                const newQty = currentQty + 1;
+                overlay.classList.add('success-flash');
+                showStatus(`BEOLVASVA: ${code}\n(Összesen: ${newQty} db)`, 1400);
+                db.ref('worksheets/' + currentWorksheetId + '/items/' + code)
+                    .set(newQty)
+                    .then(() => {
+                        if (navigator.vibrate) navigator.vibrate(80);
+                        setTimeout(() => {
+                            overlay.classList.remove('success-flash');
+                            canScan = true;
+                            isScanningPaused = false;
+                        }, 1500);
+                    })
+                    .catch(err => {
+                        console.error("Firebase hiba:", err);
+                        canScan = true;
+                        isScanningPaused = false;
+                    });
+            } else {
+                isScanningPaused = true;
+                resetPicker();
+                const isDuplicate = !!inventoryData[code];
+                const drawer = document.getElementById('drawer');
+                const drawerCode = document.getElementById('drawer-code');
+                drawer.classList.remove('duplicate-active');
+                if (isDuplicate) {
+                    drawer.classList.add('duplicate-active');
+                    drawerCode.innerHTML = `${code} <span class="duplicate-text">⚠️ MÁR SZEREPEL</span>`;
+                } else {
+                    drawerCode.innerText = code;
+                }
+                document.getElementById('drawer-info').innerText = "Készleten: " + (inventoryData[code] || 0) + " db";
+                document.getElementById('drawer-qty').value = 1;
+                drawer.classList.add('open');
+                document.getElementById('backdrop').classList.add('active');
+                startAutoClose();
+            }
+        }
+
+        function startAutoClose() {
+            cancelAutoClose();
+            autoCloseTimeout = setTimeout(() => {
+                addFromDrawer(document.getElementById('drawer-qty').value);
+            }, 3000);
+        }
+
+        function cancelAutoClose() {
+            if (autoCloseTimeout) { clearTimeout(autoCloseTimeout); autoCloseTimeout = null; }
+        }
+
+        function closeDrawer(save = true) {
+            cancelAutoClose();
+            document.getElementById('drawer').classList.remove('open');
+            document.getElementById('backdrop').classList.remove('active');
+            setTimeout(() => { isScanningPaused = false; }, 400);
+        }
+
+        function addFromDrawer() {
+            const qty = parseInt(document.getElementById('drawer-qty').value);
+            if (!currentWorksheetId) return alert("Válassz munkalapot!");
+            if (!isNaN(qty) && qty > 0) {
+                const currentQty = inventoryData[lastScannedCode] || 0;
+                db.ref('worksheets/' + currentWorksheetId + '/items/' + lastScannedCode).set(currentQty + qty);
+                closeDrawer(true);
+            }
+        }
+
+        function updateUI() {
+            const container = document.getElementById('inventory-container');
+            container.innerHTML = "";
+            const keys = Object.keys(inventoryData).reverse();
+
+            if (keys.length === 0) {
+                container.innerHTML = `
+                    <div class="inv-empty">
+                        <div style="width:56px;height:56px;background:var(--surface-2);border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;border:1px solid var(--border);">
+                            <i data-lucide="package-open" style="width:26px;height:26px;color:var(--text-3);stroke-width:1.5px;"></i>
+                        </div>
+                        <p>A munkalap még üres.</p>
+                        <button class="btn btn-primary" onclick="showTab('scanner', document.getElementById('nav-scan-btn'))">
+                            <i data-lucide="scan-line"></i> Beolvasás indítása
+                        </button>
+                    </div>`;
+                lucide.createIcons();
+                return;
+            }
+
+            keys.forEach(code => {
+                const card = document.createElement('div');
+                card.className = 'item-card';
+                card.innerHTML = `
+                    <div>
+                        <div class="item-code">${code}</div>
+                        <div class="item-qty">${inventoryData[code]} db</div>
+                    </div>
+                    <div class="qty-controls">
+                        <button class="btn btn-outline btn-qty" onclick="modQty('${code}', -1)"><i data-lucide="minus"></i></button>
+                        <button class="btn btn-outline btn-qty" onclick="modQty('${code}', 1)"><i data-lucide="plus"></i></button>
+                        <button class="btn btn-outline btn-qty" style="margin-left:6px;" onclick="delItem('${code}')"><i data-lucide="trash-2" style="color:var(--danger);"></i></button>
+                    </div>`;
+                container.appendChild(card);
+            });
+            lucide.createIcons();
+        }
+
+        function modQty(code, val) {
+            const newQty = (inventoryData[code] || 0) + val;
+            if (newQty <= 0) {
+                db.ref('worksheets/' + currentWorksheetId + '/items/' + code).remove();
+            } else {
+                db.ref('worksheets/' + currentWorksheetId + '/items/' + code).set(newQty);
+            }
+        }
+
+        function delItem(code) {
+            if (confirm("Törli az elemet?")) {
+                db.ref('worksheets/' + currentWorksheetId + '/items/' + code).remove();
+            }
+        }
+
+        function askClearAll() {
+            if (!currentWorksheetId) { alert("Nincs kiválasztva munkalap!"); return; }
+            if (confirm("Biztosan törli a munkalap ÖSSZES tételét?")) {
+                db.ref('worksheets/' + currentWorksheetId + '/items').remove()
+                    .then(() => {
+                        inventoryData = {};
+                        updateUI();
+                        showStatus("Munkalap kiürítve!", 1500);
+                    })
+                    .catch(err => { console.error("Hiba:", err); alert("Hiba történt!"); });
+            }
+        }
+
+        function applyZoom(v) {
+            if (videoTrack) {
+                videoTrack.applyConstraints({ advanced: [{ zoom: parseFloat(v) }] });
+                document.getElementById("zoom-label").innerText = parseFloat(v).toFixed(1) + "x";
+                localStorage.setItem("app_zoom", v);
+            }
+        }
+
+        function playBeep() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+            osc.connect(g); g.connect(audioCtx.destination);
+            osc.frequency.value = 900; g.gain.value = 0.04;
+            osc.start(); osc.stop(audioCtx.currentTime + 0.08);
+        }
+
+        function exportToExcel() {
+            if (Object.keys(inventoryData).length === 0) return;
+            const comment = prompt("Adj meg egy megjegyzést (opcionális):", "");
+            if (comment === null) return;
+            const dateStr = new Date().toISOString().slice(0, 10);
+            const safeComment = comment.replace(/[/\\?%*:|"<>]/g, '-').trim();
+            const fileName = `leltar_${dateStr}${safeComment ? '_' + safeComment : ''}.xlsx`;
+            const sheetName = safeComment ? safeComment.substring(0, 31) : "Leltár";
+            const data = Object.keys(inventoryData).map(k => ({ "Vonalkód": k, "Mennyiség": inventoryData[k] }));
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, sheetName);
+            XLSX.writeFile(wb, fileName);
+            setTimeout(() => {
+                if (confirm("A mentés elkészült. Töröljük a munkalap tartalmát?")) {
+                    db.ref('worksheets/' + currentWorksheetId + '/items').remove();
+                    inventoryData = {};
+                    updateUI();
+                }
+            }, 500);
+        }
+
+        function saveData() { localStorage.setItem("inventory_pro_v1", JSON.stringify(inventoryData)); }
+        function loadData() {
+            const saved = localStorage.getItem("inventory_pro_v1");
+            if (saved) { inventoryData = JSON.parse(saved); }
+        }
+
+        function renderQtyRibbon() {
+            const container = document.querySelector('.qty-selector-container');
+            const ribbon = document.getElementById('qty-ribbon');
+            container.onscroll = () => { cancelAutoClose(); };
+            container.ontouchstart = () => { cancelAutoClose(); };
+            ribbon.innerHTML = "";
+            quickValues.forEach(val => {
+                const chip = document.createElement('div');
+                chip.className = `qty-chip ${val === 1 ? 'selected' : ''}`;
+                chip.innerText = val;
+                chip.onclick = () => selectQty(val, chip);
+                ribbon.appendChild(chip);
+            });
+        }
+
+        function selectQty(val, element) {
+            document.getElementById('drawer-qty').value = val;
+            document.querySelectorAll('.qty-chip').forEach(c => c.classList.remove('selected'));
+            element.classList.add('selected');
+            element.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            cancelAutoClose();
+        }
+
+        function resetRibbon() {
+            const container = document.querySelector('.qty-selector-container');
+            document.getElementById('drawer-qty').value = 1;
+            const chips = document.querySelectorAll('.qty-chip');
+            chips.forEach(c => {
+                c.classList.remove('selected');
+                if (c.innerText == "1") { c.classList.add('selected'); }
+            });
+            container.scrollTo({ left: 0, behavior: 'smooth' });
+        }
+
+        function renderQtyPicker() {
+            const wheel = document.getElementById('picker-wheel');
+            wheel.innerHTML = "";
+            const manualItem = document.createElement('div');
+            manualItem.className = 'picker-item';
+            manualItem.innerHTML = `<input type="number" id="manual-qty" placeholder="Egyéni..." onfocus="cancelAutoClose()">`;
+            manualItem.setAttribute('data-val', 'manual');
+            wheel.appendChild(manualItem);
+            quickValues.forEach(val => {
+                const item = document.createElement('div');
+                item.className = 'picker-item';
+                item.innerText = val;
+                item.setAttribute('data-val', val);
+                wheel.appendChild(item);
+            });
+        }
+
+        function handlePickerScroll() {
+            if (!isResetting) { cancelAutoClose(); }
+            const wheel = document.getElementById('picker-wheel');
+            const items = wheel.querySelectorAll('.picker-item');
+            const wheelCenter = wheel.scrollTop + (wheel.clientHeight / 2);
+            const manualInput = document.getElementById('manual-qty');
+            items.forEach(item => {
+                const itemCenter = item.offsetTop + (item.clientHeight / 2);
+                const distance = Math.abs(wheelCenter - itemCenter);
+                if (distance < 25) {
+                    items.forEach(i => i.classList.remove('active'));
+                    item.classList.add('active');
+                    const currentVal = item.getAttribute('data-val');
+                    if (currentVal === "manual") {
+                        document.getElementById('drawer-qty').value = manualInput.value;
+                        manualInput.oninput = () => {
+                            cancelAutoClose();
+                            document.getElementById('drawer-qty').value = manualInput.value;
+                        };
+                    } else {
+                        if (document.activeElement === manualInput) manualInput.blur();
+                        document.getElementById('drawer-qty').value = currentVal;
+                    }
+                }
+            });
+        }
+
+        function exportAllWorksheets() {
+            if (!allWorksheetsData || Object.keys(allWorksheetsData).length === 0) {
+                alert("Nincs adat az exportáláshoz."); return;
+            }
+            const wb = XLSX.utils.book_new();
+            let hasData = false;
+            Object.keys(allWorksheetsData).forEach(id => {
+                const wsData = allWorksheetsData[id];
+                if (wsData.items && Object.keys(wsData.items).length > 0) {
+                    hasData = true;
+                    const rows = Object.keys(wsData.items).map(code => ({ "Vonalkód": code, "Mennyiség": wsData.items[code] }));
+                    const sheet = XLSX.utils.json_to_sheet(rows);
+                    const safeName = wsData.name.replace(/[\[\]\*\?\/\\]/g, "").substring(0, 31);
+                    XLSX.utils.book_append_sheet(wb, sheet, safeName || id);
+                }
+            });
+            if (!hasData) { alert("Minden munkalap üres."); return; }
+            const dateStr = new Date().toISOString().slice(0, 10);
+            XLSX.writeFile(wb, `TELJES_LELTAR_${dateStr}.xlsx`);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const dskInput = document.getElementById('desktop-barcode-input');
+            if (dskInput) {
+                dskInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        const val = dskInput.value.trim();
+                        if (val) { onScanSuccess(val); dskInput.value = ''; dskInput.focus(); }
+                    }
+                });
+            }
+        });
+
+        function renameWorksheet() {
+            if (!currentWorksheetId) return;
+            const currentName = allWorksheetsData[currentWorksheetId].name;
+            const newName = prompt("Add meg a munkalap új nevét:", currentName);
+            if (newName && newName.trim() !== "" && newName !== currentName) {
+                db.ref('worksheets/' + currentWorksheetId + '/name').set(newName.trim())
+                    .then(() => {
+                        document.getElementById('active-ws-title').innerText = newName.trim();
+                        renderTabs();
+                    });
+            }
+            document.getElementById('tab-context-menu').style.display = 'none';
+        }
+
+        function toggleWsListMenu(event) {
+            event.stopPropagation();
+            const dropdown = document.getElementById('ws-list-dropdown');
+            if (dropdown.style.display === 'block') { dropdown.style.display = 'none'; return; }
+
+            dropdown.innerHTML = '<div style="padding:10px 15px;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.8px;border-bottom:1px solid var(--border);background:var(--surface-2);color:var(--text-3);">Munkalapok</div>';
+
+            if (allWorksheetsData) {
+                const sortedIds = Object.keys(allWorksheetsData).sort((a, b) =>
+                    allWorksheetsData[b].createdAt - allWorksheetsData[a].createdAt
+                );
+                sortedIds.forEach(id => {
+                    const ws = allWorksheetsData[id];
+                    const div = document.createElement('div');
+                    const isActive = id === currentWorksheetId;
+                    div.style.cssText = `padding:12px 16px;cursor:pointer;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;font-size:13px;${isActive ? 'background:var(--accent-dim);color:var(--accent);font-weight:700;' : 'color:var(--text-1);'}`;
+                    div.innerHTML = `<span>${ws.name}</span><i data-lucide="chevron-right" style="width:14px;opacity:0.4;"></i>`;
+                    div.onclick = (e) => {
+                        e.stopPropagation();
+                        selectWorksheet(id);
+                        dropdown.style.display = 'none';
+                    };
+                    dropdown.appendChild(div);
+                });
+            }
+
+            const btnRect = event.currentTarget.getBoundingClientRect();
+            dropdown.style.left = Math.max(10, btnRect.left) + 'px';
+            dropdown.style.bottom = (window.innerHeight - btnRect.top + 10) + 'px';
+            dropdown.style.display = 'block';
+            lucide.createIcons();
+        }
+
+        function resetPicker() {
+            isResetting = true;
+            const wheel = document.getElementById('picker-wheel');
+            const manualInput = document.getElementById('manual-qty');
+            wheel.scrollTo({ top: 50, behavior: 'instant' });
+            if (manualInput) manualInput.value = "";
+            document.getElementById('drawer-qty').value = 1;
+            handlePickerScroll();
+            setTimeout(() => { isResetting = false; }, 100);
+        }
+
+        function toggleWsMenu(event, id) {
+            event.stopPropagation();
+            currentWorksheetId = id;
+            const menu = document.getElementById('tab-context-menu');
+            const rect = event.currentTarget.getBoundingClientRect();
+            menu.style.display = 'block';
+            const menuHeight = menu.offsetHeight || 120;
+            menu.style.left = Math.min(rect.left, window.innerWidth - 200) + 'px';
+            menu.style.top = (rect.top - menuHeight - 5) + 'px';
+        }
+
+        ['click', 'touchstart'].forEach(evt => {
+            window.addEventListener(evt, function (e) {
+                const tabMenu = document.getElementById('tab-context-menu');
+                const listMenu = document.getElementById('ws-list-dropdown');
+                if (tabMenu && tabMenu.style.display === 'block') {
+                    if (!e.target.closest('#tab-context-menu') && !e.target.closest('.tab-more-icon')) {
+                        tabMenu.style.display = 'none';
+                    }
+                }
+                if (listMenu && listMenu.style.display === 'block') {
+                    if (!e.target.closest('#ws-list-dropdown') && !e.target.closest('#ws-list-toggle-btn')) {
+                        listMenu.style.display = 'none';
+                    }
+                }
+            }, { passive: true });
+        });
+
+        function deleteActiveWorksheet() {
+            document.getElementById('tab-context-menu').style.display = 'none';
+            if (confirm("VÉGLEGESEN törlöd ezt a munkalapot?")) {
+                db.ref('worksheets/' + currentWorksheetId).remove().then(() => {
+                    currentWorksheetId = null;
+                });
+            }
+        }
+
+        window.onload = () => {
+            lucide.createIcons();
+            loadData();
+            renderQtyPicker();
+
+            if (window.innerWidth >= 768) {
+                const spacer = document.getElementById('nav-spacer');
+                const sep = document.getElementById('nav-sep-2');
+                const bottom = document.getElementById('nav-bottom');
+                if (spacer) spacer.style.display = 'block';
+                if (sep) sep.style.display = 'block';
+                if (bottom) bottom.style.display = 'block';
+            }
+
+            const activeTab = document.querySelector('.content-area.active');
+            if (activeTab && isMobileDevice && activeTab.id === 'scanner') {
+                initCam();
+            }
+            if (!isMobileDevice && activeTab && activeTab.id === 'scanner') {
+                document.getElementById('desktop-barcode-input').focus();
+            }
+        };
+    </script>
+</body>
+</html>

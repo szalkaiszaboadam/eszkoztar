@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fotós Vonalkód Olvasó</title>
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    
+    <style>
+        body { font-family: sans-serif; text-align: center; background: #eee; margin: 0; padding: 20px; }
+        
+        h2 { color: #333; margin-bottom: 30px; }
+
+        /* A nagy gomb stílusa */
+        .upload-btn-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            border: 2px solid gray;
+            color: white;
+            background-color: #2a9d8f;
+            padding: 20px 40px;
+            border-radius: 50px; /* Lekerekített gomb */
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 300px;
+        }
+
+        .btn:active { transform: scale(0.98); }
+
+        /* Az igazi input mezőt elrejtjük a gomb mögé */
+        .upload-btn-wrapper input[type=file] {
+            font-size: 100px;
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            cursor: pointer;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Eredmény doboz */
+        #result-box {
+            margin-top: 20px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            font-size: 1.2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            min-height: 50px;
+        }
+        
+        #scanned-result { font-weight: bold; color: #e76f51; font-size: 1.5rem; display: block; margin-top: 10px;}
+        
+        #status-msg { color: #666; font-size: 0.9rem; font-style: italic; }
+
+        /* Ez a div kell a html5-qrcode működéséhez, de nem kell látszódnia */
+        #reader { display: none; }
+    </style>
+</head>
+<body>
+
+    <h2>📷 Fotós Szkenner</h2>
+    
+    <p style="margin-bottom: 20px;">Készíts egy fotót a vonalkódról!</p>
+
+    <div class="upload-btn-wrapper">
+        <button class="btn">📸 FOTÓZÁS INDÍTÁSA</button>
+        <input type="file" id="qr-input-file" accept="image/*" capture="environment" onchange="scanFromFile(this)">
+    </div>
+
+    <div id="result-box">
+        <div id="status-msg">Az eredmény itt jelenik meg...</div>
+        <span id="scanned-result"></span>
+    </div>
+
+    <div id="reader"></div>
+
+    <script>
+        const html5QrCode = new Html5Qrcode("reader");
+
+        function scanFromFile(inputElement) {
+            if (inputElement.files.length === 0) {
+                return;
+            }
+
+            const imageFile = inputElement.files[0];
+            
+            // Kiírjuk, hogy dolgozik a gép
+            document.getElementById("status-msg").innerText = "Feldolgozás folyamatban...";
+            document.getElementById("scanned-result").innerText = "";
+
+            // Beolvassuk a képet
+            html5QrCode.scanFile(imageFile, true)
+                .then(decodedText => {
+                    // SIKER!
+                    document.getElementById("status-msg").innerText = "Sikeres beolvasás:";
+                    document.getElementById("scanned-result").innerText = decodedText;
+                })
+                .catch(err => {
+                    // HIBA (nem talált kódot)
+                    console.log(err);
+                    document.getElementById("status-msg").innerText = "Nem találtam vonalkódot a képen. Próbáld újra élesebben!";
+                    document.getElementById("scanned-result").innerText = "";
+                });
+        }
+    </script>
+</body>
+</html>

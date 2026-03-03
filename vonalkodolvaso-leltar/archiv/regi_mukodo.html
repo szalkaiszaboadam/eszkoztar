@@ -1,0 +1,2163 @@
+<!DOCTYPE html>
+<html lang="hu">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Leltár App Pro</title>
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+        }
+
+        :root {
+            --primary: #0044cc;
+            /* Kék */
+            --dark: #1a1a1a;
+            /* Fekete/Sötétszürke */
+            --danger: #cc0000;
+            /* Piros */
+            --grey: #888888;
+            --light-grey: #f0f0f0;
+            --bg: #ffffff;
+        }
+
+        /* 1. Alapok fixálása a fehér csík és elcsúszás ellen */
+        body {
+            background-color: #ffffff;
+            /* Visszaállítva fehérre */
+            margin: 0;
+            height: 100dvh;
+        }
+
+        /* 2. Navbar mindig legyen legfelül */
+        nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            display: flex;
+            background: white;
+            border-bottom: 1px solid var(--light-grey);
+            z-index: 5000 !important;
+            padding-top: env(safe-area-inset-top);
+            height: calc(70px + env(safe-area-inset-top));
+            padding: 10px;
+        }
+
+
+        .tab-btn {
+            flex: 1;
+            padding: 10px 5px;
+            border: none;
+            background: none;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--grey);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: 0.2s;
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+            font-weight: 700;
+        }
+
+        .tab-btn i {
+            width: 20px;
+            height: 20px;
+        }
+
+        /* A tartalom a felső nav alatt kezdődik és a kijelző aljáig tart */
+        .content-area {
+            position: fixed;
+            top: calc(70px + env(safe-area-inset-top));
+            bottom: 0;
+            left: 0;
+            right: 0;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            background: white;
+        }
+
+
+        .content-area.active {
+            display: flex !important;
+            /* Csak az aktív látszik */
+        }
+
+
+        /* Keresd meg és írd át/add hozzá ezeket */
+#backdrop, #manual-backdrop {
+    display: none !important;
+}
+
+#backdrop.active, #manual-backdrop[style*="display: block"] {
+    display: block !important;
+}
+
+/* A szkennernek kell egy minimális magasság, különben fehér marad */
+/*#reader {
+    min-height: 300px;
+    background-color: black;
+} */
+
+        /* 5. A videó tároló */
+          #reader {
+            width: 100% !important;
+            height: 100% !important;
+            border: none !important;
+            z-index: 1000;
+        }
+
+        #reader video {
+            /* Eltávolítjuk a cover-t, hogy a teljes kép látsszon, így a koordináták nem csúsznak el */
+            object-fit: contain !important;
+            background: #000;
+        }
+
+
+
+        /* A szkenner overlay (Csak a fehér keret, lézer nélkül) */
+        .scan-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 280px;
+            height: 200px;
+            border: 3px solid #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 0 0 5000px rgba(0, 0, 0, 0.6);
+            pointer-events: none;
+            z-index: 3000 !important;
+        }
+
+        /* A sikeres villanás maradjon meg, mert az a visszajelzés alapja */
+        .scan-overlay.success-flash {
+            border-color: #28a745 !important;
+            box-shadow: 0 0 30px #28a745, 0 0 0 5000px rgba(0, 0, 0, 0.6);
+            transition: 0.15s;
+        }
+
+        /* Cooldown alatti lézer kikapcsolás */
+        .scan-overlay.cooldown::after {
+            display: none !important;
+        }
+
+        #scan-status-msg {
+            position: absolute;
+            top: 15%;
+            /* Kicsit feljebb tolva, hogy ne takarja a keretet */
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            text-align: center;
+            white-space: pre-line;
+            /* Ez kell, hogy tudjunk sort törni (\n) */
+            z-index: 4000;
+            display: none;
+            pointer-events: none;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+
+
+
+        .camera-controls {
+            position: absolute;
+            bottom: 60px;
+            /* Kicsit feljebb, hogy ne lógjon rá a navbarra */
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 25px;
+            z-index: 4000 !important;
+            /* A videó és az overlay fölé */
+        }
+
+        .control-btn {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .control-btn.active {
+            background: var(--primary);
+            border-color: var(--primary);
+        }
+
+        /* 3. A sötétítő réteg (Backdrop) legyen a gombok és a keret felett */
+        #backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            z-index: 8000 !important;
+            /* Magasabb, mint a gombok (4000) és a keret (3000) */
+        }
+
+        /* 4. A Drawer legyen a legfelső réteg */
+        #drawer {
+            position: fixed;
+            bottom: -100%;
+            left: 0;
+            right: 0;
+            background: #ffffff;
+            /* Tiszta fehér háttér */
+            border-radius: 20px 20px 0 0;
+            padding: 20px 25px calc(30px + env(safe-area-inset-bottom));
+            transition: bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 9000 !important;
+            /* Ez van legfelül */
+            color: var(--dark);
+        }
+
+        #drawer.open {
+            bottom: 0;
+        }
+
+        #backdrop.active {
+            display: block;
+        }
+
+        .drawer-handle {
+            width: 40px;
+            height: 4px;
+            background: var(--light-grey);
+            border-radius: 2px;
+            margin: 0 auto 20px;
+        }
+
+        #drawer-code {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 5px;
+            word-break: break-all;
+        }
+
+        #drawer-info {
+            font-size: 1rem;
+            color: var(--grey);
+            margin-bottom: 25px;
+        }
+
+        .qty-input-large {
+            width: 100%;
+            max-width: 160px;
+            height: 70px;
+            font-size: 32px;
+            text-align: center;
+            border: 1px solid var(--light-grey);
+            border-radius: 12px;
+            font-weight: 700;
+            background: var(--light-grey);
+            margin-bottom: 15px;
+            outline: none;
+        }
+
+        .qty-input-large:focus {
+            border-color: var(--primary);
+            background: white;
+        }
+
+        /* Listaelemek */
+        .item-card {
+            background: white;
+            padding: 16px;
+            border-radius: 0;
+            margin-bottom: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--light-grey);
+        }
+
+        /* Gombok */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 14px;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-dark {
+            background: var(--dark);
+            color: white;
+        }
+
+        .btn-outline {
+            background: white;
+            color: var(--dark);
+            border: 1px solid var(--light-grey);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-ok-large {
+            width: 100%;
+            height: 60px;
+            font-size: 16px;
+            background: var(--dark);
+            color: white;
+            border-radius: 12px;
+            border: none;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .qty-controls {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .btn-qty {
+            width: 36px;
+            height: 36px;
+            padding: 0;
+            border-radius: 6px;
+        }
+
+        h3 {
+            margin: 0 0 20px 0;
+            font-weight: 800;
+            font-size: 24px;
+        }
+
+        /* Duplikáció villanás és stílus */
+        @keyframes flash-yellow {
+            0% {
+                background-color: white;
+            }
+
+            50% {
+                background-color: #fff3cd;
+            }
+
+            100% {
+                background-color: white;
+            }
+        }
+
+        .duplicate-active {
+            animation: flash-yellow 1s ease-in-out;
+            border-top: 5px solid #ffc107 !important;
+        }
+
+        .duplicate-text {
+            color: #856404 !important;
+            font-weight: bold;
+            font-size: 0.85rem;
+            display: block;
+            margin-top: 8px;
+            background: #fff3cd;
+            padding: 4px;
+            border-radius: 4px;
+        }
+
+        .qty-selector-container {
+            width: 100%;
+            overflow-x: auto;
+            padding: 20px 0;
+            margin-bottom: 5px;
+            -webkit-overflow-scrolling: touch;
+            display: flex;
+            justify-content: flex-start;
+            /* Eltüntetjük a görgetősávot */
+            scrollbar-width: none;
+            background: linear-gradient(90deg, rgba(255, 255, 255, 1) 0%, rgba(240, 240, 240, 0) 50%, rgba(255, 255, 255, 1) 100%);
+        }
+
+        .qty-selector-container::-webkit-scrollbar {
+            display: none;
+        }
+
+        .qty-ribbon {
+            display: flex;
+            gap: 12px;
+            padding: 0 40%;
+            /* Hogy az első és utolsó elem is középre kerülhessen */
+        }
+
+        .qty-chip {
+            min-width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            background: white;
+            color: var(--dark);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: 0.2s;
+            border: 2px solid transparent;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .qty-chip.selected {
+            background: var(--primary);
+            color: white;
+            transform: scale(1.1);
+        }
+
+
+        .picker-container {
+            position: relative;
+            height: 150px;
+            width: 100%;
+            /* Kitölti a szélességet, de a tartalom középen lesz */
+            margin: 10px auto;
+            overflow: hidden;
+            touch-action: pan-y;
+            /* CSAK függőleges érintést engedélyez */
+            mask-image: linear-gradient(to bottom, transparent, black 30%, black 70%, transparent);
+            -webkit-mask-image: linear-gradient(to bottom, transparent, black 30%, black 70%, transparent);
+        }
+
+        .picker-wheel {
+            height: 100%;
+            overflow-y: scroll;
+            overflow-x: hidden !important;
+            /* Vízszintes görgetés tiltása */
+            scroll-snap-type: y mandatory;
+            scrollbar-width: none;
+            touch-action: pan-y !important;
+            padding: 50px 0;
+        }
+
+        .picker-wheel::-webkit-scrollbar {
+            display: none;
+        }
+
+        .picker-item {
+            height: 50px;
+            width: 100%;
+            /* Ne tudjon oldalra mozogni */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: 800;
+            color: var(--grey);
+            scroll-snap-align: center;
+        }
+
+        .picker-item.active {
+            color: var(--primary);
+            transform: scale(1.2);
+        }
+
+        /* A kijelölő keret középen */
+        .picker-selection-frame {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 50px;
+            transform: translateY(-50%);
+            border-top: 2px solid var(--light-grey);
+            border-bottom: 2px solid var(--light-grey);
+            pointer-events: none;
+        }
+
+        .picker-item input {
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            border: none;
+            text-align: center;
+            font-size: 24px;
+            font-weight: 800;
+            font-family: inherit;
+            color: inherit;
+            outline: none;
+            pointer-events: none;
+            /* Alapból nem kattintható */
+            opacity: 0.5;
+            /* Kicsit elhalványítjuk, ha nincs középen */
+            transition: 0.3s;
+        }
+
+        /* Eltüntetjük a nyilakat a számmezőből */
+        .picker-item input::-webkit-inner-spin-button,
+        .picker-item input::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .picker-item.active input {
+            color: var(--primary);
+            pointer-events: auto;
+            opacity: 1;
+        }
+
+
+        #manual-modal input:focus {
+            border-color: var(--primary);
+        }
+
+        /* Egy külön sötétítő a manuális modalhoz, hogy biztosan ne akadjon össze a másikkal */
+        #manual-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            z-index: 9999;
+        }
+
+
+
+
+        /* Módválasztó kapcsoló a szkenner tetején */
+        .mode-switcher-container {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(10px);
+            padding: 4px;
+            border-radius: 12px;
+            z-index: 4500;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .mode-opt {
+            padding: 8px 16px;
+            border-radius: 8px;
+            color: white;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.3s;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .mode-opt.active {
+            background: var(--primary);
+            box-shadow: 0 2px 8px rgba(0, 68, 204, 0.4);
+        }
+
+        /* Átrendezett kamera gombok */
+        .camera-controls {
+            bottom: 40px;
+            /* Lejjebb toltuk picit */
+        }
+
+
+
+
+        @media (min-width: 768px) {
+            body {
+                display: flex;
+                flex-direction: row;
+                background-color: #f8f9fa;
+            }
+
+            nav {
+                position: relative;
+                top: auto;
+                width: 280px;
+                height: 100vh;
+                flex-direction: column;
+                border-right: 1px solid var(--light-grey);
+                border-bottom: none;
+                padding-top: 20px;
+            }
+
+            .tab-btn {
+                flex: none;
+                width: 100%;
+                flex-direction: row;
+                justify-content: flex-start;
+                padding: 15px 20px;
+                gap: 15px;
+                font-size: 14px;
+                border-radius: 12px;
+            }
+
+            .tab-btn.active {
+                background: var(--light-grey);
+            }
+
+            .content-area {
+                position: relative;
+                top: auto;
+                height: 100vh;
+                flex: 1;
+            }
+
+            /* Asztali szkenner nézet (Kamera helyett beviteli mező) */
+            #reader {
+                display: none !important;
+            }
+
+            .desktop-only-scanner {
+                display: flex !important;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                height: 60vh;
+                gap: 20px;
+            }
+
+            .scan-overlay,
+            .camera-controls,
+            .mode-switcher-container {
+                display: none !important;
+            }
+
+            /* Munkalap kártyák rácsos elrendezése */
+            #ws-list-container {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+                gap: 20px;
+            }
+        }
+
+        /* Rejtett elemek alapértelmezés szerint */
+        .desktop-only-scanner {
+            display: none;
+        }
+
+
+
+        /* --- ASZTALI ÉS EGYESÍTETT NÉZET --- */
+        @media (min-width: 768px) {
+            body {
+                display: flex;
+                flex-direction: row;
+                background-color: #f8f9fa;
+            }
+
+            nav {
+                position: relative;
+                top: auto;
+                width: 280px;
+                height: 100vh;
+                flex-direction: column;
+                border-right: 1px solid var(--light-grey);
+                border-bottom: none;
+                padding-top: 20px;
+            }
+
+            .tab-btn {
+                flex: none;
+                width: 100%;
+                flex-direction: row;
+                justify-content: flex-start;
+                padding: 15px 20px;
+                gap: 15px;
+                font-size: 14px;
+                border-radius: 12px;
+            }
+
+            .content-area {
+                position: relative;
+                top: auto;
+                height: 100vh;
+                flex: 1;
+            }
+
+            #reader,
+            .scan-overlay,
+            .camera-controls,
+            .mode-switcher-container {
+                display: none !important;
+            }
+
+            .desktop-only-scanner {
+                display: flex !important;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                height: 60vh;
+                gap: 20px;
+            }
+        }
+
+        .desktop-only-scanner {
+            display: none;
+        }
+
+        .ws-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .unified-container {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .items-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--light-grey);
+            margin-bottom: 15px;
+        }
+
+        @media (min-width: 992px) {
+            .unified-container {
+                flex-direction: row;
+                align-items: flex-start;
+            }
+
+            .ws-selection-pane {
+                width: 350px;
+                position: sticky;
+                top: 20px;
+            }
+
+            .ws-items-pane {
+                flex: 1;
+                background: white;
+                padding: 25px;
+                border-radius: 16px;
+                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+                display: block !important;
+            }
+        }
+
+
+        /* Böngésző-szerű fül rendszer */
+        .ws-tabs-header {
+            display: flex;
+            gap: 4px;
+            overflow-x: auto;
+            background: #e0e0e0;
+            padding: 8px 8px 0 8px;
+            border-radius: 12px 12px 0 0;
+            scrollbar-width: none;
+        }
+
+        .ws-tabs-header::-webkit-scrollbar {
+            display: none;
+        }
+
+
+        /* Munkalap nézet belső elrendezése */
+        #active-ws-view {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            width: 100%;
+        }
+
+        /* A lista görgethető területe */
+        #inventory-container {
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: 0;
+        }
+
+        /* FIX ALSÓ SÁV: Mindig a legalján marad a tartalomtól függetlenül */
+        /* Munkalap fülek sávja: rögzítve a legalján, safe area kezeléssel */
+        .ws-bottom-bar {
+            background: #fafafa;
+          /* padding: 8px 5px 0 5px;*/
+            display: flex;
+            align-items: center;
+            /*gap: 5px;*/
+            border-top: 1px solid #ccc;
+            flex-shrink: 0;
+            z-index: 100;
+        }
+
+
+        /* Asztali nézetben ne legyen fix, mert ott a nav oldalt van */
+        @media (min-width: 768px) {
+            .content-area {
+                position: relative;
+                bottom: auto;
+                height: 100dvh;
+                flex: 1;
+            }
+        }
+
+        .ws-browser-tab {
+            padding: 12px 15px;
+            background: #fafafa;
+           /* border-radius: 10px 10px 0 0;*/
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 700;
+            color: #666;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border: none;
+            transition: 0.2s;
+        }
+
+        .ws-browser-tab.active {
+            background: rgb(226, 236, 255);
+            color: var(--primary);
+        }
+
+        .ws-tab-close {
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            font-size: 14px;
+            transition: 0.2s;
+        }
+
+        .ws-tab-close:hover {
+            background: rgba(0, 0, 0, 0.1);
+            color: var(--danger);
+        }
+
+        #active-items-view {
+            border-radius: 0 0 16px 16px !important;
+        }
+
+        .add-ws-btn {
+            background: #fafafa;
+            border: none;
+            padding: 10px 15px;
+            /*border-radius: 8px 8px 0 0;*/
+            cursor: pointer;
+           /* margin-bottom: 0;*/
+           /* height: 40px;*/
+        }
+
+        .tab-more-icon {
+            opacity: 0.5;
+            padding: 2px;
+        }
+
+        .tab-more-icon:hover {
+            opacity: 1;
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav>
+        <button class="tab-btn active" onclick="showTab('worksheets', this)">
+            <i data-lucide="layers"></i>Munkalapok
+        </button>
+        <button class="tab-btn" id="nav-scan-btn" onclick="showTab('scanner', this)" style="display:none;">
+            <i data-lucide="scan"></i>Szkenner
+        </button>
+        <button class="tab-btn" onclick="showTab('settings', this)">
+            <i data-lucide="settings"></i>Beállítások
+        </button>
+    </nav>
+
+    <div id="worksheets" class="content-area active">
+        <div id="empty-state"
+            style="display:none; flex: 1; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px;">
+            <i data-lucide="layers" style="width: 80px; height: 80px; color: #ddd; margin-bottom: 20px;"></i>
+            <h2 style="color: var(--dark);">Nincs aktív munkalap</h2>
+            <button class="btn btn-primary" onclick="createNewWorksheet()"
+                style="padding: 15px 40px; font-size: 16px; border-radius: 12px;">
+                <i data-lucide="plus"></i> Első munkalap létrehozása
+            </button>
+        </div>
+
+        <div id="active-ws-view">
+            <div class="ws-header"
+                style="padding: 15px 20px; background: white; border-bottom: 1px solid var(--light-grey); display: flex; justify-content: space-between; align-items: center;">
+                <h3 id="active-ws-title" style="margin:0; font-size: 1.2rem;">---</h3>
+                <div style="display:flex; gap:8px;">
+                    <button class="btn btn-outline btn-sm" onclick="exportToExcel()"><i data-lucide="download"
+                            style="width:18px"></i></button>
+                    <!--  <button class="btn btn-outline btn-sm" onclick="exportAllWorksheets()"><i data-lucide="archive"
+                            style="width:18px"></i></button>-->
+                </div>
+            </div>
+
+            <div id="inventory-container" style="flex: 1; overflow-y: auto; padding: 0;"></div>
+
+          <div class="ws-bottom-bar">
+                <button class="add-ws-btn" onclick="createNewWorksheet()">
+                    <i data-lucide="plus"></i>
+                </button>
+                <button class="add-ws-btn" id="ws-list-toggle-btn" onclick="toggleWsListMenu(event)">
+                    <i data-lucide="list"></i>
+                </button>
+
+                <div id="ws-tabs-bar"
+                    style="display: flex; gap: 2px; overflow-x: auto; flex: 1; scrollbar-width: none;"></div>      
+            </div>
+        </div>
+
+  <div id="tab-context-menu"
+            style="display:none; position: fixed; background: white; box-shadow: 0 -5px 25px rgba(0,0,0,0.2); border-radius: 12px; z-index: 10000; min-width: 180px; border: 1px solid var(--light-grey);">
+            <div onclick="renameWorksheet()"
+                style="padding: 15px; color: var(--dark); cursor: pointer; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #eee;">
+                <i data-lucide="edit-2" style="width: 18px;"></i> Átnevezés
+            </div>
+            <div onclick="askClearAll()"
+                style="padding: 15px; color: var(--dark); cursor: pointer; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #eee;">
+                <i data-lucide="eraser" style="width: 18px;"></i> Tartalom törlése
+            </div>
+            <div onclick="deleteActiveWorksheet()"
+                style="padding: 15px; color: var(--danger); cursor: pointer; display: flex; align-items: center; gap: 10px;">
+                <i data-lucide="trash-2" style="width: 18px;"></i> Munkalap törlése
+            </div>
+        </div>
+
+        <div id="ws-list-dropdown"
+            style="display:none; position: fixed; background: white; box-shadow: 0 -5px 25px rgba(0,0,0,0.2); border-radius: 12px; z-index: 10000; min-width: 220px; max-height: 50vh; overflow-y: auto; border: 1px solid var(--light-grey);">
+        </div>
+    </div>
+
+    <div id="scanner" class="content-area">
+        <div class="mode-switcher-container">
+            <div id="opt-interactive" class="mode-opt active" onclick="setScanMode(false)">
+                <i data-lucide="layers" style="width:16px"></i> Interaktív
+            </div>
+            <div id="opt-continuous" class="mode-opt" onclick="setScanMode(true)">
+                <i data-lucide="zap" style="width:16px"></i> Gyors
+            </div>
+        </div>
+
+        <div id="reader"></div>
+
+
+        <div class="desktop-only-scanner">
+            <div style="text-align:center; margin-bottom: 30px;">
+                <i data-lucide="monitor-smartphone"
+                    style="width:64px; height:64px; color:var(--primary); opacity:0.5"></i>
+                <h3>Asztali Beolvasó Mód</h3>
+                <p style="color:var(--grey)">Használj kézi szkennert vagy gépeld be a kódot!</p>
+            </div>
+            <input type="text" id="desktop-barcode-input" placeholder="Szkennelj ide..."
+                style="width: 400px; padding: 20px; font-size: 24px; border-radius: 16px; border: 2px solid var(--primary); outline: none; text-align: center; box-shadow: 0 10px 25px rgba(0,68,204,0.1);">
+            <p style="font-size: 14px; color: var(--grey)">A beolvasás után az Enter billentyű automatikusan rögzít.</p>
+        </div>
+
+
+        <div id="scan-status-msg">Várj...</div>
+        <div class="scan-overlay" id="overlay"></div>
+
+        <div class="camera-controls">
+            <button id="manual-btn" class="control-btn" onclick="manualEntry()">
+                <i data-lucide="keyboard"></i>
+            </button>
+
+            <button id="restart-cam-btn" class="control-btn" onclick="restartCamera()">
+                <i data-lucide="refresh-cw"></i>
+            </button>
+
+            <button id="torch-btn" class="control-btn" onclick="toggleTorch()" style="display:none;">
+                <i data-lucide="flashlight"></i>
+            </button>
+        </div>
+    </div>
+
+
+
+
+    <div id="settings" class="content-area" style="padding: 25px;">
+        <h3>Beállítások</h3>
+
+        <div style="background: var(--light-grey); padding: 20px; border-radius: 16px; margin-bottom: 25px;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
+                <label style="font-weight:600;">Kamera Zoom</label>
+                <b id="zoom-label">2.0x</b>
+            </div>
+            <input type="range" id="zoom-slider" min="1" max="5" step="0.1" value="2.0"
+                style="width:100%; accent-color:var(--dark);" oninput="applyZoom(this.value)">
+        </div>
+
+        <h3 style="font-size: 1.1rem;">Adatmentés</h3>
+        <button class="btn btn-outline" onclick="exportAllWorksheets()"
+            style="width: 100%; justify-content: flex-start; padding: 15px; border: 1px solid #ccc; background: white;">
+            <i data-lucide="archive" style="width:20px; color: var(--primary);"></i>
+            <span>Összes munkalap exportálása (.xlsx)</span>
+        </button>
+        <p style="font-size: 12px; color: var(--grey); margin-top: 10px; padding: 0 5px;">
+            Ez a funkció az összes létező munkalapot kimenti egyetlen Excel fájlba, külön fülekre bontva.
+        </p>
+    </div>
+
+    <div id="backdrop" onclick="closeDrawer(false)"></div>
+    <div id="drawer">
+        <div class="drawer-handle"></div>
+        <div style="text-align: center;">
+            <div id="drawer-code">---</div>
+            <div id="drawer-info">Készleten: 0 db</div>
+
+            <div class="qty-selector-container">
+                <div class="qty-ribbon" id="qty-ribbon">
+                </div>
+            </div>
+
+
+
+            <div class="picker-container">
+                <div class="picker-selection-frame"></div>
+                <div class="picker-wheel" id="picker-wheel" onscroll="handlePickerScroll()">
+                </div>
+            </div>
+
+            <input type="number" id="drawer-qty" style="display:none;" value="1">
+
+
+            <button class="btn-ok-large"
+                onclick="addFromDrawer(document.getElementById('drawer-qty').value)">Hozzáadás</button>
+            <button class="btn" style="color: var(--grey); background:none; margin-top:15px; width:100%;"
+                onclick="closeDrawer(false)">Mégse</button>
+        </div>
+    </div>
+
+    <div id="manual-backdrop" onclick="closeManualModal()"
+        style="position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.8); display:none; z-index:9999;">
+    </div>
+
+    <div id="manual-modal"
+        style="display:none; position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); background:white; z-index:10000; width:85%; max-width:400px; padding:25px; border-radius:20px; box-shadow:0 10px 30px rgba(0,0,0,0.3);">
+        <h3 style="margin-top:0; font-size:1.2rem;">Kézi bevitel</h3>
+        <input type="text" id="manual-input-field" placeholder="Vonalkód helye..."
+            style="width:100%; padding:15px; border:2px solid var(--light-grey); border-radius:12px; font-size:18px; margin-bottom:20px; outline:none; box-sizing:border-box;">
+        <div style="display:flex; gap:10px;">
+            <button class="btn btn-outline" style="flex:1" onclick="closeManualModal()">Mégse</button>
+            <button class="btn btn-dark" style="flex:1" onclick="submitManualModal()">Hozzáadás</button>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+    <script>
+
+        // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+        const firebaseConfig = {
+            apiKey: "AIzaSyCo0H9W1BDmtlctkEQbV3AYiPmgF9ZO2p4",
+            authDomain: "leltar-app-3ec39.firebaseapp.com",
+            databaseURL: "https://leltar-app-3ec39-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "leltar-app-3ec39",
+            storageBucket: "leltar-app-3ec39.firebasestorage.app",
+            messagingSenderId: "235882317421",
+            appId: "1:235882317421:web:eff986788eec4d6368a164",
+            measurementId: "G-M46QXLXC1D"
+        };
+
+
+        let openTabs = []; // Tároljuk a megnyitott munkalapok ID-it
+
+        // 1. Definiáljuk globálisan, hogy mobil-e az eszköz
+        const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+        let isResetting = false;
+
+        let isContinuousMode = false;
+        let canScan = true; // Cooldown vezérlő
+
+
+        let allWorksheetsData = {}; // Itt tároljuk a munkalapok listáját
+
+        let currentItemsRef = null; // Ebben tároljuk az aktuális Firebase hivatkozást
+
+        // Firebase inicializálása
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        let currentWorksheetId = null;
+        let inventoryData = {}; // Ez mostantól a Firebase-ből szinkronizálódik
+
+        // --- MUNKALAP KEZELÉS ---
+
+        // Módosított figyelő: Ha változik az adat, dönti el mit mutasson
+        db.ref('worksheets').on('value', (snapshot) => {
+    allWorksheetsData = snapshot.val() || {}; // Ha nincs adat, legyen egy üres objektum
+    const wsIds = Object.keys(allWorksheetsData).sort((a, b) =>
+        (allWorksheetsData[a].createdAt || 0) - (allWorksheetsData[b].createdAt || 0)
+    );
+
+    if (wsIds.length === 0) {
+        // HA NINCS SEMMI: Mutatjuk az üres állapotot, ELREJTJÜK a munkalap nézetet
+        document.getElementById('empty-state').style.display = 'flex';
+        document.getElementById('active-ws-view').style.setProperty('display', 'none', 'important'); // Itt kényszerítjük a rejtést
+        document.getElementById('nav-scan-btn').style.display = 'none';
+        currentWorksheetId = null;
+    } else {
+        // HA VAN ADAT: Elrejtjük az ürest, mutatjuk a munkalapot
+        document.getElementById('empty-state').style.display = 'none';
+        document.getElementById('active-ws-view').style.display = 'flex';
+        document.getElementById('nav-scan-btn').style.display = 'flex';
+
+        if (!currentWorksheetId || !allWorksheetsData[currentWorksheetId]) {
+            selectWorksheet(wsIds[0]);
+        } else {
+            renderTabs();
+            document.getElementById('active-ws-title').innerText = allWorksheetsData[currentWorksheetId].name;
+        }
+    }
+});
+
+
+
+        function createNewWorksheet() {
+            // Kiszámoljuk a sorszámot az összes létező munkalap alapján
+            const wsIds = allWorksheetsData ? Object.keys(allWorksheetsData) : [];
+            const nextNum = wsIds.length + 1;
+            const name = `Munkalap(${nextNum})`;
+            const safeId = 'ws_' + Date.now();
+
+            db.ref('worksheets/' + safeId).set({
+                name: name,
+                createdAt: firebase.database.ServerValue.TIMESTAMP,
+                items: {}
+            }).then(() => {
+                selectWorksheet(safeId);
+            });
+        }
+
+        // 1. Asztali szkenner figyelő
+        document.getElementById('desktop-barcode-input').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                const code = this.value.trim();
+                if (code) {
+                    onScanSuccess(code);
+                    this.value = ''; // Mező ürítése az újabb scanhez
+                    this.focus();
+                }
+            }
+        });
+
+        // 2. Munkalap Statisztika és Keresés (Profibb megjelenés)
+        function renderWorksheetList(data) {
+            const container = document.getElementById('ws-list-container');
+            container.innerHTML = ``;
+
+            if (!data) return;
+
+            Object.keys(data).forEach(id => {
+                const ws = data[id];
+                const itemCount = ws.items ? Object.keys(ws.items).length : 0;
+                const totalQty = ws.items ? Object.values(ws.items).reduce((a, b) => a + b, 0) : 0;
+
+                const div = document.createElement('div');
+                div.className = 'item-card ws-card';
+                div.style.cssText = `
+            cursor: pointer; padding: 20px; border-radius: 16px; background: white;
+            display: flex; flex-direction: column; gap: 10px; transition: 0.3s;
+            border: ${id === currentWorksheetId ? '2px solid var(--primary)' : '1px solid #eee'};
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+        `;
+
+                div.innerHTML = `
+            <div onclick="selectWorksheet('${id}')" style="flex:1">
+                <div style="font-weight:800; font-size:18px; color:var(--dark);">${ws.name}</div>
+                <div style="font-size:12px; color:var(--grey); margin-bottom:10px;">Létrehozva: ${new Date(ws.createdAt).toLocaleDateString()}</div>
+                <div style="display:flex; gap:15px;">
+                    <span style="font-size:13px; background:#eef2ff; color:var(--primary); padding:4px 8px; border-radius:6px;">
+                        <b>${itemCount}</b> típus
+                    </span>
+                    <span style="font-size:13px; background:#f0f0f0; color:var(--dark); padding:4px 8px; border-radius:6px;">
+                        <b>${totalQty}</b> db összesen
+                    </span>
+                </div>
+            </div>
+            <div style="display:flex; justify-content:flex-end; border-top:1px solid #eee; pt:10px;">
+                <button class="btn" style="color:var(--danger); padding:5px" onclick="deleteWorksheet('${id}')">
+                    <i data-lucide="trash-2" style="width:18px;"></i> Törlés
+                </button>
+            </div>
+        `;
+                container.appendChild(div);
+            });
+            lucide.createIcons();
+        }
+
+
+
+
+
+        function selectWorksheet(id) {
+            currentWorksheetId = id;
+            if (currentItemsRef) currentItemsRef.off();
+
+            const wsName = allWorksheetsData[id].name;
+            document.getElementById('active-ws-title').innerText = wsName;
+            document.getElementById('nav-scan-btn').style.display = "flex";
+
+            currentItemsRef = db.ref('worksheets/' + id + '/items');
+            currentItemsRef.on('value', (snapshot) => {
+                inventoryData = snapshot.val() || {};
+                updateUI();
+            });
+            renderTabs();
+        }
+
+
+        // Új sorszámozott létrehozás
+        function createNewWorksheet() {
+            const wsCount = allWorksheetsData ? Object.keys(allWorksheetsData).length : 0;
+            const nextNum = wsCount + 1;
+            const name = `Munkalap(${nextNum})`;
+            const safeId = 'ws_' + Date.now(); // Időbélyeg alapú ID a sorrend miatt
+
+            db.ref('worksheets/' + safeId).set({
+                name: name,
+                createdAt: firebase.database.ServerValue.TIMESTAMP,
+                items: {}
+            }).then(() => {
+                selectWorksheet(safeId);
+            });
+        }
+
+        function renderTabs() {
+            const tabsBar = document.getElementById('ws-tabs-bar');
+            tabsBar.innerHTML = "";
+            if (!allWorksheetsData) return;
+
+            // Rendezzük a létrehozás ideje szerint
+            const sortedIds = Object.keys(allWorksheetsData).sort((a, b) =>
+                allWorksheetsData[a].createdAt - allWorksheetsData[b].createdAt
+            );
+
+            sortedIds.forEach(id => {
+                const ws = allWorksheetsData[id];
+                const tab = document.createElement('div');
+                tab.className = `ws-browser-tab ${id === currentWorksheetId ? 'active' : ''}`;
+
+                tab.innerHTML = `
+            <span onclick="selectWorksheet('${id}')">${ws.name}</span>
+            <i data-lucide="chevron-up" class="tab-more-icon" onclick="toggleWsMenu(event, '${id}')"></i>
+        `;
+                tabsBar.appendChild(tab);
+            });
+            lucide.createIcons();
+        }
+
+        // Új függvény a fül bezárásához
+        function closeTab(event, id) {
+            event.stopPropagation(); // Ne váltson át a fülre bezáráskor
+
+            openTabs = openTabs.filter(tabId => tabId !== id);
+
+            if (currentWorksheetId === id) {
+                if (openTabs.length > 0) {
+                    selectWorksheet(openTabs[openTabs.length - 1]);
+                } else {
+                    currentWorksheetId = null;
+                    document.getElementById('active-items-view').style.display = "none";
+                    document.getElementById('nav-scan-btn').style.display = "none";
+                }
+            }
+            renderTabs();
+        }
+
+
+
+        function deleteWorksheet(id) {
+            if (confirm("Biztosan törlöd ezt a munkalapot az összes adattal?")) {
+                db.ref('worksheets/' + id).remove();
+                if (currentWorksheetId === id) location.reload();
+            }
+        }
+
+
+        let html5QrCode;
+        let videoTrack;
+        //let inventoryData = {};
+        let isScanningPaused = false;
+        let lastScannedCode = "";
+        let audioCtx;
+        let autoCloseTimeout = null;
+
+        const quickValues = [1, 2, 3, 4, 5, 10, 12, 20, 24, 50, 100];
+
+
+
+
+        // 2. Módosított Tab váltás: Csak mobilon indítja a kamerát
+
+
+
+        async function showTab(tabId, btn) {
+            // 1. Minden konténer elrejtése
+            document.querySelectorAll('.content-area').forEach(el => {
+                el.style.display = 'none';
+                el.classList.remove('active');
+            });
+
+            // 2. Kiválasztott fül megjelenítése
+            const target = document.getElementById(tabId);
+            if (target) {
+                target.style.display = 'flex';
+                target.classList.add('active');
+            }
+
+            // 3. Felső gombok stílusának frissítése
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            if (btn) btn.classList.add('active');
+
+            // 4. Egyéb ablakok bezárása
+            if (document.getElementById('tab-context-menu')) {
+                document.getElementById('tab-context-menu').style.display = 'none';
+            }
+            closeDrawer(false);
+
+            // 5. Szkenner logika
+            if (tabId === 'scanner') {
+                if (!isMobileDevice) {
+                    setTimeout(() => { document.getElementById('desktop-barcode-input').focus(); }, 300);
+                    return;
+                }
+                setTimeout(async () => { await startCam(); }, 300);
+            } else {
+                if (html5QrCode && html5QrCode.isScanning) {
+                    await html5QrCode.stop().catch(e => console.log("Stop hiba", e));
+                }
+            }
+        }
+
+
+        // 2. Biztonságos indítás
+        // 3. Biztonságos startCam (csak akkor fut le, ha tényleg mobilról hívják)
+        async function startCam() {
+            if (!isMobileDevice) return; // Extra védelem
+
+            if (html5QrCode && html5QrCode.isScanning) {
+                try { await html5QrCode.stop(); } catch (e) { }
+            }
+
+            if (!html5QrCode) {
+                html5QrCode = new Html5Qrcode("reader");
+            }
+
+            const config = {
+                fps: 25,
+                qrbox: { width: 280, height: 200 },
+                aspectRatio: 1.0
+            };
+
+            html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
+                .then(() => {
+                    isScanningPaused = false;
+                    setupExtras();
+                })
+                .catch(err => {
+                    console.error("Kamera hiba:", err);
+                });
+        }
+
+        // 3. Betöltéskor NE indítsd el a kamerát, ha nem a szkenner az aktív!
+        window.onload = () => {
+            lucide.createIcons();
+            loadData();
+            // Itt kivettem az initCam-et, mert a showTab fogja kezelni!
+            renderQtyPicker();
+
+            // Frissítjük a gombok ikonjait ismét biztonság kedvéért
+            setTimeout(() => lucide.createIcons(), 500);
+        };
+
+
+
+
+        function initCam() {
+            // Ellenőrizzük, hogy fut-e már a szkenner
+            if (html5QrCode && html5QrCode.isScanning) {
+                // Ha fut, ne csináljunk semmit, vagy csak akkor, ha tényleg muszáj
+                return;
+            }
+
+            if (html5QrCode) {
+                // Ha létezik az objektum, de nem szkennel, próbáljuk megállítani és újraindítani
+                html5QrCode.stop().then(() => startCam()).catch(() => startCam());
+            } else {
+                startCam();
+            }
+        }
+
+
+
+        async function restartCamera() {
+            const btn = document.getElementById('restart-cam-btn');
+            btn.style.transform = "rotate(180deg)";
+
+            try {
+                if (html5QrCode && html5QrCode.isScanning) {
+                    await html5QrCode.stop(); // Megvárjuk, amíg tényleg leáll
+                }
+                startCam(); // Csak ezután indítjuk újra
+            } catch (err) {
+                console.error("Reset hiba:", err);
+                startCam(); // Hiba esetén is megpróbáljuk elindítani
+            }
+
+            setTimeout(() => { btn.style.transform = "rotate(0deg)"; }, 500);
+        }
+
+
+
+        function setupExtras() {
+            const video = document.querySelector("#reader video");
+            if (video && video.srcObject) {
+                videoTrack = video.srcObject.getVideoTracks()[0];
+                const caps = videoTrack.getCapabilities();
+
+                // Kényszerítjük a gombot, hogy kövesse a hardver állapotát (ami új indításnál OFF)
+                const torchBtn = document.getElementById("torch-btn");
+                torchBtn.classList.remove('active');
+
+                const savedZoom = localStorage.getItem("app_zoom") || 2.0;
+                applyZoom(savedZoom);
+                document.getElementById("zoom-slider").value = savedZoom;
+
+                // Csak akkor mutatjuk a gombot, ha a hardver támogatja
+                if (caps.torch) {
+                    torchBtn.style.display = "flex";
+                } else {
+                    torchBtn.style.display = "none";
+                }
+            }
+        }
+
+        function toggleTorch() {
+            if (videoTrack) {
+                const settings = videoTrack.getSettings();
+                const newState = !settings.torch;
+                videoTrack.applyConstraints({ advanced: [{ torch: newState }] })
+                    .then(() => {
+                        document.getElementById('torch-btn').classList.toggle('active', newState);
+                    });
+            }
+        }
+
+
+
+
+        async function toggleScanMode() {
+            isContinuousMode = !isContinuousMode;
+            const btn = document.getElementById('mode-toggle-btn');
+
+            // Vizuális váltás a gombon
+            if (isContinuousMode) {
+                btn.classList.add('active');
+                btn.innerHTML = '<i data-lucide="zap"></i>';
+            } else {
+                btn.classList.remove('active');
+                btn.innerHTML = '<i data-lucide="zap-off"></i>';
+            }
+            lucide.createIcons();
+
+            // KAMERA RESTART A FAGYÁS ELLEN
+            if (html5QrCode && html5QrCode.isScanning) {
+                isScanningPaused = true;
+                showStatus("Módváltás...", 1000);
+                await html5QrCode.stop();
+                setTimeout(() => startCam(), 100); // Rövid szünet után újraindítás
+            }
+        }
+
+        function showStatus(text, duration) {
+            const msg = document.getElementById('scan-status-msg');
+            msg.innerText = text;
+            msg.style.display = 'block';
+            setTimeout(() => { msg.style.display = 'none'; }, duration);
+        }
+
+
+
+
+
+        // --- ÜZEMMÓD VÁLTÁS ---
+        async function setScanMode(isFast) {
+            if (isContinuousMode === isFast) return; // Ne indítsa újra, ha ugyanazt nyomják meg
+
+            isContinuousMode = isFast;
+
+            // UI frissítése
+            document.getElementById('opt-interactive').classList.toggle('active', !isFast);
+            document.getElementById('opt-continuous').classList.toggle('active', isFast);
+
+            // Kamera restart a fagyás ellen
+            if (html5QrCode && html5QrCode.isScanning) {
+                isScanningPaused = true;
+                showStatus("Üzemmód váltása...", 800);
+                await html5QrCode.stop();
+                setTimeout(() => startCam(), 150);
+            }
+        }
+
+        // --- JAVÍTOTT MANUÁLIS BEVITEL ---
+        function manualEntry() {
+            isScanningPaused = true;
+            const backdrop = document.getElementById('manual-backdrop');
+            const modal = document.getElementById('manual-modal');
+            const input = document.getElementById('manual-input-field');
+
+            // Ha véletlenül hiányozna a backdrop a DOM-ból, itt pótoljuk (biztonsági játék)
+            if (!backdrop) {
+                console.error("Hiba: manual-backdrop nem található a HTML-ben!");
+                alert("Hiba a kézi bevitel indításakor.");
+                return;
+            }
+
+            backdrop.style.display = 'block';
+            modal.style.display = 'block';
+            input.value = "";
+
+            setTimeout(() => {
+                input.focus();
+                // Hozzáadunk egy Enter eseményt is a beviteli mezőhöz
+                input.onkeypress = (e) => { if (e.key === 'Enter') submitManualModal(); };
+            }, 200);
+        }
+
+        function closeManualModal() {
+            document.getElementById('manual-backdrop').style.display = 'none';
+            document.getElementById('manual-modal').style.display = 'none';
+
+            // Csak akkor oldjuk fel a szünetet, ha nem a nagy Drawer van elöl
+            if (!document.getElementById('drawer').classList.contains('open')) {
+                isScanningPaused = false;
+            }
+        }
+
+
+
+
+
+
+
+        function submitManualModal() {
+            const code = document.getElementById('manual-input-field').value.trim();
+            if (code !== "") {
+                closeManualModal();
+                // Meghívjuk a meglévő feldolgozó függvényt
+                onScanSuccess(code);
+            }
+        }
+
+
+        function onScanSuccess(code) {
+            // Ha épp cooldown van, vagy szüneteltetve van, nem csinálunk semmit
+            if (!canScan) return;
+
+            // Manuális bevitelkor is beállítjuk a kódot
+            lastScannedCode = code;
+            playBeep();
+
+            const overlay = document.getElementById('overlay');
+
+            if (isContinuousMode) {
+                canScan = false;
+                isScanningPaused = true; // Logikai zár
+
+                const currentQty = inventoryData[code] || 0;
+                const newQty = currentQty + 1;
+
+                // Vizuális visszajelzés
+                overlay.classList.add('success-flash');
+                showStatus(`BEOLVASVA: ${code}\n(Összesen: ${newQty} db)`, 1400);
+
+                db.ref('worksheets/' + currentWorksheetId + '/items/' + code)
+                    .set(newQty)
+                    .then(() => {
+                        if (navigator.vibrate) navigator.vibrate(80);
+
+                        // COOLDOWN VÉGE ÉS FELOLDÁS
+                        setTimeout(() => {
+                            overlay.classList.remove('success-flash');
+                            canScan = true;
+                            isScanningPaused = false; // Itt oldjuk fel a manuális bevitel után is!
+                        }, 1500);
+                    })
+                    .catch(err => {
+                        console.error("Firebase hiba:", err);
+                        canScan = true;
+                        isScanningPaused = false;
+                    });
+
+            } else {
+                // NORMÁL MÓD (Drawer)
+                isScanningPaused = true;
+                resetPicker();
+
+                const isDuplicate = !!inventoryData[code];
+                const drawer = document.getElementById('drawer');
+                const drawerCode = document.getElementById('drawer-code');
+
+                drawer.classList.remove('duplicate-active');
+                if (isDuplicate) {
+                    drawer.classList.add('duplicate-active');
+                    drawerCode.innerHTML = `${code} <span class="duplicate-text">⚠️ MÁR SZEREPEL</span>`;
+                } else {
+                    drawerCode.innerText = code;
+                }
+
+                document.getElementById('drawer-info').innerText = "Készleten: " + (inventoryData[code] || 0) + " db";
+                document.getElementById('drawer-qty').value = 1;
+
+                drawer.classList.add('open');
+                document.getElementById('backdrop').classList.add('active');
+
+                // Fontos: Itt a cancelAutoClose és az addFromDrawer fogja majd 
+                // visszaállítani az isScanningPaused-ot false-ra a closeDrawer() hívásakor.
+                startAutoClose();
+            }
+        }
+
+        function startAutoClose() {
+            cancelAutoClose();
+            autoCloseTimeout = setTimeout(() => {
+                addFromDrawer(document.getElementById('drawer-qty').value);
+            }, 3000);
+        }
+
+        function cancelAutoClose() {
+            if (autoCloseTimeout) { clearTimeout(autoCloseTimeout); autoCloseTimeout = null; }
+        }
+
+        function closeDrawer(save = true) {
+            cancelAutoClose();
+            document.getElementById('drawer').classList.remove('open');
+            document.getElementById('backdrop').classList.remove('active');
+            setTimeout(() => { isScanningPaused = false; }, 400);
+        }
+        // --- MÓDOSÍTOTT HOZZÁADÁS (Firebase-be írás) ---
+        function addFromDrawer() {
+            const qty = parseInt(document.getElementById('drawer-qty').value);
+            if (!currentWorksheetId) return alert("Válassz munkalapot!");
+
+            if (!isNaN(qty) && qty > 0) {
+                const currentQty = inventoryData[lastScannedCode] || 0;
+
+                // Firebase frissítése
+                db.ref('worksheets/' + currentWorksheetId + '/items/' + lastScannedCode)
+                    .set(currentQty + qty);
+
+                closeDrawer(true);
+            }
+        }
+
+        function updateUI() {
+            const container = document.getElementById('inventory-container');
+            container.innerHTML = "";
+            const keys = Object.keys(inventoryData).reverse();
+
+            if (keys.length === 0) {
+                container.innerHTML = `
+            <div style="text-align:center; padding: 40px; color:#bbb;">
+                <p>A munkalap még nem tartalmaz tételeket.</p>
+                <button class="btn btn-primary" onclick="showTab('scanner', document.getElementById('nav-scan-btn'))">
+                    Beolvasás indítása
+                </button>
+            </div>`;
+                return;
+            }
+            keys.forEach(code => {
+                const card = document.createElement('div');
+                card.className = 'item-card';
+                card.innerHTML = `
+                    <div>
+                        <div style="font-size:14px; font-weight:700; color:var(--dark);">${code}</div>
+                        <div style="color:var(--primary); font-weight:700; font-size:13px; margin-top:2px;">${inventoryData[code]} db</div>
+                    </div>
+                    <div class="qty-controls">
+                        <button class="btn btn-outline btn-qty" onclick="modQty('${code}', -1)"><i data-lucide="minus" style="width:16px"></i></button>
+                        <button class="btn btn-outline btn-qty" onclick="modQty('${code}', 1)"><i data-lucide="plus" style="width:16px"></i></button>
+                        <button class="btn btn-outline btn-qty" style="margin-left:8px;" onclick="delItem('${code}')"><i data-lucide="trash-2" style="width:16px; color:var(--danger)"></i></button>
+                    </div>`;
+                container.appendChild(card);
+            });
+            lucide.createIcons();
+        }
+
+        // --- MÓDOSÍTOTT MENNYISÉG KEZELÉS ---
+        function modQty(code, val) {
+            const newQty = (inventoryData[code] || 0) + val;
+            if (newQty <= 0) {
+                db.ref('worksheets/' + currentWorksheetId + '/items/' + code).remove();
+            } else {
+                db.ref('worksheets/' + currentWorksheetId + '/items/' + code).set(newQty);
+            }
+        }
+
+        function delItem(code) {
+            if (confirm("Törli az elemet?")) {
+                db.ref('worksheets/' + currentWorksheetId + '/items/' + code).remove();
+            }
+        }
+
+
+
+        function askClearAll() {
+            if (!currentWorksheetId) {
+                alert("Nincs kiválasztva munkalap!");
+                return;
+            }
+
+            if (confirm("Biztosan törli a munkalap ÖSSZES tételét? Ez a művelet végleges, a Firebase-ből is törlődik minden!")) {
+                // Törlés a Firebase-ből
+                db.ref('worksheets/' + currentWorksheetId + '/items').remove()
+                    .then(() => {
+                        // A Firebase 'on.value' figyelőd automatikusan frissíteni fogja az UI-t,
+                        // de biztos ami biztos, itt is kiüríthetjük:
+                        inventoryData = {};
+                        updateUI();
+                        showStatus("Munkalap kiürítve!", 1500);
+                    })
+                    .catch(err => {
+                        console.error("Hiba a törlés során:", err);
+                        alert("Hiba történt a törlés közben!");
+                    });
+            }
+        }
+
+
+        function applyZoom(v) {
+            if (videoTrack) {
+                videoTrack.applyConstraints({ advanced: [{ zoom: parseFloat(v) }] });
+                document.getElementById("zoom-label").innerText = parseFloat(v).toFixed(1) + "x";
+                localStorage.setItem("app_zoom", v);
+            }
+        }
+
+        function playBeep() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+            osc.connect(g); g.connect(audioCtx.destination);
+            osc.frequency.value = 800; g.gain.value = 0.05;
+            osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+        }
+
+        function exportToExcel() {
+            if (Object.keys(inventoryData).length === 0) return;
+
+            // 1. Megjegyzés bekérése a felhasználótól
+            const comment = prompt("Adj meg egy megjegyzést a mentéshez (opcionális):", "");
+            if (comment === null) return; // Ha a 'Mégse' gombra nyom, nem történik semmi
+
+            const dateStr = new Date().toISOString().slice(0, 10);
+
+            // Fájlnév és munkalap név előkészítése (tiltott karakterek eltávolítása)
+            const safeComment = comment.replace(/[/\\?%*:|"<>]/g, '-').trim();
+            const fileName = `leltar_${dateStr}${safeComment ? '_' + safeComment : ''}.xlsx`;
+
+            // Az Excel tábla (munkalap) neve max 31 karakter lehet
+            const sheetName = safeComment ? safeComment.substring(0, 31) : "Leltár";
+
+            const data = Object.keys(inventoryData).map(k => ({ "Vonalkód": k, "Mennyiség": inventoryData[k] }));
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+
+            // 2. Munkalap hozzáadása az egyedi névvel
+            XLSX.utils.book_append_sheet(wb, ws, sheetName);
+
+            // Mentés
+            XLSX.writeFile(wb, fileName);
+
+            // 3. Listaelemek törlése mentés után
+            setTimeout(() => {
+                // Az exportToExcel függvény végén a törlés rész:
+                if (confirm("A mentés elkészült. Töröljük a munkalap tartalmát?")) {
+                    db.ref('worksheets/' + currentWorksheetId + '/items').remove(); // Törlés a felhőből
+                    inventoryData = {};
+                    updateUI();
+                }
+            }, 500);
+        }
+
+        function saveData() { localStorage.setItem("inventory_pro_v1", JSON.stringify(inventoryData)); }
+        function loadData() {
+            const saved = localStorage.getItem("inventory_pro_v1");
+            if (saved) { inventoryData = JSON.parse(saved); }
+        }
+
+
+
+        function renderQtyRibbon() {
+            const container = document.querySelector('.qty-selector-container');
+            const ribbon = document.getElementById('qty-ribbon');
+
+            // Ha a felhasználó elkezd görgetni, azonnal állítsuk le az automata bezárást
+            container.onscroll = () => {
+                cancelAutoClose();
+            };
+
+            // Ez megakadályozza, hogy a görgetés "beragadjon"
+            container.ontouchstart = () => {
+                cancelAutoClose();
+            };
+
+            ribbon.innerHTML = "";
+            quickValues.forEach(val => {
+                const chip = document.createElement('div');
+                chip.className = `qty-chip ${val === 1 ? 'selected' : ''}`;
+                chip.innerText = val;
+                chip.onclick = () => selectQty(val, chip);
+                ribbon.appendChild(chip);
+            });
+        }
+
+        function selectQty(val, element) {
+            document.getElementById('drawer-qty').value = val;
+            // Kijelölés vizuális frissítése
+            document.querySelectorAll('.qty-chip').forEach(c => c.classList.remove('selected'));
+            element.classList.add('selected');
+
+            // Görgetés az elemhez, hogy középen legyen
+            element.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+
+            // Ha kézzel választanak, ne záródjon be az ablak automatikusan
+            cancelAutoClose();
+        }
+
+        function resetRibbon() {
+            const container = document.querySelector('.qty-selector-container');
+            document.getElementById('drawer-qty').value = 1;
+
+            const chips = document.querySelectorAll('.qty-chip');
+            chips.forEach(c => {
+                c.classList.remove('selected');
+                if (c.innerText == "1") {
+                    c.classList.add('selected');
+                }
+            });
+
+            // Visszatekerjük az elejére simán
+            container.scrollTo({ left: 0, behavior: 'smooth' });
+        }
+
+
+
+
+
+
+
+        function renderQtyPicker() {
+            const wheel = document.getElementById('picker-wheel');
+            wheel.innerHTML = "";
+
+            // 1. Létrehozzuk az "Egyéni" beviteli mezőt legfelülre
+            const manualItem = document.createElement('div');
+            manualItem.className = 'picker-item';
+            manualItem.innerHTML = `<input type="number" id="manual-qty" placeholder="Egyéni..." onfocus="cancelAutoClose()">`;
+            manualItem.setAttribute('data-val', 'manual');
+            wheel.appendChild(manualItem);
+
+            // 2. Létrehozzuk a fix számokat
+            quickValues.forEach(val => {
+                const item = document.createElement('div');
+                item.className = 'picker-item';
+                item.innerText = val;
+                item.setAttribute('data-val', val);
+                wheel.appendChild(item);
+            });
+        }
+
+        function handlePickerScroll() {
+            // Csak akkor szakítsuk meg az automata bezárást, ha NEM resetelés történik
+            if (!isResetting) {
+                cancelAutoClose();
+            }
+
+            const wheel = document.getElementById('picker-wheel');
+            const items = wheel.querySelectorAll('.picker-item');
+            const wheelCenter = wheel.scrollTop + (wheel.clientHeight / 2);
+            const manualInput = document.getElementById('manual-qty');
+
+            items.forEach(item => {
+                const itemCenter = item.offsetTop + (item.clientHeight / 2);
+                const distance = Math.abs(wheelCenter - itemCenter);
+
+                if (distance < 25) {
+                    items.forEach(i => i.classList.remove('active'));
+                    item.classList.add('active');
+                    const currentVal = item.getAttribute('data-val');
+
+                    if (currentVal === "manual") {
+                        document.getElementById('drawer-qty').value = manualInput.value;
+                        manualInput.oninput = () => {
+                            cancelAutoClose(); // Ha ide ír, álljon le a számláló
+                            document.getElementById('drawer-qty').value = manualInput.value;
+                        };
+                    } else {
+                        if (document.activeElement === manualInput) manualInput.blur();
+                        document.getElementById('drawer-qty').value = currentVal;
+                    }
+                }
+            });
+        }
+
+
+        // 1. Összes munkalap exportálása egy Excelbe
+        function exportAllWorksheets() {
+            if (!allWorksheetsData || Object.keys(allWorksheetsData).length === 0) {
+                alert("Nincs adat az exportáláshoz.");
+                return;
+            }
+
+            const wb = XLSX.utils.book_new();
+            let hasData = false;
+
+            Object.keys(allWorksheetsData).forEach(id => {
+                const wsData = allWorksheetsData[id];
+                if (wsData.items && Object.keys(wsData.items).length > 0) {
+                    hasData = true;
+                    // Adatok átalakítása táblázattá
+                    const rows = Object.keys(wsData.items).map(code => ({
+                        "Vonalkód": code,
+                        "Mennyiség": wsData.items[code]
+                    }));
+
+                    const sheet = XLSX.utils.json_to_sheet(rows);
+                    // Munkalap nevének tisztítása (max 31 karakter, tiltott karakterek nélkül)
+                    const safeName = wsData.name.replace(/[\[\]\*\?\/\\]/g, "").substring(0, 31);
+                    XLSX.utils.book_append_sheet(wb, sheet, safeName || id);
+                }
+            });
+
+            if (!hasData) {
+                alert("Minden munkalap üres.");
+                return;
+            }
+
+            const dateStr = new Date().toISOString().slice(0, 10);
+            XLSX.writeFile(wb, `TELJES_LELTAR_${dateStr}.xlsx`);
+        }
+
+
+        // Figyeljük az asztali bevitelt: ha ENTER-t nyomnak, rögzítünk
+        document.addEventListener('DOMContentLoaded', () => {
+            const dskInput = document.getElementById('desktop-barcode-input');
+            if (dskInput) {
+                dskInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        const val = dskInput.value.trim();
+                        if (val) {
+                            onScanSuccess(val);
+                            dskInput.value = ''; // Mező ürítése a következőhöz
+                            dskInput.focus();
+                        }
+                    }
+                });
+            }
+        });
+
+
+
+        // --- ÚJ: Munkalap átnevezése ---
+        function renameWorksheet() {
+            if (!currentWorksheetId) return;
+            const currentName = allWorksheetsData[currentWorksheetId].name;
+            const newName = prompt("Add meg a munkalap új nevét:", currentName);
+
+            if (newName && newName.trim() !== "" && newName !== currentName) {
+                db.ref('worksheets/' + currentWorksheetId + '/name').set(newName.trim())
+                    .then(() => {
+                        document.getElementById('active-ws-title').innerText = newName.trim();
+                        renderTabs(); // Frissíti a fülek neveit
+                    });
+            }
+            document.getElementById('tab-context-menu').style.display = 'none';
+        }
+
+        // --- ÚJ: Munkalap választó lenyíló menü (Dropdown) ---
+        function toggleWsListMenu(event) {
+            event.stopPropagation();
+            const dropdown = document.getElementById('ws-list-dropdown');
+
+            if (dropdown.style.display === 'block') {
+                dropdown.style.display = 'none';
+                return;
+            }
+
+            // Lista feltöltése
+            dropdown.innerHTML = '<div style="padding: 10px 15px; font-weight: bold; border-bottom: 1px solid #eee; background: #fafafa; position: sticky; top: 0;">Válassz munkalapot</div>';
+
+            if (allWorksheetsData) {
+                // Rendezzük a legújabbaktól visszafelé
+                const sortedIds = Object.keys(allWorksheetsData).sort((a, b) => 
+                    allWorksheetsData[b].createdAt - allWorksheetsData[a].createdAt
+                );
+
+                sortedIds.forEach(id => {
+                    const ws = allWorksheetsData[id];
+                    const div = document.createElement('div');
+                    const isActive = id === currentWorksheetId;
+                    div.style.cssText = `padding: 12px 15px; cursor: pointer; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; ${isActive ? 'background: #eef2ff; color: var(--primary); font-weight: bold;' : 'color: var(--dark);'}`;
+                    div.innerHTML = `<span>${ws.name}</span> <i data-lucide="chevron-right" style="width: 16px; opacity: 0.5;"></i>`;
+                    
+                    div.onclick = (e) => {
+                        e.stopPropagation();
+                        selectWorksheet(id);
+                        dropdown.style.display = 'none';
+                    };
+                    dropdown.appendChild(div);
+                });
+            }
+
+            // Pozicionálás a gomb fölé
+            const btnRect = event.currentTarget.getBoundingClientRect();
+            dropdown.style.left = Math.max(10, btnRect.left) + 'px';
+            dropdown.style.bottom = (window.innerHeight - btnRect.top + 10) + 'px';
+
+            dropdown.style.display = 'block';
+            lucide.createIcons();
+        }
+
+
+        function resetPicker() {
+            isResetting = true; // Jelzzük, hogy most a program görget
+            const wheel = document.getElementById('picker-wheel');
+            const manualInput = document.getElementById('manual-qty');
+
+            wheel.scrollTo({ top: 50, behavior: 'instant' });
+            if (manualInput) manualInput.value = "";
+            document.getElementById('drawer-qty').value = 1;
+
+            handlePickerScroll();
+
+            // Egy pici szünet után visszaállítjuk, hogy a későbbi kézi görgetést már érzékelje
+            setTimeout(() => { isResetting = false; }, 100);
+        }
+
+
+        // Módosított menü pozicionálás, hogy asztali gépen és mobilon is jó helyen legyen
+        function toggleWsMenu(event, id) {
+            event.stopPropagation();
+            currentWorksheetId = id;
+
+            const menu = document.getElementById('tab-context-menu');
+            const rect = event.currentTarget.getBoundingClientRect();
+
+            menu.style.display = 'block';
+
+            // Kiszámoljuk a pozíciót, hogy a gomb FÖLÉ ugorjon
+            const menuHeight = menu.offsetHeight || 110;
+            menu.style.left = Math.min(rect.left, window.innerWidth - 190) + 'px';
+            menu.style.top = (rect.top - menuHeight - 5) + 'px';
+        }
+ 
+
+
+        // --- JAVÍTOTT: Menük bezárása mellékattintáskor (Mobilon is tökéletes) ---
+        ['click', 'touchstart'].forEach(evt => {
+            window.addEventListener(evt, function (e) {
+                const tabMenu = document.getElementById('tab-context-menu');
+                const listMenu = document.getElementById('ws-list-dropdown');
+
+                // Ha a 3 pöttyös menü nyitva van, és nem arra vagy a gombra kattintottunk
+                if (tabMenu && tabMenu.style.display === 'block') {
+                    if (!e.target.closest('#tab-context-menu') && !e.target.closest('.tab-more-icon')) {
+                        tabMenu.style.display = 'none';
+                    }
+                }
+
+                // Ha az új munkalap választó lista nyitva van, és nem arra vagy a gombra kattintottunk
+                if (listMenu && listMenu.style.display === 'block') {
+                    if (!e.target.closest('#ws-list-dropdown') && !e.target.closest('#ws-list-toggle-btn')) {
+                        listMenu.style.display = 'none';
+                    }
+                }
+            }, { passive: true });
+        });
+
+
+function deleteActiveWorksheet() {
+            // 1. Azonnal elrejtjük a lenyíló menüt a kattintás után
+            document.getElementById('tab-context-menu').style.display = 'none';
+
+            // 2. Jöhet a megerősítés és a tényleges törlés a Firebase-ből
+            if (confirm("VÉGLEGESEN törlöd ezt a munkalapot?")) {
+                db.ref('worksheets/' + currentWorksheetId).remove().then(() => {
+                    currentWorksheetId = null;
+                });
+            }
+        }
+
+
+        window.onload = () => {
+            lucide.createIcons();
+            loadData();
+            renderQtyPicker();
+
+            // Csak mobilon inicializáljuk a kamerát betöltéskor, ha a szkenner az aktív fül
+            const activeTab = document.querySelector('.content-area.active').id;
+            if (isMobileDevice && activeTab === 'scanner') {
+                initCam();
+            }
+
+            // Asztali gépen rögtön a beviteli mezőre rakjuk a fókuszt, ha ott vagyunk
+            if (!isMobileDevice && activeTab === 'scanner') {
+                document.getElementById('desktop-barcode-input').focus();
+            }
+        };
+    </script>
+</body>
+
+</html>
