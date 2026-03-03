@@ -10,10 +10,15 @@ import re  # <--- EZT IMPORTÁLD BE! (Regular Expression)
 from dotenv import load_dotenv
 
 
-# --- 1. LÉPÉS: Adatbeolvasás (Okosított verzió: Jegyzet felismerése) ---
+# --- 1. LÉPÉS: Adatbeolvasás (Vesszővel elválasztott kategóriák támogatása) ---
 def adatok_beolvasasa(excel_fajl_neve):
+    """
+    Beolvassa az Excel fájlt.
+    A kategória oszlop nevét vessző mentén szétszedi listává.
+    Javítva: Kezeli a Pandas által hozzáadott .1, .2 duplikáció-jelölőket.
+    """
     try:
-        df = pd.read_excel(excel_fajl_neve, header=None, dtype=str)
+        df = pd.read_excel(excel_fajl_neve, dtype=str)
     except FileNotFoundError:
         print(f"HIBA: Az '{excel_fajl_neve}' fájl nem található.")
         return None
@@ -21,39 +26,28 @@ def adatok_beolvasasa(excel_fajl_neve):
         print(f"HIBA az Excel beolvasása közben: {e}")
         return None
 
-    if len(df) < 2:
-        print("HIBA: Az Excelnek legalább 2 sort kell tartalmaznia!")
-        return None
-
     feldolgozando_lista = []
 
-    for col_idx in range(len(df.columns)):
-        elso_cella = str(df.iloc[0, col_idx]).strip()
+    for kategoria_fejlec in df.columns:
+        cikkszamok = df[kategoria_fejlec].dropna().tolist()
 
-        # --- ÚJ LOGIKA: MEGNÉZZÜK, HOGY EZ EGY GENERÁLT HIBA FÁJL-E ---
-        if elso_cella.upper().startswith("JEGYZET"):
-            # Ha van jegyzet sor legfelül, minden egy sorral lejjebb csúszik
-            marka = str(df.iloc[1, col_idx]).strip()
-            kategoria_fejlec = str(df.iloc[2, col_idx]).strip()
-            cikkszamok = df.iloc[3:, col_idx].dropna().tolist()
-        else:
-            # Normál, eredeti input fájl
-            marka = str(df.iloc[0, col_idx]).strip()
-            kategoria_fejlec = str(df.iloc[1, col_idx]).strip()
-            cikkszamok = df.iloc[2:, col_idx].dropna().tolist()
+        # --- JAVÍTÁS KEZDTE ---
+        # Az eredeti fejléc sztringgé alakítása
+        nyers_fejlec = str(kategoria_fejlec)
 
-        if marka.lower() == 'nan' or kategoria_fejlec.lower() == 'nan':
-            continue
+        # Regex segítségével eltávolítjuk a string végéről a .<szám> mintát (pl. ".1", ".15")
+        # Csak akkor vágja le, ha pont és szám van a végén, amit a Pandas rakott oda.
+        tiszta_fejlec = re.sub(r'\.\d+$', '', nyers_fejlec)
+        # --- JAVÍTÁS VÉGE ---
 
-        tiszta_fejlec = re.sub(r'\.\d+$', '', kategoria_fejlec)
-        kategoriak_listaja = [k.strip() for k in tiszta_fejlec.split(',') if k.strip()]
+        # Vessző mentén darabolunk a TISZTA fejlécből
+        kategoriak_listaja = [k.strip() for k in tiszta_fejlec.split(',')]
 
         for cikkszam in cikkszamok:
             cikkszam_str = str(cikkszam).strip()
-
-            # Csak a valós adatokat vesszük fel
-            if cikkszam_str and cikkszam_str.lower() != 'nan' and kategoriak_listaja:
-                feldolgozando_lista.append((cikkszam_str, marka, kategoria_fejlec, kategoriak_listaja))
+            # Csak akkor adjuk hozzá, ha van cikkszám és kategória is
+            if cikkszam_str and kategoriak_listaja:
+                feldolgozando_lista.append((cikkszam_str, kategoriak_listaja))
 
     return feldolgozando_lista
 
@@ -133,9 +127,12 @@ def stabil_kategoria_valasztas(page, input_locator, dropdown_locator, kategoria_
             pass
         return False
 
-
 # --- 2. LÉPÉS: Fő Feldolgozó Funkció ---
-def run_processor(context: Context, termek_lista, mod, progress_file_path, bemeneti_fajl_neve):
+
+def run_processor(context: Context, termek_lista, mod, progress_file_path):
+    """
+    Végigviszi a böngésző-automatizálási lépéseket a megadott listán.
+    """
     # --- ÁLLAPOT BETÖLTÉSE ---
     mar_kesz_db = 0
     sikertelen_lista_elso_kor = []
@@ -154,114 +151,156 @@ def run_processor(context: Context, termek_lista, mod, progress_file_path, bemen
             mar_kesz_db = 0
             sikertelen_lista_elso_kor = []
 
+    # Segédfüggvény a mentéshez
     def mentes_allapot(aktualis_index):
         try:
-            state = {"index": aktualis_index, "retry_list": sikertelen_lista_elso_kor}
+            state = {
+                "index": aktualis_index,
+                "retry_list": sikertelen_lista_elso_kor
+            }
             with open(progress_file_path, "w", encoding="utf-8") as f:
                 json.dump(state, f, ensure_ascii=False, indent=2)
         except Exception as e:
-            pass
+            print(f" (Mentési hiba: {e})")
 
     start_index = mar_kesz_db
     feldolgozando_maradek = termek_lista[start_index:]
 
     sikeres_db = 0
+    sikertelen_lista_elso_kor = []
     veglegesen_sikertelen_lista = []
     veglegesen_sikertelen_db = 0
     log_fajl_neve = "error_log.txt"
 
+    print("=" * 50)
+    print(f"FELDOLGOZÁSI MÓD: '{mod}'")
+    print("=" * 50)
+
+    try:
+        with open(log_fajl_neve, "a", encoding="utf-8") as f:
+            f.write(f"\n--- ÚJ FUTTATÁS INDULT: {datetime.datetime.now()} (MÓD: {mod}) ---\n")
+            f.write(f"Összesen {len(termek_lista)} termék feldolgozása.\n")
+            f.write("=" * 40 + "\n")
+    except Exception as e:
+        print(f"Figyelmeztetés: Nem sikerült a log fájlba írni az indítást: {e}")
+
     try:
         page = context.new_page()
+        print("Új böngésző lap nyitva a feldolgozáshoz.")
     except Exception as e:
-        print(f"HIBA: Nem sikerült új lapot nyitni: {e}")
+        print(f"HIBA: Nem sikerült új lapot nyitni a kontextusban: {e}")
         return
 
+    print(f"Indul a feldolgozás, 1. KÖR: Összesen {len(termek_lista)} termék.")
+
     # --- FŐ CIKLUS (1. KÖR) ---
-    for i, (cikkszam, marka, eredeti_fejlec, kategoriak) in enumerate(feldolgozando_maradek):
-        aktualis_sorszam = start_index + i + 1
+    if not feldolgozando_maradek and sikertelen_lista_elso_kor:
+        print("✅ A fő lista már kész, a javítandó elemekkel folytatom.")
+    elif not feldolgozando_maradek and not sikertelen_lista_elso_kor:
+        print("✅ A mentés alapján ez a munka teljesen kész!")
+
+    # Itt kezdődik a ciklus a maradékkal
+    for i, (cikkszam, kategoriak) in enumerate(feldolgozando_maradek):
+        aktualis_sorszam = start_index + i + 1  # Kiszámoljuk a valódi sorszámot
         print(f"\n[{aktualis_sorszam}/{len(termek_lista)}] Feldolgozás...")
-        print(f"  Cikkszám: {cikkszam} | Márka: {marka}")
+        # ... (a többi kód marad a régiben: print cikkszám, stb.)
+        print(f"  Cikkszám: {cikkszam}")
+        print(f"  Kategóriák: {', '.join(kategoriak)}")
 
         try:
+            # --- Közös logika (Keresés) ---
             page.goto("https://szvgtoolsshop.hu/administrator/", timeout=60000)
+
             search_field = page.locator("#searchField_all")
             search_field.wait_for(timeout=10000)
             search_field.fill(cikkszam)
             search_field.press("Enter")
 
-            # --- MÁRKA ÉS DUPLIKÁCIÓ SZŰRÉS ---
-            sorok = page.locator(f"tr:has(td:text-is('{cikkszam}'))")
-            sorok.first.wait_for(timeout=10000)
-            talalat_db = sorok.count()
-
-            if talalat_db == 1:
-                sor = sorok.first
-            elif talalat_db > 1:
-                print(f"   ⚠️ Több találat ({talalat_db} db). Szűrés márkára: '{marka}'...")
-                szurt_sorok = sorok.filter(has_text=marka)
-                szurt_db = szurt_sorok.count()
-
-                if szurt_db == 1:
-                    print("   ✅ Márka alapján sikeresen beazonosítva.")
-                    sor = szurt_sorok.first
-                elif szurt_db > 1:
-                    raise Exception("DUPLIKÁCIÓ")
-                else:
-                    raise Exception(f"Több cikkszám, de egyiknél sem stimmel a '{marka}' márka!")
-            else:
-                raise Exception("Nem található a cikkszám!")
-
+            sor = page.locator(f"tr:has(td:text-is('{cikkszam}'))")
             termek_link = sor.locator("a[href*='view=product']")
             termek_link.wait_for(timeout=10000)
             termek_link.click()
 
-            # --- MÓD VÁLASZTÓ LOGIKA (Ugyanaz maradt, lerövidítve a válaszban) ---
+            # --- MÓD VÁLASZTÓ LOGIKA ---
+
             if mod == "kategorizalo":
+                # --- 1. SIMA KATEGORIZÁLÓ (Csak az első kategória) ---
                 kat = kategoriak[0]
+
                 page.locator("a:has-text('A termék kategorizálása')").click()
                 popup_ablak = page.locator("#popup")
                 popup_ablak.wait_for(timeout=10000)
+
                 popup_kereso = popup_ablak.locator("div.selectize-control.categories input[type='text']")
                 popup_kereso.wait_for(timeout=5000)
+
+                # Sima módnál is használhatjuk a stabil logikát, de a gyorsaság miatt itt maradhat az egyszerűbb
                 popup_kereso.press_sequentially(kat, delay=50)
                 time.sleep(1.0)
+
                 dropdown = page.locator("div.selectize-dropdown.categories")
                 dropdown.locator(f"div.option:has-text('{kat}')").first.click()
+
                 popup_ablak.locator("div.pure-button:has-text('Hozzáadás a választott kategóriákhoz')").click()
 
             elif mod == "multi_kategorizalo":
+                # --- 3. MULTI KATEGORIZÁLÓ (Mindegyik hozzáadása) ---
+                # Itt használjuk az ÚJ stabilizáló függvényt!
+
                 page.locator("a:has-text('A termék kategorizálása')").click()
                 popup_ablak = page.locator("#popup")
                 popup_ablak.wait_for(timeout=10000)
+
                 popup_kereso = popup_ablak.locator("div.selectize-control.categories input[type='text']")
                 dropdown = page.locator("div.selectize-dropdown.categories")
                 popup_kereso.wait_for(state="visible")
+
                 for kat in kategoriak:
                     stabil_kategoria_valasztas(page, popup_kereso, dropdown, kat)
+
+                # Mentés a végén
                 popup_ablak.locator("div.pure-button:has-text('Hozzáadás a választott kategóriákhoz')").click()
-                time.sleep(1.5)
+                time.sleep(1.5)  # Biztonsági várakozás
 
             elif mod == "atkategorizalo":
+                # --- 2. SIMA ÁTKATEGORIZÁLÓ (Csere az elsőre) ---
                 kat = kategoriak[0]
+
+                # --- JAVÍTOTT TÖRLÉS KEZDETE ---
+                #print("   Meglévő kategóriák keresése és törlése...")
+                # Várunk picit, hogy a Selectize (és a törlő gombok) biztosan betöltsenek az első terméknél is
                 page.locator("div.selectize-control.categories").wait_for(state="visible", timeout=5000)
-                time.sleep(1.0)
+                time.sleep(1.0)  # Biztonsági várakozás az első kör miatt
+
+                # Ciklus: amíg találunk "remove" gombot, addig kattintgatunk
+                # Max 50-szer fut le, hogy ne ragadjon be végtelen ciklusba
                 for _ in range(50):
                     torles_gomb = page.locator("div.selectize-control.categories div.selectize-input a.remove").first
                     if torles_gomb.is_visible():
-                        torles_gomb.click(force=True)
-                        time.sleep(0.3)
+                        torles_gomb.click(force=True)  # Erőltetett kattintás
+                        time.sleep(0.3)  # Hagyunk időt a DOM frissülésre
                     else:
-                        break
+                        break  # Ha nincs több látható gomb, kilépünk
+                # --- JAVÍTOTT TÖRLÉS VÉGE ---
+
+                # Hozzáadás (A te eredeti logikád, vagy használd ide is a stabil_kategoria_valasztas-t!)
+                # Javaslom, hogy ide is a stabil függvényt hívd meg, ha már megírtuk:
                 atkat_kereso = page.locator(
                     "div.selectize-control.categories div.selectize-input input[type='text']").first
-                dropdown = page.locator("div.selectize-dropdown.categories").first
+                dropdown = page.locator("div.selectize-dropdown.categories").first  # Csak a definíció miatt kell
                 stabil_kategoria_valasztas(page, atkat_kereso, dropdown, kat)
+
                 page.locator("a#save:has-text('Mentés')").click()
                 time.sleep(3)
 
             elif mod == "multi_atkategorizalo":
+                # --- 4. MULTI ÁTKATEGORIZÁLÓ (Csere az összesre) ---
+
+                # --- JAVÍTOTT TÖRLÉS KEZDETE ---
+                #print("   Meglévő kategóriák keresése és törlése...")
                 page.locator("div.selectize-control.categories").wait_for(state="visible", timeout=5000)
-                time.sleep(1.0)
+                time.sleep(1.0)  # Biztonsági várakozás az első kör miatt
+
                 for _ in range(50):
                     torles_gomb = page.locator("div.selectize-control.categories div.selectize-input a.remove").first
                     if torles_gomb.is_visible():
@@ -269,79 +308,69 @@ def run_processor(context: Context, termek_lista, mod, progress_file_path, bemen
                         time.sleep(0.3)
                     else:
                         break
+                # --- JAVÍTOTT TÖRLÉS VÉGE ---
+
                 atkat_kereso = page.locator(
                     "div.selectize-control.categories div.selectize-input input[type='text']").first
                 dropdown = page.locator("div.selectize-dropdown.categories").first
+
+                # Ciklus a stabil függvénnyel
                 for kat in kategoriak:
                     stabil_kategoria_valasztas(page, atkat_kereso, dropdown, kat)
+
                 page.locator("a#save:has-text('Mentés')").click()
                 time.sleep(3)
 
-            print(f"  ✅ Sikeresen feldolgozva.")
+            # --- Siker ---
+            print(f"  ✅ Sikeresen feldolgozva.")
             sikeres_db += 1
             mentes_allapot(aktualis_sorszam)
+            time.sleep(1)
 
         except Exception as e:
-            hiba_uzenet = str(e)
-            print(f"  ❌ HIBA (1. KÖR): {hiba_uzenet}")
-            sikertelen_lista_elso_kor.append((cikkszam, marka, eredeti_fejlec, kategoriak, hiba_uzenet))
+            print(f"  ❌ HIBA (1. KÖR) történt a {cikkszam} feldolgozásakor.")
+            sikertelen_lista_elso_kor.append((cikkszam, kategoriak))
             mentes_allapot(aktualis_sorszam)
+
+            # Hiba naplózása
+            with open(log_fajl_neve, "a", encoding="utf-8") as f:
+                f.write(f"HIBA (1. kör): {cikkszam} - {e}\n")
+
+            time.sleep(2)
+
+    # --- FŐ CIKLUS VÉGE ---
 
     # --- ÚJRAPRÓBÁLKOZÁSI CIKLUS (2. KÖR) ---
     if sikertelen_lista_elso_kor:
         print("\n" + "=" * 50)
         print(f"Indul a feldolgozás, 2. KÖR: Újrapróbálkozás {len(sikertelen_lista_elso_kor)} termékkel.")
-        feldolgozando_retry = list(sikertelen_lista_elso_kor)
+        print("=" * 50 + "\n")
 
-        for i, (cikkszam, marka, eredeti_fejlec, kategoriak, elozo_hiba) in enumerate(feldolgozando_retry):
-            print(f"\n[{i + 1}/{len(feldolgozando_retry)}] Retry: {cikkszam}")
-
-            # Duplikációs hiba esetén felesleges újrapróbálni!
-            if "DUPLIKÁCIÓ" in elozo_hiba:
-                print("   ⚠️ Újrapróbálkozás átugorva (Duplikációs hiba miatt).")
-                veglegesen_sikertelen_db += 1
-                veglegesen_sikertelen_lista.append((cikkszam, marka, eredeti_fejlec, kategoriak, elozo_hiba))
-                sikertelen_lista_elso_kor = [x for x in sikertelen_lista_elso_kor if x[0] != cikkszam]
-                mentes_allapot(start_index + len(feldolgozando_maradek))
-                continue
+        for i, (cikkszam, kategoriak) in enumerate(sikertelen_lista_elso_kor):
+            print(f"\n[{i + 1}/{len(sikertelen_lista_elso_kor)}] Újrapróbálkozás...")
+            print(f"  Cikkszám: {cikkszam}")
 
             try:
+                # --- Navigáció ---
                 page.goto("https://szvgtoolsshop.hu/administrator/", timeout=60000)
                 search_field = page.locator("#searchField_all")
                 search_field.wait_for(timeout=10000)
                 search_field.fill(cikkszam)
                 search_field.press("Enter")
-
-                sorok = page.locator(f"tr:has(td:text-is('{cikkszam}'))")
-                sorok.first.wait_for(timeout=10000)
-                talalat_db = sorok.count()
-
-                if talalat_db == 1:
-                    sor = sorok.first
-                elif talalat_db > 1:
-                    szurt_sorok = sorok.filter(has_text=marka)
-                    szurt_db = szurt_sorok.count()
-                    if szurt_db == 1:
-                        sor = szurt_sorok.first
-                    elif szurt_db > 1:
-                        raise Exception("DUPLIKÁCIÓ")
-                    else:
-                        raise Exception(f"Több cikkszám, de egyik sem '{marka}'.")
-                else:
-                    raise Exception("Nem található a cikkszám!")
-
+                sor = page.locator(f"tr:has(td:text-is('{cikkszam}'))")
                 termek_link = sor.locator("a[href*='view=product']")
                 termek_link.wait_for(timeout=10000)
                 termek_link.click()
 
-                # MODOK ISMÉTLÉSE RÖVIDEN (A logika marad)
+                # --- MÓDOK ISMÉTLÉSE (Teljes logika) ---
+
                 if mod == "kategorizalo":
                     kat = kategoriak[0]
                     page.locator("a:has-text('A termék kategorizálása')").click()
                     popup_ablak = page.locator("#popup")
                     popup_ablak.wait_for()
                     popup_kereso = popup_ablak.locator("div.selectize-control.categories input[type='text']")
-                    popup_kereso.press_sequentially(kat, delay=60)
+                    popup_kereso.press_sequentially(kat, delay=60)  # Kicsit lassabban a 2. körben
                     time.sleep(1.5)
                     dropdown = page.locator("div.selectize-dropdown.categories")
                     dropdown.locator(f"div.option:has-text('{kat}')").first.click()
@@ -353,123 +382,130 @@ def run_processor(context: Context, termek_lista, mod, progress_file_path, bemen
                     popup_ablak.wait_for()
                     popup_kereso = popup_ablak.locator("div.selectize-control.categories input[type='text']")
                     dropdown = page.locator("div.selectize-dropdown.categories")
+
                     for kat in kategoriak:
                         stabil_kategoria_valasztas(page, popup_kereso, dropdown, kat)
+
                     popup_ablak.locator("div.pure-button:has-text('Hozzáadás a választott kategóriákhoz')").click()
                     time.sleep(1.5)
 
                 elif mod == "atkategorizalo":
+                    # --- 2. SIMA ÁTKATEGORIZÁLÓ (Csere az elsőre) ---
                     kat = kategoriak[0]
+
+                    # --- JAVÍTOTT TÖRLÉS KEZDETE ---
+                    #print("   Meglévő kategóriák keresése és törlése...")
+                    # Várunk picit, hogy a Selectize (és a törlő gombok) biztosan betöltsenek az első terméknél is
                     page.locator("div.selectize-control.categories").wait_for(state="visible", timeout=5000)
-                    time.sleep(1.0)
+                    time.sleep(1.0)  # Biztonsági várakozás az első kör miatt
+
+                    # Ciklus: amíg találunk "remove" gombot, addig kattintgatunk
+                    # Max 50-szer fut le, hogy ne ragadjon be végtelen ciklusba
                     for _ in range(50):
                         torles_gomb = page.locator(
                             "div.selectize-control.categories div.selectize-input a.remove").first
                         if torles_gomb.is_visible():
-                            torles_gomb.click(force=True);
-                            time.sleep(0.3)
+                            torles_gomb.click(force=True)  # Erőltetett kattintás
+                            time.sleep(0.3)  # Hagyunk időt a DOM frissülésre
                         else:
-                            break
+                            break  # Ha nincs több látható gomb, kilépünk
+                    # --- JAVÍTOTT TÖRLÉS VÉGE ---
+
+                    # Hozzáadás (A te eredeti logikád, vagy használd ide is a stabil_kategoria_valasztas-t!)
+                    # Javaslom, hogy ide is a stabil függvényt hívd meg, ha már megírtuk:
                     atkat_kereso = page.locator(
                         "div.selectize-control.categories div.selectize-input input[type='text']").first
-                    dropdown = page.locator("div.selectize-dropdown.categories").first
+                    dropdown = page.locator("div.selectize-dropdown.categories").first  # Csak a definíció miatt kell
                     stabil_kategoria_valasztas(page, atkat_kereso, dropdown, kat)
+
                     page.locator("a#save:has-text('Mentés')").click()
                     time.sleep(3)
 
                 elif mod == "multi_atkategorizalo":
+                    # --- 4. MULTI ÁTKATEGORIZÁLÓ (Csere az összesre) ---
+
+                    # --- JAVÍTOTT TÖRLÉS KEZDETE ---
+                    #print("   Meglévő kategóriák keresése és törlése...")
                     page.locator("div.selectize-control.categories").wait_for(state="visible", timeout=5000)
-                    time.sleep(1.0)
+                    time.sleep(1.0)  # Biztonsági várakozás az első kör miatt
+
                     for _ in range(50):
                         torles_gomb = page.locator(
                             "div.selectize-control.categories div.selectize-input a.remove").first
                         if torles_gomb.is_visible():
-                            torles_gomb.click(force=True);
+                            torles_gomb.click(force=True)
                             time.sleep(0.3)
                         else:
                             break
+                    # --- JAVÍTOTT TÖRLÉS VÉGE ---
+
                     atkat_kereso = page.locator(
                         "div.selectize-control.categories div.selectize-input input[type='text']").first
                     dropdown = page.locator("div.selectize-dropdown.categories").first
+
+                    # Ciklus a stabil függvénnyel
                     for kat in kategoriak:
                         stabil_kategoria_valasztas(page, atkat_kereso, dropdown, kat)
+
                     page.locator("a#save:has-text('Mentés')").click()
                     time.sleep(3)
 
-                print(f"  ✅ Sikeres (2. kör).")
+                # --- Siker (2. kör) ---
+                print(f"  ✅ Sikeresen hozzáadva (ÚJRAPRÓBÁLVA).")
                 sikeres_db += 1
+                # Kivesszük a listából és mentünk
                 sikertelen_lista_elso_kor = [x for x in sikertelen_lista_elso_kor if x[0] != cikkszam]
                 mentes_allapot(start_index + len(feldolgozando_maradek))
+                time.sleep(1)
 
             except Exception as e:
-                vegleges_hiba = str(e)
-                print(f"  ❌ VÉGLEGES HIBA: {cikkszam} - {vegleges_hiba}")
+                # VÉGLEGES HIBA
+                print(f"  ❌ HIBA (VÉGLEGES) történt a {cikkszam} feldolgozásakor.")
                 veglegesen_sikertelen_db += 1
-                veglegesen_sikertelen_lista.append((cikkszam, marka, eredeti_fejlec, kategoriak, vegleges_hiba))
+                veglegesen_sikertelen_lista.append((cikkszam, kategoriak))
+                # Kivesszük a listából (mert végeztünk vele, még ha hiba is) és mentünk
                 sikertelen_lista_elso_kor = [x for x in sikertelen_lista_elso_kor if x[0] != cikkszam]
                 mentes_allapot(start_index + len(feldolgozando_maradek))
 
-    page.close()
-    if os.path.exists(progress_file_path) and not sikertelen_lista_elso_kor:
-        os.remove(progress_file_path)
+                with open(log_fajl_neve, "a", encoding="utf-8") as f:
+                    f.write(f"VÉGLEGES HIBA: {cikkszam} - {e}\n")
 
-    # --- ÚJ: EXPORTÁLÁS FORMÁTUMA (KÖZVETLENÜL VISSZATÖLTHETŐ) ---
+                time.sleep(2)
+
+    # --- VÉGE ---
+    page.close()
+    # Takarítás
+    if os.path.exists(progress_file_path) and not sikertelen_lista_elso_kor:
+        try:
+            os.remove(progress_file_path)
+            print("\n🗑️  Munkamenet fájl törölve (Minden kész).")
+        except:
+            pass
+    print("\n" + "=" * 50)
+    print("A feldolgozás befejeződött.")
+    print(f"  ✅ Sikeres: {sikeres_db}")
+    print(f"  ❌ Végleges hiba: {veglegesen_sikertelen_db}")
+    print("=" * 50)
+
+    # --- EXPORTÁLÁS ---
     if veglegesen_sikertelen_lista:
         print(f"\n📑 Exportálás: {len(veglegesen_sikertelen_lista)} sikertelen termék...")
         SIKERTELEN_MAPPA = "sikertelen_tablak"
         try:
             os.makedirs(SIKERTELEN_MAPPA, exist_ok=True)
+            export_data = []
+            for cikk, kats in veglegesen_sikertelen_lista:
+                export_data.append({"Cikkszám": cikk, "Kategória": ", ".join(kats)})
 
-            oszlop_adatok = {}
-            for cikkszam, marka, eredeti_fejlec, kats, hiba in veglegesen_sikertelen_lista:
-                kulcs = (marka, eredeti_fejlec)
-                if kulcs not in oszlop_adatok:
-                    oszlop_adatok[kulcs] = {"duplikaciok": [], "hibak": []}
-
-                # --- MÓDOSÍTÁS: Mindenképpen beletesszük a lenti listába! ---
-                oszlop_adatok[kulcs]["hibak"].append(cikkszam)
-
-                # És ha duplikáció volt, akkor a fenti jegyzethez is felírjuk
-                if "DUPLIKÁCIÓ" in str(hiba):
-                    oszlop_adatok[kulcs]["duplikaciok"].append(cikkszam)
-
-            max_sor = max([len(d["hibak"]) for d in oszlop_adatok.values()]) if oszlop_adatok else 0
-
-            df_dict = {}
-            col_idx = 0
-            for (marka, fejlec), data in oszlop_adatok.items():
-
-                # --- LEGFELSŐ ÚJ SOR: A JEGYZET ---
-                if data["duplikaciok"]:
-                    jegyzet_str = f"JEGYZET: Duplikáció miatt átugorva: {', '.join(data['duplikaciok'])}"
-                else:
-                    jegyzet_str = "JEGYZET: -"
-
-                col_list = [jegyzet_str, marka, fejlec]  # 1. Jegyzet, 2. Márka, 3. Kategória
-
-                # Alatta pedig az ÖSSZES hibás cikkszám ott lesz (a duplikáltak is!)
-                col_list.extend(data["hibak"])
-
-                # Üres cellák pótlása, hogy minden oszlop egyforma hosszú legyen
-                while len(col_list) < max_sor + 3:
-                    col_list.append("")
-
-                df_dict[f"Col_{col_idx}"] = col_list
-                col_idx += 1
-
-            df_sikertelen = pd.DataFrame(df_dict)
-
-            alap_nev = os.path.splitext(os.path.basename(bemeneti_fajl_neve))[0]
+            df_sikertelen = pd.DataFrame(export_data)
             timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M")
-            fnev = f"{alap_nev}_hiba_{mod}_{timestamp}.xlsx"
+            fnev = f"sikertelen_{mod}_{timestamp}_{len(veglegesen_sikertelen_lista)}db.xlsx"
             utvonal = os.path.join(SIKERTELEN_MAPPA, fnev)
 
-            # header=False miatt nem rak be felesleges indexeket
-            df_sikertelen.to_excel(utvonal, index=False, header=False, engine='openpyxl')
-            print(f"  ✅ Sikeres export: {utvonal}")
-            print(f"  💡 A fájlt azonnal vissza is töltheted, a jegyzeteket automatikusan átugorja!")
+            df_sikertelen.to_excel(utvonal, index=False, engine='openpyxl')
+            print(f"  ✅ Sikeres export: {utvonal}")
         except Exception as e:
-            print(f"  ❌ HIBA az exportnál: {e}")
+            print(f"  ❌ HIBA az exportnál: {e}")
 
 
 # --- 3. LÉPÉS: Bejelentkezés ---
@@ -577,6 +613,5 @@ if __name__ == "__main__":
         browser = p.chromium.launch(headless=False)
         ctx = bejelentkezes_kezelese(browser, FELHASZNALONEV, JELSZO, STATE_FAJL)
         if ctx:
-            # ITT a változás: átadjuk a 'kivalasztott_fajl_utvonala' értéket bemeneti_fajl_neve gyanánt!
-            run_processor(ctx, termekek, mod, progress_file, kivalasztott_fajl_utvonala)
+            run_processor(ctx, termekek, mod, progress_file)
         browser.close()

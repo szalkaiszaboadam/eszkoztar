@@ -4,7 +4,7 @@ import time
 import sys
 import datetime
 import os
-import json
+import json  # <--- EZ KELL A MENTÉSHEZ (1. PONT)
 from dotenv import load_dotenv
 
 
@@ -22,38 +22,41 @@ def adatok_beolvasasa(excel_fajl_neve):
         print(f"HIBA az Excel beolvasása közben: {e}")
         return None
 
-    # ÚJ: A 'Név' oszlop is kötelezővé vált
-    if "Cikkszám" not in df.columns or "Címke" not in df.columns or "Márka" not in df.columns or "Név" not in df.columns:
-        print("HIBA: Az Excel fájlnak tartalmaznia kell 'Cikkszám', 'Márka', 'Név' és 'Címke' oszlopokat.")
+    if "Cikkszám" not in df.columns or "Címke" not in df.columns:
+        print("HIBA: Az Excel fájlnak tartalmaznia kell 'Cikkszám' és 'Címke' oszlopokat.")
         return None
 
     feldolgozando_lista = []
     for index, row in df.iterrows():
         cikkszam = str(row["Cikkszám"]).strip()
-        marka = str(row["Márka"]).strip()
-        nev = str(row["Név"]).strip()
         cimke_string = str(row["Címke"]).strip()
 
         if not cikkszam or cikkszam.lower() == 'nan':
             continue
 
-        if nev.lower() == 'nan':
-            nev = ""
-
         if cimke_string and cimke_string.lower() != 'nan':
+            # 1. Lépés: split és tisztítás
             raw_list = [c.strip().lower() for c in cimke_string.split(',') if c.strip()]
+            # 2. Lépés: set() kiszűri a duplikációt, list() visszaalakítja
             cimke_lista = list(set(raw_list))
         else:
             cimke_lista = []
 
-        # Név hozzáadva a listához
-        feldolgozando_lista.append((cikkszam, marka, nev, cimke_lista))
+        feldolgozando_lista.append((cikkszam, cimke_lista))
 
     return feldolgozando_lista
 
 
-# --- 2. LÉPÉS: Fő Feldolgozó Funkció ---
-def run_processor(context: Context, termek_lista, progress_file_path, bemeneti_fajl_neve, feluliras_mod=False):
+# --- 2. LÉPÉS: Fő Feldolgozó Funkció (KOMBINÁLT VERZIÓ) ---
+def run_processor(context: Context, termek_lista, progress_file_path, feluliras_mod=False):
+    """
+    EGYESÍTETT VERZIÓ:
+    - 1. PONT: Mentés (JSON) kezelése.
+    - 4. PONT: Felülírás mód (feluliras_mod) kezelése.
+    - LOGIKA: A régi, jól működő kereső/kattintó logika.
+    """
+
+    # --- ÁLLAPOT BETÖLTÉSE (1. PONT) ---
     mar_kesz_db = 0
     sikertelen_lista_elso_kor = []
 
@@ -71,6 +74,7 @@ def run_processor(context: Context, termek_lista, progress_file_path, bemeneti_f
             mar_kesz_db = 0
             sikertelen_lista_elso_kor = []
 
+    # Segédfüggvény a mentéshez
     def mentes_allapot(aktualis_index):
         try:
             state = {
@@ -109,15 +113,17 @@ def run_processor(context: Context, termek_lista, progress_file_path, bemeneti_f
     if feldolgozando_maradek:
         print(f"\n--- 1. KÖR FOLYTATÁSA ({len(feldolgozando_maradek)} termék) ---")
 
-        for i, (cikkszam, marka, nev, cimke_lista) in enumerate(feldolgozando_maradek):
+        for i, (cikkszam, cimke_lista) in enumerate(feldolgozando_maradek):
             aktualis_sorszam = start_index + i + 1
             print(f"\n[{aktualis_sorszam}/{len(termek_lista)}] Feldolgozás...")
-            print(f"  Cikkszám: {cikkszam} | Márka: {marka} | Név: {nev}")
+            print(f"  Cikkszám: {cikkszam}")
 
             try:
+                # Navigálás biztosítása
                 if "administrator" not in page.url:
                     page.goto("https://szvgtoolsshop.hu/administrator/", timeout=60000)
 
+                # Keresés
                 search_field = page.locator("#searchField_all")
                 try:
                     search_field.wait_for(state="visible", timeout=5000)
@@ -128,48 +134,28 @@ def run_processor(context: Context, termek_lista, progress_file_path, bemeneti_f
                 search_field.fill(cikkszam)
                 search_field.press("Enter")
 
-                # --- ÚJ: MÁRKA ÉS NÉV SZŰRÉS LOGIKA ---
-                sorok = page.locator(f"tr:has(td:text-is('{cikkszam}'))")
-                sorok.first.wait_for(timeout=10000)
-
-                talalat_db = sorok.count()
-
-                if talalat_db == 1:
-                    sor = sorok.first
-                elif talalat_db > 1:
-                    print(f"  ⚠️ Több találat ({talalat_db} db). Szűrés márkára ('{marka}') és névre ('{nev}')...")
-                    # Rászűrünk a látható szövegre a soron belül, ami tartalmazza a márkát és a nevet is.
-                    # Ez sokkal biztonságosabb, ha a névben speciális karakterek (pl. " vagy ') vannak.
-                    szurt_sorok = sorok.filter(has_text=marka).filter(has_text=nev)
-                    szurt_db = szurt_sorok.count()
-
-                    if szurt_db == 1:
-                        print("  ✅ Márka és név alapján sikeresen beazonosítva az egyetlen termék.")
-                        sor = szurt_sorok.first
-                    elif szurt_db > 1:
-                        raise Exception("Duplikáció miatt átugorva: Több azonos cikkszám, márka ÉS név található!")
-                    else:
-                        raise Exception(
-                            f"Több azonos cikkszám, de egyiknél sem stimmel a megadott márka és név egyszerre!")
-                else:
-                    raise Exception("Nem található a cikkszám a keresés után!")
-                # -------------------------------
-
+                sor = page.locator(f"tr:has(td:text-is('{cikkszam}'))")
+                sor.wait_for(timeout=10000)
                 termek_link = sor.locator("a[href*='view=product']")
                 termek_link.click()
 
-                # Törlés
+                # --- 4. PONT: TÖRLÉS (JAVÍTOTT LOGIKA) ---
                 if feluliras_mod:
                     print("  [MÓD: FELÜLÍRÁS] Meglévő címkék törlése...")
                     try:
                         time.sleep(1.0)
+                        # Megvárjuk, hogy a mező látható legyen
                         container = page.locator("div.selectize-control.tags div.selectize-input")
                         container.wait_for(state="visible", timeout=5000)
                         time.sleep(1.0)
+                        # Lokátor a kis "x" gombokhoz
                         remove_btns = container.locator("div.item a.remove")
 
+                        # Addig kattintunk az ELSŐ gombra, amíg van találat (count > 0)
                         while remove_btns.count() > 0:
+                            # force=True: átkattint az esetleges takaráson
                             remove_btns.first.click(force=True, timeout=2000)
+                            # Várunk picit, hogy a JS kivegye a listából
                             page.wait_for_timeout(200)
 
                         print("  Minden meglévő címke törölve.")
@@ -177,8 +163,9 @@ def run_processor(context: Context, termek_lista, progress_file_path, bemeneti_f
                         print(f"  Törlési hiba (figyelmen kívül hagyva): {e}")
                 else:
                     print("  [MÓD: HOZZÁADÁS] Meglévő címkék megtartása.")
+                # --------------------------------------
 
-                # Hozzáadás
+                # --- RÉGI, JÓ HOZZÁADÁS LOGIKA ---
                 if cimke_lista:
                     cimke_beviteli_mezo = page.locator(
                         "div.selectize-control.tags div.selectize-input input[type='text']").first
@@ -186,12 +173,15 @@ def run_processor(context: Context, termek_lista, progress_file_path, bemeneti_f
 
                     for cimke in cimke_lista:
                         if cimke:
+                            # 1. Fill
                             cimke_beviteli_mezo.fill(cimke)
+                            # 2. Space + Backspace (Trükk a lista frissítéshez)
                             cimke_beviteli_mezo.press("Space")
                             time.sleep(0.2)
                             cimke_beviteli_mezo.press("Backspace")
-                            time.sleep(1.0)
+                            time.sleep(1.0)  # Várjunk, hogy a JS betöltse a listát
 
+                            # 3. Kombinált lokátor (RÉGI, JÓ verzió)
                             dropdown = page.locator("div.selectize-dropdown.tags").first
                             target_option = dropdown.locator(
                                 f"div.option[data-value='{cimke}'], div.create:has-text('Új címke: {cimke}')"
@@ -202,48 +192,37 @@ def run_processor(context: Context, termek_lista, progress_file_path, bemeneti_f
 
                 # Mentés
                 page.locator("a#save:has-text('Mentés')").click()
-                time.sleep(3)
+                time.sleep(3)  # Fix várakozás a mentésre
 
                 print(f"  ✅ Sikeres.")
                 sikeres_db += 1
 
             except Exception as e:
-                hiba_uzenet = str(e)
-                print(f"  ❌ HIBA (1. KÖR): {hiba_uzenet}")
-                # Hozzáadjuk a nevet és a hibaüzenetet is a listához
-                sikertelen_lista_elso_kor.append([cikkszam, marka, nev, cimke_lista, hiba_uzenet])
+                print(f"  ❌ HIBA (1. KÖR): {e}")
+                sikertelen_lista_elso_kor.append([cikkszam, cimke_lista])
                 try:
                     with open(log_fajl_neve, "a", encoding="utf-8") as f:
-                        f.write(f"HIBA {cikkszam} ({marka} - {nev}): {hiba_uzenet}\n")
+                        f.write(f"HIBA {cikkszam}: {e}\n")
                 except:
                     pass
 
+                # Ha hiba volt, próbáljunk visszamenni a főoldalra
                 try:
                     page.goto("https://szvgtoolsshop.hu/administrator/", timeout=10000)
                 except:
                     pass
 
+            # --- 1. PONT: Mentés minden lépés után ---
             mentes_allapot(aktualis_sorszam)
 
     # --- 2. KÖR (Retry) ---
     if sikertelen_lista_elso_kor:
         print("\n" + "=" * 50)
         print(f"2. KÖR: Újrapróbálkozás ({len(sikertelen_lista_elso_kor)} db).")
-        feldolgozando_retry = list(sikertelen_lista_elso_kor)
+        feldolgozando_retry = list(sikertelen_lista_elso_kor)  # Másolat
 
-        # Itt már 5 elemet csomagolunk ki
-        for i, (cikkszam, marka, nev, cimke_lista, elozo_hiba) in enumerate(feldolgozando_retry):
-            print(f"[{i + 1}/{len(feldolgozando_retry)}] Retry: {cikkszam} | {marka} | {nev}")
-
-            # Ha már az első körben duplikáció miatt dobta el, azt felesleges újrapróbálni
-            if "Duplikáció" in elozo_hiba or "Több azonos cikkszám" in elozo_hiba:
-                print(f"  ⚠️ Újrapróbálkozás átugorva, mert korábban duplikációs hibát kapott.")
-                veglegesen_sikertelen_db += 1
-                veglegesen_sikertelen_lista.append((cikkszam, marka, nev, cimke_lista, elozo_hiba))
-                sikertelen_lista_elso_kor = [x for x in sikertelen_lista_elso_kor if x[0] != cikkszam]
-                mentes_allapot(start_index + len(feldolgozando_maradek))
-                continue
-
+        for i, (cikkszam, cimke_lista) in enumerate(feldolgozando_retry):
+            print(f"[{i + 1}/{len(feldolgozando_retry)}] Retry: {cikkszam}")
             try:
                 page.goto("https://szvgtoolsshop.hu/administrator/", timeout=60000)
                 sf = page.locator("#searchField_all")
@@ -251,28 +230,12 @@ def run_processor(context: Context, termek_lista, progress_file_path, bemeneti_f
                 sf.fill(cikkszam)
                 sf.press("Enter")
 
-                sorok = page.locator(f"tr:has(td:text-is('{cikkszam}'))")
-                sorok.first.wait_for(timeout=10000)
-
-                talalat_db = sorok.count()
-
-                if talalat_db == 1:
-                    sor = sorok.first
-                elif talalat_db > 1:
-                    szurt_sorok = sorok.filter(has_text=marka).filter(has_text=nev)
-                    szurt_db = szurt_sorok.count()
-                    if szurt_db == 1:
-                        sor = szurt_sorok.first
-                    elif szurt_db > 1:
-                        raise Exception("Duplikáció miatt átugorva: Több azonos cikkszám, márka ÉS név található!")
-                    else:
-                        raise Exception(
-                            f"Több azonos cikkszám, de egyiknél sem stimmel a megadott márka és név egyszerre!")
-                else:
-                    raise Exception("Nem található a cikkszám a keresés után!")
-
+                sor = page.locator(f"tr:has(td:text-is('{cikkszam}'))")
+                sor.wait_for(timeout=10000)
                 sor.locator("a[href*='view=product']").click()
 
+                # Törlés (ha kell)
+                # Törlés (ha kell) - JAVÍTOTT
                 if feluliras_mod:
                     try:
                         container = page.locator("div.selectize-control.tags div.selectize-input")
@@ -285,14 +248,15 @@ def run_processor(context: Context, termek_lista, progress_file_path, bemeneti_f
                     except:
                         pass
 
+                # Hozzáadás (Régi logika)
                 if cimke_lista:
                     inp = page.locator("div.selectize-control.tags div.selectize-input input[type='text']").first
                     for cimke in cimke_lista:
                         if cimke:
                             inp.fill(cimke)
-                            inp.press("Space")
-                            time.sleep(0.2)
-                            inp.press("Backspace")
+                            inp.press("Space");
+                            time.sleep(0.2);
+                            inp.press("Backspace");
                             time.sleep(1.0)
                             dd = page.locator("div.selectize-dropdown.tags").first
                             dd.locator(
@@ -306,19 +270,21 @@ def run_processor(context: Context, termek_lista, progress_file_path, bemeneti_f
                 print("  ✅ Sikeres (2. kör).")
                 sikeres_db += 1
 
+                # Frissítjük a hibalistát és mentünk
                 sikertelen_lista_elso_kor = [x for x in sikertelen_lista_elso_kor if x[0] != cikkszam]
                 mentes_allapot(start_index + len(feldolgozando_maradek))
 
             except Exception as e:
-                vegleges_hiba = str(e)
-                print(f"  ❌ VÉGLEGES HIBA: {cikkszam} - {vegleges_hiba}")
+                print(f"  ❌ VÉGLEGES HIBA: {cikkszam}")
                 veglegesen_sikertelen_db += 1
-                veglegesen_sikertelen_lista.append((cikkszam, marka, nev, cimke_lista, vegleges_hiba))
+                veglegesen_sikertelen_lista.append((cikkszam, cimke_lista))
+                # Kivesszük a retry listából, mert végeztünk vele
                 sikertelen_lista_elso_kor = [x for x in sikertelen_lista_elso_kor if x[0] != cikkszam]
                 mentes_allapot(start_index + len(feldolgozando_maradek))
 
     page.close()
 
+    # Takarítás
     if os.path.exists(progress_file_path) and not sikertelen_lista_elso_kor:
         os.remove(progress_file_path)
         print("\n🗑️  Munkamenet fájl törölve.")
@@ -329,30 +295,18 @@ def run_processor(context: Context, termek_lista, progress_file_path, bemeneti_f
     print(f"Sikeres: {sikeres_db}")
     print(f"Végleges hiba: {veglegesen_sikertelen_db}")
 
-    # --- ÚJ: HIBALISTA EXPORTÁLÁSA NÉVVEL ÉS MEGJEGYZÉSSEL ---
     if veglegesen_sikertelen_lista:
         try:
             os.makedirs("sikertelen_tablak", exist_ok=True)
-            df_err = pd.DataFrame([
-                {
-                    "Cikkszám": c,
-                    "Márka": m,
-                    "Név": n,
-                    "Címke": ', '.join(l),
-                    "Megjegyzés": h
-                } for c, m, n, l, h in veglegesen_sikertelen_lista
-            ])
-            # Kinyerjük a bemeneti fájl nevét kiterjesztés nélkül (pl. "termekek.xlsx" -> "termekek")
-            alap_nev = os.path.splitext(os.path.basename(bemeneti_fajl_neve))[0]
-            fnev = f"sikertelen_tablak/{alap_nev}_hiba_{datetime.datetime.now().strftime('%Y%m%d_%H%M')}.xlsx"
-
+            df_err = pd.DataFrame([{"Cikkszám": c, "Címke": ', '.join(l)} for c, l in veglegesen_sikertelen_lista])
+            fnev = f"sikertelen_tablak/sikertelen_{datetime.datetime.now().strftime('%Y%m%d_%H%M')}.xlsx"
             df_err.to_excel(fnev, index=False)
-            print(f"Hibalista mentve ide: {fnev}")
-        except Exception as e:
-            print(f"Nem sikerült a hibalistát elmenteni: {e}")
+            print(f"Hibalista mentve: {fnev}")
+        except:
+            pass
 
 
-# --- 3. LÉPÉS: Bejelentkezés kezelése (Változatlan) ---
+# --- 3. LÉPÉS: Bejelentkezés kezelése ---
 def bejelentkezes_kezelese(browser: Browser, username, password, state_fajl="state.json"):
     context = None
     if os.path.exists(state_fajl):
@@ -388,7 +342,7 @@ def bejelentkezes_kezelese(browser: Browser, username, password, state_fajl="sta
     return context
 
 
-# --- 4. LÉPÉS: Main (Változatlan) ---
+# --- 4. LÉPÉS: Main ---
 if __name__ == "__main__":
     load_dotenv()
     STATE_FAJL = "state.json"
@@ -419,6 +373,7 @@ if __name__ == "__main__":
 
     progress_file = valasztott_path + ".progress.json"
 
+    # --- 4. PONT: MŰKÖDÉSI MÓD ---
     print("\n--- Működési Mód ---")
     print("  1: HOZZÁADÁS (Meglévők maradnak)")
     print("  2: FELÜLÍRÁS (Meglévők törlése)")
@@ -437,5 +392,5 @@ if __name__ == "__main__":
         browser = p.chromium.launch(headless=False)
         context = bejelentkezes_kezelese(browser, FELHASZNALONEV, JELSZO, STATE_FAJL)
         if context:
-            run_processor(context, termekek, progress_file, valasztott_path, feluliras_mod=feluliras)
+            run_processor(context, termekek, progress_file, feluliras_mod=feluliras)
         browser.close()
