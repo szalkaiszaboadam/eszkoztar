@@ -140,7 +140,8 @@ def run_processor(context: Context, termek_lista, progress_file_path, bemeneti_f
                     print(f"  ⚠️ Több találat ({talalat_db} db). Szűrés márkára ('{marka}') és névre ('{nev}')...")
                     # Rászűrünk a látható szövegre a soron belül, ami tartalmazza a márkát és a nevet is.
                     # Ez sokkal biztonságosabb, ha a névben speciális karakterek (pl. " vagy ') vannak.
-                    szurt_sorok = sorok.filter(has_text=marka).filter(has_text=nev)
+                    # Szigorú szűrés a márkára (pontos cella), és a névre
+                    szurt_sorok = sorok.filter(has=page.locator(f"td:text-is('{marka}')")).filter(has_text=nev)
                     szurt_db = szurt_sorok.count()
 
                     if szurt_db == 1:
@@ -259,7 +260,8 @@ def run_processor(context: Context, termek_lista, progress_file_path, bemeneti_f
                 if talalat_db == 1:
                     sor = sorok.first
                 elif talalat_db > 1:
-                    szurt_sorok = sorok.filter(has_text=marka).filter(has_text=nev)
+                    # Szigorú szűrés a márkára (pontos cella), és a névre
+                    szurt_sorok = sorok.filter(has=page.locator(f"td:text-is('{marka}')")).filter(has_text=nev)
                     szurt_db = szurt_sorok.count()
                     if szurt_db == 1:
                         sor = szurt_sorok.first
