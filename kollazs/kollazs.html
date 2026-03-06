@@ -1927,6 +1927,13 @@
         .pulse-border {
             animation: border-pulse 2s infinite ease-in-out !important;
         }
+
+
+        #collageCanvas, .visual-selection-box {
+    will-change: transform; /* GPU-hoz delegálja a réteg kezelését */
+    transform: translateZ(0); /* Hardveres gyorsítás kényszerítése */
+    backface-visibility: hidden;
+}
     </style>
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
@@ -2284,8 +2291,18 @@ const worker = new Worker('processor.worker.js');
         let dragStartImageY = 0;
         let isRenderPending = false;
 
+                /* --- UNDO & REDO (VISSZAVONÁS ÉS ISMÉTLÉS) LOGIKA --- */
+        let historyStack = [];
+        let history = [];
+        let redoStack = []; // Új verem az ismétléshez
+        const MAX_HISTORY = 20;
 
 
+
+        // Ezeket a változókat a kódod elejére, a többi globális változó mellé rakd
+const CANVAS_SIZE = 800;
+const offscreen = new OffscreenCanvas(CANVAS_SIZE, CANVAS_SIZE);
+const oCtx = offscreen.getContext('2d');
         /* --- GLOBÁLIS VÁLTOZÓK --- */
         // ... a többi változó után ...
         let selectedIndices = new Set(); // Ez tárolja a több kiválasztott képet
@@ -2350,28 +2367,21 @@ const worker = new Worker('processor.worker.js');
         }
 
 
-        async function saveToPersistentStorage() {
-            const db = await openDB();
-            const tx = db.transaction(STORE_NAME, "readwrite");
-            const store = tx.objectStore(STORE_NAME);
+async function saveToPersistentStorage() {
+    const db = await openDB();
+    const tx = db.transaction(STORE_NAME, "readwrite");
+    const store = tx.objectStore(STORE_NAME);
 
-            // Frissítjük a memóriában lévő állapotot a jelenlegi módhoz
-            if (loadedImages.length > 0) {
-                layoutStates[currentMode] = {
-                    zoomLevels: [...zoomLevels],
-                    imageOffsets: JSON.parse(JSON.stringify(imageOffsets)),
-                    rotations: [...rotations],
-                    history: [...historyStack],
-                    redo: [...redoStack]
-                };
-            }
+    // Képek átalakítása Blobbá a mentés előtt
+    const imagesToSave = await Promise.all(loadedImages.map(async (img) => {
+        const response = await fetch(img.src);
+        const blob = await response.blob();
+        return { blob, uId: img.dataset.uId };
+    }));
 
-            const savedData = {
-                allImageData: loadedImages.map((img, i) => ({
-                    src: img.src,
-                    uId: img.dataset.uId
-                })),
-                currentMode,
+    const savedData = {
+        images: imagesToSave,
+        currentMode,
                 layoutStates, // Mindkét mód mentése
                 // Biztonsági mentés a jelenlegi állapotról a legfelső szinten is
                 zoomLevels: [...zoomLevels],
@@ -2395,10 +2405,7 @@ const worker = new Worker('processor.worker.js');
         }
 
 
-        /* --- UNDO & REDO (VISSZAVONÁS ÉS ISMÉTLÉS) LOGIKA --- */
-        let historyStack = [];
-        let redoStack = []; // Új verem az ismétléshez
-        const MAX_HISTORY = 20;
+
 
         function getCurrentState() {
             // Elmentjük a teljes képadat-struktúrát a visszavonáshoz
@@ -2434,18 +2441,23 @@ const worker = new Worker('processor.worker.js');
             saveToPersistentStorage();
         }
 
-        async function undo() {
-            if (historyStack.length === 0) return;
 
-            // Mentjük a JELENLEGI állapotot a Redo staccbe
-            redoStack.push(getCurrentState());
+function executeAction(action) {
+    // action példa: { type: 'MOVE', index: 0, from: {x:0, y:0}, to: {x:10, y:10} }
+    applyAction(action);
+    history.push(action);
+    redoStack = []; 
+}
 
-            // Kivesszük az UTOLSÓ elmentett állapotot
-            const lastState = historyStack.pop();
-            await applyState(lastState);
-
-            saveToPersistentStorage(); // Adatbázis szinkron
-        }
+function undo() {
+    const action = history.pop();
+    if (!action) return;
+    
+    // Az ellentétes művelet végrehajtása
+    const inverseAction = { ...action, from: action.to, to: action.from };
+    applyAction(inverseAction);
+    redoStack.push(action);
+}
 
         async function redo() {
             if (redoStack.length === 0) return;
@@ -3581,52 +3593,67 @@ async function processImagesBackground(images) {
         let dbSaveTimeout;
         /* --- FRISSÍTETT RAJZOLÁS EXPORT FUNKCIÓVAL --- */
         function renderCollage(shouldUpdateLink = true, isExport = false) {
-            const count = loadedImages.length;
-            //if (count === 0) return;
+    const count = loadedImages.length;
+    // if (count === 0) return; // Opcionális: üres vászon esetén megállhatunk
 
-            renderHitBoxes = [];
-            const CANVAS_SIZE = 800;
-            const canvas = document.getElementById('collageCanvas');
-            if (!canvas) return;
+    renderHitBoxes = [];
+    const canvas = document.getElementById('collageCanvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
 
-            const ctx = canvas.getContext('2d');
-            canvas.width = CANVAS_SIZE;
-            canvas.height = CANVAS_SIZE;
+    // Canvas méretének fixálása (ha még nem történt meg)
+    if (canvas.width !== CANVAS_SIZE) {
+        canvas.width = CANVAS_SIZE;
+        canvas.height = CANVAS_SIZE;
+    }
 
-            // 1. Háttér
-            const bgWhite = document.querySelector('input[name="previewBg"][value="white"]').checked;
-            if (bgWhite) {
-                ctx.fillStyle = '#ffffff';
-                ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-            } else {
-                ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-            }
+    // --- 1. RAJZOLÁS AZ OFFSCREEN VÁSZONRA (Háttérben) ---
+    oCtx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE); // Alaphelyzetbe állítás
 
-            // 2. Képek rajzolása
-            if (currentMode === 'grid') renderGridMode(ctx, CANVAS_SIZE);
-            else renderFreeMode(ctx, CANVAS_SIZE);
+    const bgWhite = document.querySelector('input[name="previewBg"][value="white"]').checked;
+    if (bgWhite) {
+        oCtx.fillStyle = '#ffffff';
+        oCtx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+    }
 
+    // 2. Képek rajzolása az OFFSCREEN kontextusba
+    // FONTOS: Módosítanod kell a renderGridMode és renderFreeMode függvényeket, 
+    // hogy az első paraméterként kapott kontextust használják ctx helyett!
+    if (currentMode === 'grid') {
+        renderGridMode(oCtx, CANVAS_SIZE);
+    } else {
+        renderFreeMode(oCtx, CANVAS_SIZE);
+    }
 
+    // --- 3. ÁTVITEL A LÁTHATÓ VÁSZONRA (Egyetlen gyors lépés) ---
+    ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+    ctx.drawImage(offscreen, 0, 0);
 
-            // 5. Letöltési link frissítése - CSAK HA LÉTEZIK AZ ELEM
-            if (shouldUpdateLink && !isExport) {
-                const dlLink = document.getElementById('downloadLink');
-                if (dlLink) {
-                    dlLink.href = canvas.toDataURL("image/png");
-                }
-            }
-            updateVisualSelection();
-            updateGridSettings();
-            updateCanvasHUD();
-            if (!isExport && loadedImages.length > 0 && isSessionActive) { // --- MÓDOSÍTVA: + isSessionActive ---
-                clearTimeout(dbSaveTimeout);
-                dbSaveTimeout = setTimeout(() => {
-                    saveToPersistentStorage();
-                    console.log("Munkaterület elmentve.");
-                }, 1000);
-            }
+    // --- 4. UTÓMUNKÁLATOK (UI és mentés) ---
+    
+    // A toDataURL lassú művelet, ezért csak akkor hívjuk meg, ha tényleg kell
+    if (shouldUpdateLink && !isExport) {
+        const dlLink = document.getElementById('downloadLink');
+        if (dlLink) {
+            // Optimalizálás: ne frissítsük a linket minden egérmozgásnál (dragging), 
+            // csak ha a felhasználó abbahagyta a műveletet!
+            dlLink.href = canvas.toDataURL("image/png");
         }
+    }
 
+    updateVisualSelection();
+    updateGridSettings();
+    updateCanvasHUD();
+
+    // Automatikus mentés IndexedDB-be (Debounced)
+    if (!isExport && loadedImages.length > 0 && isSessionActive) {
+        clearTimeout(dbSaveTimeout);
+        dbSaveTimeout = setTimeout(() => {
+            saveToPersistentStorage();
+            console.log("Munkaterület elmentve.");
+        }, 1000);
+    }
+}
 
         function renderGridMode(ctx, CANVAS_SIZE) {
             const count = loadedImages.length;
