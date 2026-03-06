@@ -2471,15 +2471,27 @@ function executeAction(action) {
     redoStack = []; 
 }
 
-function undo() {
-    const action = history.pop();
-    if (!action) return;
+
+
+async function undo() {
+    if (historyStack.length === 0) return;
+
+    // A jelenlegi állapotot elmentjük a Redo-ba
+    const currentState = getCurrentState();
+    redoStack.push(currentState);
+
+    // Kivesszük az utolsó mentett állapotot
+    const lastState = historyStack.pop();
     
-    // Az ellentétes művelet végrehajtása
-    const inverseAction = { ...action, from: action.to, to: action.from };
-    applyAction(inverseAction);
-    redoStack.push(action);
+    // Alkalmazzuk
+    await applyState(lastState);
+    
+    // UI gombok frissítése
+    updateHistoryButtonsUI();
 }
+
+
+
 
         async function redo() {
             if (redoStack.length === 0) return;
@@ -2494,58 +2506,61 @@ function undo() {
             saveToPersistentStorage(); // Adatbázis szinkron
         }
 
-        async function applyState(stateJson) {
-            if (!stateJson) return;
-            const state = JSON.parse(stateJson);
-            const overlay = document.getElementById('processingOverlay');
-            if (overlay) overlay.style.display = 'flex';
+     
 
-            try {
-                // Paraméterek ürítése és újratöltése a mentett állapotból
-                const newLoadedImages = [];
-                const newOriginalImages = [];
-                const newZoomLevels = [];
-                const newRotations = [];
-                const newImageOffsets = [];
 
-                // Megvárjuk, amíg az összes kép betöltődik az adott állapotból
-                for (const item of state.images) {
-                    const img = await new Promise((resolve, reject) => {
-                        const i = new Image();
-                        i.onload = () => resolve(i);
-                        i.onerror = reject;
-                        i.src = item.src;
-                    });
-                    img.dataset.uId = item.uId;
+async function applyState(stateJson) {
+    if (!stateJson) return;
+    const state = JSON.parse(stateJson);
+    const overlay = document.getElementById('processingOverlay');
+    if (overlay) overlay.style.display = 'flex';
 
-                    newLoadedImages.push(img);
-                    newOriginalImages.push(img); // Szinkronban tartás
-                    newZoomLevels.push(item.zoom);
-                    newRotations.push(item.rotation);
-                    newImageOffsets.push(item.offset);
-                }
+    console.log("Undo: Állapot visszaállítása...", state);
 
-                // Globális változók frissítése
-                loadedImages = newLoadedImages;
-                originalImages = newOriginalImages;
-                zoomLevels = newZoomLevels;
-                rotations = newRotations;
-                imageOffsets = newImageOffsets;
-                currentMode = state.currentMode;
-                activeImageIndex = state.activeImageIndex;
-                selectedIndices = new Set(state.selectedIndices);
+    try {
+        const newLoadedImages = [];
+        const newOriginalImages = [];
 
-                // UI Frissítés
-                updateUIControls();
-                renderCollage(true);
-                updateHistoryButtonsUI();
-
-            } catch (err) {
-                console.error("Hiba az állapot visszaállításakor:", err);
-            } finally {
-                if (overlay) overlay.style.display = 'none';
-            }
+        for (const item of state.images) {
+            // Kép betöltése biztonsági időzítővel (Timeout)
+            const img = await new Promise((resolve, reject) => {
+                const i = new Image();
+                const timeout = setTimeout(() => reject(new Error("Kép betöltési időtúllépés: " + item.uId)), 5000);
+                
+                i.onload = () => { clearTimeout(timeout); resolve(i); };
+                i.onerror = () => { clearTimeout(timeout); reject(new Error("Kép betöltési hiba")); };
+                i.src = item.src;
+            });
+            
+            img.dataset.uId = item.uId;
+            newLoadedImages.push(img);
+            newOriginalImages.push(img);
         }
+
+        // Adatok frissítése
+        loadedImages = newLoadedImages;
+        originalImages = newOriginalImages;
+        zoomLevels = state.images.map(i => i.zoom);
+        rotations = state.images.map(i => i.rotation);
+        imageOffsets = state.images.map(i => i.offset);
+        
+        currentMode = state.currentMode;
+        activeImageIndex = state.activeImageIndex;
+        selectedIndices = new Set(state.selectedIndices);
+
+        // UI frissítése
+        updateUIControls();
+        renderCollage(true);
+        updateHistoryButtonsUI();
+        console.log("Undo: Sikeres visszaállítás!");
+
+    } catch (err) {
+        console.error("Kritikus hiba az Undo során:", err);
+        alert("Nem sikerült visszavonni a műveletet. Lehet, hogy a kép már nem érhető el a memóriában.");
+    } finally {
+        if (overlay) overlay.style.display = 'none';
+    }
+}
 
 
 
