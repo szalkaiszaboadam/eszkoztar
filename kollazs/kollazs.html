@@ -6,7 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Képszerkesztő</title>
     <style>
-        /* A [data-theme="dark"] részeket törölheted a CSS-ből, ha tisztítani akarod a kódot, de nem okoz gondot, ha maradnak. */
         :root {
             --bg-app: #f9f9f9;
             --bg-panel: #ffffff;
@@ -14,7 +13,6 @@
             --text-muted: #888888;
             --border-subtle: #e0e0e0;
             --accent-color: #007bff;
-            /* Csak a kijelöléshez */
             --hover-bg: #f0f0f0;
             --danger: #ff4d4f;
         }
@@ -33,15 +31,12 @@
             height: 100vh;
             width: 100vw;
             overflow: hidden;
-            /* Nincs görgetés az ablakon */
-            /* --- GLOBÁLIS KIJELÖLÉS TILTÁSA --- */
             user-select: none;
             -webkit-user-select: none;
             -moz-user-select: none;
             -ms-user-select: none;
         }
 
-        /* --- KIVÉTEL: Az input mezőkben továbbra is kell a kijelölés a szerkesztéshez --- */
         input,
         textarea {
             user-select: text !important;
@@ -49,9 +44,6 @@
             -moz-user-select: text !important;
         }
 
-
-
-        /* --- MOBILE BLOCKER --- */
         #mobile-warning {
             display: none;
             position: fixed;
@@ -68,7 +60,6 @@
             padding: 20px;
         }
 
-        /* Ha a szélesség kisebb mint 1024px VAGY a magasság kisebb mint 550px, blokkolunk */
         @media (max-width: 1024px),
         (max-height: 550px) {
             #app-container {
@@ -80,12 +71,10 @@
             }
         }
 
-        /* --- MAIN LAYOUT --- */
         #app-container {
             display: grid;
             grid-template-columns: 1fr 280px;
             grid-template-rows: 50px 50px 1fr;
-            /* A második sor is 50px lett */
             height: 100%;
             width: 100%;
         }
@@ -99,33 +88,11 @@
             padding: 0 12px;
             height: 50px;
             gap: 12px;
-            /* JAVÍTÁS: Engedélyezzük, hogy a tartalom kilógjon (a popover miatt) */
             overflow: visible !important;
             white-space: nowrap;
             position: relative;
             z-index: 1001;
-            /* Legyen magasabban, mint a munkaterület */
         }
-
-        /*  .toolbar-separator {
-            width: 1px;
-            height: 20px;
-          
-            background: var(--border-subtle);
-            margin: 0 2px;
-            
-            flex-shrink: 0;
-        }*/
-
-        /*.toolbar-label {
-            font-size: 11px;
-            font-weight: 700;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin: 0;
-        
-        }*/
 
         .toolbar-group {
             display: flex;
@@ -134,41 +101,10 @@
             /* 10px helyett 6px */
         }
 
-        /*  .toggle-checkbox:checked+.toggle-switch-ui {
-            background-color: var(--text-main);
-            
-            border-color: var(--text-main);
-        }*/
-
-        /* .toggle-checkbox:checked+.toggle-switch-ui::after {
-            transform: translateX(18px);
-        }*/
-
-
-
         .toggle-wrapper span {
             font-size: 11px !important;
-            /* 12px helyett 11px */
         }
 
-        /*.toggle-checkbox {
-            display: none;
-        }*/
-
-        /* --- 2. JAVÍTOTT VÁLASZTÓK (Segmented Control) --- */
-        /* Itt a padding és a box-sizing a lényeg, hogy ne lógjon ki */
-        /*  .segmented-wrapper {
-            display: inline-flex;
-            background-color: #f0f0f5;
-            padding: 2px;
-            
-            border-radius: 8px;
-            height: 30px;
-          
-            align-items: center;
-        }*/
-
-        /* --- 3. ÚJ RÁCS VEZÉRLŐ (Stepper - Kis helyigény) --- */
         .stepper-control {
             display: flex;
             align-items: center;
@@ -217,80 +153,19 @@
             background-color: #fafafa;
         }
 
-        /*  .segmented-label {
-            padding: 0 10px;
-          
-            height: 26px;
-            
-            font-size: 11px;
-          
-            font-weight: 600;
-            cursor: pointer;
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s ease;
-            user-select: none;
-            white-space: nowrap;
-        } */
-
-        /* .segmented-input {
-            display: none;
-        }*/
-
-        /*  .segmented-input:checked+.segmented-label {
-            background-color: #ffffff;
-            color: #000000;
-
-            
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        }*/
-
         .segmented-label:hover {
             color: var(--text-main);
         }
 
-        /*  .toggle-switch-ui {
-            width: 34px;
-           
-            height: 20px;
-           
-            background-color: #e9e9ea;
-            border-radius: 50px;
-            position: relative;
-            transition: background-color 0.2s ease;
-            border: 1px solid #dcdcdc;
-             
-        } */
-
-        /* .toggle-switch-ui::after {
-            content: '';
-            position: absolute;
-            top: 2px;
-            left: 2px;
-            width: 14px;
-          
-            height: 14px;
-         
-            background-color: #fff;
-            border-radius: 50%;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-            transition: transform 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
-        }*/
-
-        /* --- HEADER (Módosított) --- */
         .app-header {
             grid-column: 1 / -1;
             background: var(--bg-panel);
             border-bottom: 1px solid var(--border-subtle);
             display: flex;
             align-items: center;
-            /* Hogy a középső elem valóban középen legyen, space-between helyett: */
             justify-content: space-between;
             padding: 0 20px;
             position: relative;
-            /* Pozicionálás miatt */
         }
 
         .app-title {
@@ -299,7 +174,6 @@
             letter-spacing: -0.5px;
         }
 
-        /* --- SIDEBARS (COMMON) --- */
         .sidebar {
             background: var(--bg-panel);
             overflow-y: auto;
@@ -328,17 +202,13 @@
             margin-bottom: 5px;
         }
 
-        /* --- CENTER CANVAS AREA --- */
         .main-workspace {
             background-color: var(--bg-app);
             display: flex;
             justify-content: center;
             align-items: center;
             position: relative;
-
-            /* VÁLTOZÁS: 20px (Ez adja a "keretet", hogy ne legyen falig) */
             padding: 20px;
-
             overflow: hidden;
             user-select: none;
             -webkit-user-select: none;
@@ -346,14 +216,12 @@
 
         #canvas-wrapper {
             box-shadow: 0 20px 50px rgba(0, 0, 0, 0.1);
-            /* Csak a vászonnak van árnyéka, hogy kiemelkedjen */
             max-width: 100%;
             max-height: 100%;
             aspect-ratio: 1 / 1;
             position: relative;
             cursor: crosshair;
             overflow: visible !important;
-            /* Az eredeti JS miatt ez display:none alapból, majd block lesz */
         }
 
         .visual-selection-box {
@@ -364,20 +232,16 @@
             display: block;
         }
 
-        /* Az elsődleges kijelölt kép stílusa */
         .visual-selection-box.active {
             border-style: solid;
             z-index: 100;
         }
 
-        /* A többi kijelölt kép szaggatott kerete - Vastagítva a jobb láthatóságért */
         .visual-selection-box.multi {
             border: 2px dashed rgba(0, 123, 255, 0.9);
-            /* 1.5px -> 2.5px */
             z-index: 90;
         }
 
-        /* Fogantyúk (sarkok) */
         .visual-handle {
             position: absolute;
             width: 10px;
@@ -387,7 +251,7 @@
             border-radius: 2px;
         }
 
-        /* Forgató nyalóka */
+
         .visual-rotator-line {
             position: absolute;
             width: 2px;
@@ -585,9 +449,6 @@
             width: 100%;
         }
 
-
-
-
         .edit-card-title {
             font-size: 13px;
             font-weight: 600;
@@ -648,7 +509,6 @@
             /* Kitölti a rendelkezésre álló helyet */
         }
 
-
         .control-row:last-child {
             margin-bottom: 0;
         }
@@ -675,7 +535,6 @@
             margin: 0;
             /* Reset */
         }
-
 
         .control-slider::-webkit-slider-thumb {
             -webkit-appearance: none;
@@ -1331,40 +1190,6 @@
             border-bottom: 1px solid var(--border-subtle);
         }
 
-        /*.btn-compact {
-            background: transparent;
-            border: none;
-            color: var(--text-muted);
-            font-size: 11px;
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            padding: 4px 6px;
-            border-radius: 4px;
-            transition: all 0.2s;
-        }*/
-
-        /* Alaphelyzetbe állítás gomb hover */
-        /*.btn-compact.reset:hover {
-            background-color: var(--hover-bg);
-            color: var(--text-main);
-        }*/
-
-        /* Törlés gomb hover - finom pirosodás */
-        /*.btn-compact.delete:hover {
-            background-color: #fff1f0;
-            color: var(--danger);
-        }*/
-
-        /* .btn-compact .lucide {
-            width: 14px;
-
-            height: 14px;
-        }*/
-
-
         /* A réteglista feletti fix fejléc */
         .layers-toolbar {
             display: flex;
@@ -1603,59 +1428,6 @@
             animation: flash-white 0.4s ease-out;
         }
 
-        /* .settings-popover {
-            position: absolute;
-          
-            top: calc(100% + 5px);
-            right: 0;
-
-            background: #ffffff;
-            border: 1px solid var(--border-subtle);
-            border-radius: 12px;
-           
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-
-            width: 280px;
-            padding: 16px;
-            display: none;
-            flex-direction: column;
-            gap: 14px;
-
-           
-            z-index: 99999;
-            pointer-events: auto;
-        }*/
-
-        /*.settings-popover.active {
-            display: flex;
-        }*/
-
-        /* .popover-title {
-            font-size: 11px;
-            font-weight: 800;
-            text-transform: uppercase;
-            color: var(--text-muted);
-            letter-spacing: 0.5px;
-            margin-bottom: 5px;
-            border-bottom: 1px solid var(--border-subtle);
-            padding-bottom: 8px;
-        }*/
-
-        /* .popover-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 500;
-            color: var(--text-main);
-        }*/
-
-        /* popover-item:hover span {
-            color: var(--accent-color);
-        }*/
-
-        /* Toast értesítés stílusa */
         .toast-notification {
             position: fixed;
             bottom: 30px;
@@ -1685,12 +1457,6 @@
             /* Sikeres zöld szín */
             display: flex;
         }
-
-        /*#resetBtnHeader:hover {
-            background-color: #fff1f0 !important;
-            border-color: var(--danger) !important;
-            box-shadow: 0 2px 4px rgba(255, 77, 79, 0.1);
-        }*/
 
         /* --- ÚJ: Animáció definíció a kártyák belépéséhez --- */
         @keyframes cardEntrance {
@@ -2065,9 +1831,6 @@
             color: #94a3b8;
             /* Slate-400 */
         }
-
-
-
 
         .modern-hud {
             min-width: auto;
