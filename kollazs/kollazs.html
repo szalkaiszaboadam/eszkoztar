@@ -2220,7 +2220,6 @@
             <option value="180"></option>
         </datalist>
 
-
         <aside class="sidebar sidebar-right editor-ui d-none">
 
             <div class="sidebar-section" id="sliders-area"
@@ -2234,16 +2233,6 @@
                 <div id="sliders-container" style="overflow-y: auto; padding-right: 5px; flex: 1;"></div>
             </div>
 
-            <!--    <div style="margin-top: auto; display: flex; flex-direction: column; gap: 10px;">
-                 <div class="upload-zone sidebar-zone" id="sidebarDropZone">
-        <div class="upload-icon"><i data-lucide="upload-cloud"></i></div>
-        <div class="upload-title" style="font-size: 13px;">Plusz képek hozzáadása</div>
-        <div class="upload-desc" style="font-size: 10px;">Húzd ide a képeket vagy kattints a tallózáshoz</div>
-    </div>
-
-    
-            </div>-->
-
         </aside>
     </div>
 
@@ -2251,6 +2240,12 @@
         style="display: none;">
 
     <script>
+
+        /* --- STEPPER LOGIKA (Stabil, 80-as osztókra optimalizálva) --- */
+        // Csak olyan számok, amikkel szépen osztható a 80-as alapú vászon
+        const GRID_VALUES = [2, 4, 5, 8, 10, 16];
+
+const worker = new Worker('processor.worker.js');
         /* --- GLOBÁLIS VÁLTOZÓK --- */
         let originalImages = [];
         let loadedImages = [];
@@ -2949,27 +2944,25 @@
             }
         }
 
-        async function processImagesBackground(images) {
-            return Promise.all(images.map(img => new Promise(resolve => {
-                const canvas = document.createElement('canvas');
-                canvas.width = img.width;
-                canvas.height = img.height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0);
 
-                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                const data = imageData.data;
+async function processImagesBackground(images) {
+    return Promise.all(images.map(img => new Promise(resolve => {
+        const canvas = new OffscreenCanvas(img.width, img.height);
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
-                for (let i = 0; i < data.length; i += 4) {
-                    const r = data[i]; const g = data[i + 1]; const b = data[i + 2];
-                    if (r > 250 && g > 250 && b > 250) { data[i + 3] = 0; }
-                }
-                ctx.putImageData(imageData, 0, 0);
+        worker.onmessage = (e) => {
+            ctx.putImageData(e.data.imageData, 0, 0);
+            const blob = canvas.convertToBlob().then(blob => {
                 const newImg = new Image();
-                newImg.src = canvas.toDataURL();
+                newImg.src = URL.createObjectURL(blob); // Base64 helyett ObjectURL
                 newImg.onload = () => resolve(newImg);
-            })));
-        }
+            });
+        };
+        worker.postMessage({ imageData });
+    })));
+}
 
         // --- BEÁLLÍTÁSOK MENÜ KEZELÉSE ---
         function toggleSettingsMenu(event) {
@@ -4434,9 +4427,7 @@
         }
 
 
-        /* --- STEPPER LOGIKA (Stabil, 80-as osztókra optimalizálva) --- */
-        // Csak olyan számok, amikkel szépen osztható a 80-as alapú vászon
-        const GRID_VALUES = [2, 4, 5, 8, 10, 16];
+
 
         function stepGrid(direction) {
             const hiddenInput = document.getElementById('gridSizeSlider');
