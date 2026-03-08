@@ -1110,3 +1110,11 @@ HIBA 628275.063 (ZPS-FN - Homlok- palástmaró HR, nagyoló, DIN1880, HSS-E 63x4
 Call log:
   - waiting for locator("div.selectize-control.tags div.selectize-input input[type='text']").first to be visible
 
+HIBA 140218.170 (ZPS-FN - Ujjmaró rövid, DIN844K, HSS-E-Co8 17,00 z=4,  92x 32/16W 40°): Page.goto: net::ERR_HTTP2_PROTOCOL_ERROR at https://szvgtoolsshop.hu/administrator/
+Call log:
+  - navigating to "https://szvgtoolsshop.hu/administrator/", waiting until "load"
+
+HIBA 120518.110 TiAlN (ZPS-FN - Ujjmaró rövid, DIN844K, HSS-E-Co8, TIALN 11,00 z=4,  79x 22/12W 30°): Locator.wait_for: Timeout 5000ms exceeded.
+Call log:
+  - waiting for locator("div.selectize-control.tags div.selectize-input input[type='text']").first to be visible
+
