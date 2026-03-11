@@ -436,7 +436,7 @@ if __name__ == "__main__":
     if not termekek: sys.exit(1)
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)
+        browser = p.chromium.launch(headless=True)
         context = bejelentkezes_kezelese(browser, FELHASZNALONEV, JELSZO, STATE_FAJL)
         if context:
             run_processor(context, termekek, progress_file, valasztott_path, feluliras_mod=feluliras)

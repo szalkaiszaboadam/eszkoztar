@@ -486,7 +486,7 @@ if __name__ == "__main__":
 
     with sync_playwright() as p:
         print("\nBöngésző indítása...")
-        browser = p.chromium.launch(headless=False)
+        browser = p.chromium.launch(headless=True)
         ctx = bejelentkezes_kezelese(browser, FELHASZNALONEV, JELSZO, STATE_FAJL)
         if ctx:
             run_processor(ctx, termekek, mod, progress_file, kivalasztott_fajl_utvonala)
