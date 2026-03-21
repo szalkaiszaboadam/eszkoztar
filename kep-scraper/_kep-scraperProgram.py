@@ -10,11 +10,14 @@ import sys
 from dotenv import load_dotenv
 
 import urllib3
+
 urllib3.disable_warnings(urllib3.exceptions.NotOpenSSLWarning)
+
 
 # --- 1. Mappa és Fájlnév tisztító ---
 def tiszta_nev(nev):
     return re.sub(r'[\\/*?:"<>|]', "", nev).strip()
+
 
 # --- 2. Állapot (Mentés) Kezelő Funkciók ---
 def allapot_betoltese(progress_file):
@@ -27,6 +30,7 @@ def allapot_betoltese(progress_file):
             print(f"⚠️ Hiba a mentés olvasásakor: {e}")
     return [], []
 
+
 def allapot_mentese(progress_file, completed_categories, retry_list):
     try:
         with open(progress_file, "w", encoding="utf-8") as f:
@@ -36,6 +40,7 @@ def allapot_mentese(progress_file, completed_categories, retry_list):
             }, f, ensure_ascii=False, indent=2)
     except Exception as e:
         print(f"⚠️ Hiba a mentés során: {e}")
+
 
 # --- 3. Matematikai eloszlás ---
 def indexek_kiszamitasa(osszes_termek, kivan_db=10, mod="random"):
@@ -48,6 +53,7 @@ def indexek_kiszamitasa(osszes_termek, kivan_db=10, mod="random"):
     else:
         lepes = (osszes_termek - 1) / (kivan_db - 1)
         return [round(lepes * i) for i in range(kivan_db)]
+
 
 # --- 4. A LETÖLTÉS MAGJA ---
 def letoltes_vegrehajtasa(page, p_url, mappa_path, fallback_idx):
@@ -69,7 +75,7 @@ def letoltes_vegrehajtasa(page, p_url, mappa_path, fallback_idx):
             if not kep_url.startswith("http"):
                 kep_url = "https:" + kep_url if kep_url.startswith("//") else "https://szvgtoolsshop.hu" + kep_url
             fajl_utvonal = os.path.join(mappa_path, f"{fajlnev}.jpg")
-            
+
             # Ne töltsük le újra, ha már létezik
             if os.path.exists(fajl_utvonal):
                 print(f"      ⏩ Kép már létezik (átugorva): {fajlnev}.jpg")
@@ -86,8 +92,10 @@ def letoltes_vegrehajtasa(page, p_url, mappa_path, fallback_idx):
     else:
         print(f"      ⚠️ A {fajlnev} termékhez nincs feltöltve kép.")
 
+
 # --- 5. TERMÉKEK KIGYŰJTÉSE ÉS FELDOLGOZÁSA (Módosítva: Visszaadja a linkeket) ---
-def termek_letolto(page, url, kategoria_utvonal, letoltendo_db, eloszlas_mod, progress_file, befejezett_kategoriak, retry_list):
+def termek_letolto(page, url, kategoria_utvonal, letoltendo_db, eloszlas_mod, progress_file, befejezett_kategoriak,
+                   retry_list):
     kat_azonosito = " > ".join(kategoria_utvonal)
 
     try:
@@ -146,8 +154,10 @@ def termek_letolto(page, url, kategoria_utvonal, letoltendo_db, eloszlas_mod, pr
 
     return osszes_termek_link
 
+
 # --- 6. REKURZÍV KATEGÓRIA BEJÁRÓ (Lentről felfelé összesítő logika) ---
-def kategoria_bejaro(page, url, kategoria_utvonal, alap_letoltendo_db, eloszlas_mod, progress_file, befejezett_kategoriak, retry_list, letolt_koztes):
+def kategoria_bejaro(page, url, kategoria_utvonal, alap_letoltendo_db, eloszlas_mod, progress_file,
+                     befejezett_kategoriak, retry_list, letolt_koztes):
     print(f"\n📂 Belépés ide: {' > '.join(kategoria_utvonal)}")
 
     try:
@@ -194,12 +204,15 @@ def kategoria_bejaro(page, url, kategoria_utvonal, alap_letoltendo_db, eloszlas_
             uj_utvonal.append(link["nev"])
 
             if link["alkat_db"] > 0:
-                melyseg, gyerek_linkek = kategoria_bejaro(page, link["url"], uj_utvonal, alap_letoltendo_db, eloszlas_mod, progress_file, befejezett_kategoriak, retry_list, letolt_koztes)
+                melyseg, gyerek_linkek = kategoria_bejaro(page, link["url"], uj_utvonal, alap_letoltendo_db,
+                                                          eloszlas_mod, progress_file, befejezett_kategoriak,
+                                                          retry_list, letolt_koztes)
                 max_gyerek_melyseg = max(max_gyerek_melyseg, melyseg)
                 osszes_osszegujtott_link.extend(gyerek_linkek)
             elif link["termek_db"] > 0:
-                gyerek_linkek = termek_letolto(page, link["url"], uj_utvonal, alap_letoltendo_db, eloszlas_mod, progress_file, befejezett_kategoriak, retry_list)
-                max_gyerek_melyseg = max(max_gyerek_melyseg, 1) # A közvetlen levél mélysége 1
+                gyerek_linkek = termek_letolto(page, link["url"], uj_utvonal, alap_letoltendo_db, eloszlas_mod,
+                                               progress_file, befejezett_kategoriak, retry_list)
+                max_gyerek_melyseg = max(max_gyerek_melyseg, 1)  # A közvetlen levél mélysége 1
                 if gyerek_linkek:
                     osszes_osszegujtott_link.extend(gyerek_linkek)
 
@@ -211,7 +224,8 @@ def kategoria_bejaro(page, url, kategoria_utvonal, alap_letoltendo_db, eloszlas_
             page.goto(url, timeout=60000)
             time.sleep(2.5)
             if page.locator("table#productsList tbody tr").count() > 0:
-                kozvetlen_linkek = termek_letolto(page, url, kategoria_utvonal, alap_letoltendo_db, eloszlas_mod, progress_file, befejezett_kategoriak, retry_list)
+                kozvetlen_linkek = termek_letolto(page, url, kategoria_utvonal, alap_letoltendo_db, eloszlas_mod,
+                                                  progress_file, befejezett_kategoriak, retry_list)
                 if kozvetlen_linkek:
                     osszes_osszegujtott_link.extend(kozvetlen_linkek)
         except:
@@ -219,13 +233,14 @@ def kategoria_bejaro(page, url, kategoria_utvonal, alap_letoltendo_db, eloszlas_
 
         # 3. Összesítő letöltés VÉGREHAJTÁSA a kigyűjtött linkekből (Duplázva, triplázva stb.)
         if letolt_koztes and osszes_osszegujtott_link:
-            aktualis_db = alap_letoltendo_db * sajat_melyseg # Itt történik a többszörözés!
-            egyedi_linkek = list(set(osszes_osszegujtott_link)) # Kiszedjük a duplikációkat
+            aktualis_db = alap_letoltendo_db * sajat_melyseg  # Itt történik a többszörözés!
+            egyedi_linkek = list(set(osszes_osszegujtott_link))  # Kiszedjük a duplikációkat
 
             kat_azonosito = " > ".join(kategoria_utvonal) + " (Összesítő)"
 
             if kat_azonosito not in befejezett_kategoriak:
-                print(f"\n   📦 [Összesítő szint - {sajat_melyseg}x szorzó] Készül a gyűjtemény: {' > '.join(kategoria_utvonal)}")
+                print(
+                    f"\n   📦 [Összesítő szint - {sajat_melyseg}x szorzó] Készül a gyűjtemény: {' > '.join(kategoria_utvonal)}")
                 print(f"   📊 {len(egyedi_linkek)} db összegyűjtött termékből kiválasztva {aktualis_db} db.")
 
                 cel_linkek = []
@@ -264,8 +279,10 @@ def kategoria_bejaro(page, url, kategoria_utvonal, alap_letoltendo_db, eloszlas_
 
     else:
         # Tisztán levél kategória (nincsenek alkategóriák)
-        gyerek_linkek = termek_letolto(page, url, kategoria_utvonal, alap_letoltendo_db, eloszlas_mod, progress_file, befejezett_kategoriak, retry_list)
+        gyerek_linkek = termek_letolto(page, url, kategoria_utvonal, alap_letoltendo_db, eloszlas_mod, progress_file,
+                                       befejezett_kategoriak, retry_list)
         return 1, (gyerek_linkek if gyerek_linkek else [])
+
 
 # --- 7. BEJELENTKEZÉS ---
 def bejelentkezes_kezelese(browser: Browser, username, password, state_fajl="state.json"):
@@ -302,6 +319,7 @@ def bejelentkezes_kezelese(browser: Browser, username, password, state_fajl="sta
     page.close()
     return context
 
+
 if __name__ == "__main__":
     load_dotenv()
     FELHASZNALONEV = os.environ.get("ADMIN_USERNAME")
@@ -324,7 +342,8 @@ if __name__ == "__main__":
         mod_valasz = input("Választás (1-2): ").strip()
     kivalasztott_mod = "random" if mod_valasz == "1" else "even"
 
-    koztes_valasz = input("\nSzeretnéd, hogy kifelé jövet a főkategóriák duplázva/triplázva válogassanak a meglátogatott alkategóriák termékeiből? (i/n): ").strip().lower()
+    koztes_valasz = input(
+        "\nSzeretnéd, hogy kifelé jövet a főkategóriák duplázva/triplázva válogassanak a meglátogatott alkategóriák termékeiből? (i/n): ").strip().lower()
     letolt_koztes = True if koztes_valasz == 'i' else False
 
     progress_file = f"scraper_progress_{tiszta_nev(fokategoria)}.json"
@@ -355,7 +374,8 @@ if __name__ == "__main__":
                     print(f"✅ Főkategória megvan! Indul a pók...\n")
 
                     # Itt meghívjuk a bejárót (mivel az értékek tuple-ként jönnek vissza, nem tároljuk el a gyökérben)
-                    kategoria_bejaro(page, teljes_kezdo_link, [fokategoria], kivan_db, kivalasztott_mod, progress_file, befejezett_kategoriak, retry_list, letolt_koztes)
+                    kategoria_bejaro(page, teljes_kezdo_link, [fokategoria], kivan_db, kivalasztott_mod, progress_file,
+                                     befejezett_kategoriak, retry_list, letolt_koztes)
 
                     # --- 2. KÖR: ÚJRAPRÓBÁLKOZÁS ---
                     if retry_list:
