@@ -1,48 +1,51 @@
 <!DOCTYPE html>
-<html lang="hu">
+<html lang="hu" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Eszköztár</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <script defer src="/_vercel/insights/script.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    :root {
-      --bg: #f7f6f3;
-      --surface: #ffffff;
-      --border: #e4e2dc;
-      --text-primary: #1c1b19;
-      --text-secondary: #6b6860;
-      --accent: #2563eb;
-      --accent-light: #eff4ff;
-      --disabled-bg: #f0efe9;
-      --disabled-text: #b0ae a7;
-      --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-      --shadow-md: 0 4px 12px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.04);
-      --shadow-hover: 0 8px 24px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.05);
+    [data-theme="dark"] {
+      --bg: #161614;
+      --card-bg: #1f1f1c;
+      --card-border: #2a2a27;
+      --text-primary: #f0ede6;
+      --text-secondary: #888880;
+      --text-muted: #4a4a45;
+    }
+    [data-theme="light"] {
+      --bg: #f0ede6;
+      --card-bg: #ffffff;
+      --card-border: #e0dcd4;
+      --text-primary: #1a1916;
+      --text-secondary: #6a6860;
+      --text-muted: #b0ada6;
     }
 
     body {
-      font-family: 'Inter', sans-serif;
+      font-family: 'DM Sans', sans-serif;
       background: var(--bg);
       color: var(--text-primary);
       min-height: 100vh;
-      padding: 0 0 80px;
+      padding-bottom: 80px;
+      transition: background 0.3s, color 0.3s;
     }
 
-    /* ── Header ── */
+    /* ── NAVBAR ── */
     header {
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      padding: 14px 0;
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--card-border);
+      transition: background 0.3s, border-color 0.3s;
     }
     .header-inner {
       max-width: 860px;
       margin: 0 auto;
       padding: 0 32px;
+      height: 52px;
       display: flex;
       align-items: center;
       gap: 10px;
@@ -50,97 +53,107 @@
     .logo-mark {
       width: 28px;
       height: 28px;
-      background: var(--accent);
+      background: #2563eb;
       border-radius: 7px;
       display: grid;
       place-items: center;
       flex-shrink: 0;
     }
     .logo-mark svg { display: block; }
-    .logo-text {
-      
+    .nav-title {
       font-size: 1rem;
       font-weight: 600;
       color: var(--text-primary);
       letter-spacing: -0.01em;
+      flex: 1;
+      font-family: 'DM Sans', sans-serif;
     }
-
-    /* ── Hero ── */
-    .hero {
-      max-width: 860px;
-      margin: 0 auto;
-      padding: 56px 32px 40px;
+    .theme-btn {
+      background: transparent;
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 5px 14px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+      flex-shrink: 0;
     }
-    .hero-label {
-      display: inline-block;
-      font-size: 0.72rem;
-      font-weight: 500;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--accent);
-      background: var(--accent-light);
-      border-radius: 4px;
-      padding: 4px 10px;
-      margin-bottom: 18px;
-    }
-    .hero h1 {
-      
-      font-size: clamp(1.75rem, 4vw, 2.4rem);
-      font-weight: 600;
-      line-height: 1.25;
-      letter-spacing: -0.02em;
+    .theme-btn:hover {
       color: var(--text-primary);
-      margin-bottom: 14px;
-    }
-    .hero p {
-      font-size: 1rem;
-      font-weight: 300;
-      color: var(--text-secondary);
-      line-height: 1.7;
-      max-width: 520px;
+      border-color: var(--text-secondary);
     }
 
-    /* ── Divider ── */
-    .section-label {
-      max-width: 860px;
-      margin: 0 auto;
-      padding: 0 32px 16px;
-      font-size: 0.75rem;
-      font-weight: 500;
-      letter-spacing: 0.09em;
-      text-transform: uppercase;
-      color: var(--text-secondary);
-      border-bottom: 1px solid var(--border);
+    /* ── HEADER / HERO ── */
+    .hero {
+      text-align: center;
+      padding: 64px 32px 48px;
     }
 
-    /* ── Grid ── */
-    .grid {
-      max-width: 860px;
-      margin: 0 auto;
-      padding: 0 32px;
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 16px;
-      margin-top: 24px;
+    .logo-wrap {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      margin-bottom: 32px;
     }
 
-    @media (max-width: 600px) {
-      .grid { grid-template-columns: 1fr; }
-    }
-
-    /* ── Card ── */
-    .card {
-      background: var(--surface);
-      border: 1px solid var(--border);
+    .logo-icon {
+      width: 52px;
+      height: 52px;
+      background: #c0392b;
       border-radius: 12px;
-      padding: 28px;
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+    }
+
+    .logo-text-left,
+    .logo-text-right {
+      font-family: 'DM Serif Display', serif;
+      font-size: 2.8rem;
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+    }
+
+    .hero-sub {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 1.25rem;
+      font-weight: 400;
+      color: var(--text-primary);
+      opacity: 0.85;
+    }
+
+    /* ── GRID ── */
+    .grid {
+      max-width: 1040px;
+      margin: 0 auto;
+      padding: 0 24px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    @media (max-width: 860px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 560px) { .grid { grid-template-columns: 1fr; } }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 28px 28px 24px;
+      min-height: 220px;
       display: flex;
       flex-direction: column;
-      gap: 14px;
-      transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s;
-      box-shadow: var(--shadow-sm);
+      justify-content: space-between;
       position: relative;
       overflow: hidden;
+      transition: transform 0.2s, box-shadow 0.2s;
     }
 
     .card.available {
@@ -149,118 +162,124 @@
       color: inherit;
     }
     .card.available:hover {
-      box-shadow: var(--shadow-hover);
-      transform: translateY(-2px);
-      border-color: #c8c5bc;
-    }
-    .card.available:hover .card-arrow {
-      transform: translate(3px, -3px);
-      opacity: 1;
+      transform: translateY(-3px);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.35);
     }
     .card.unavailable {
-      background: var(--disabled-bg);
-      border-color: #e8e6e0;
+      opacity: 0.65;
     }
 
-    .card-top {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-    }
-    .card-icon {
-      width: 42px;
-      height: 42px;
-      border-radius: 10px;
-      display: grid;
-      place-items: center;
-      flex-shrink: 0;
-    }
-    .card.available .card-icon { background: var(--accent-light); }
-    .card.unavailable .card-icon { background: #e8e6e0; }
-
-    .card-arrow {
-      width: 18px;
-      height: 18px;
-      color: var(--text-secondary);
-      opacity: 0.5;
-      transition: transform 0.2s, opacity 0.2s;
-      flex-shrink: 0;
+    /* Decorative circle */
+    .card-deco {
+      position: absolute;
+      right: -20px;
+      bottom: -20px;
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      opacity: 0.12;
     }
 
-    .card-body { flex: 1; }
-    .card-index {
-      font-size: 0.7rem;
+    .card-content { position: relative; z-index: 1; }
+
+    .card-num {
+      font-size: 0.68rem;
       font-weight: 500;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
       text-transform: uppercase;
-      color: var(--text-secondary);
-      margin-bottom: 6px;
+      margin-bottom: 10px;
     }
+
     .card-title {
-      
-      font-size: 1.1rem;
-      font-weight: 600;
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.55rem;
+      font-weight: 400;
       color: var(--text-primary);
-      line-height: 1.3;
-      margin-bottom: 8px;
+      line-height: 1.2;
+      margin-bottom: 10px;
+      letter-spacing: -0.01em;
     }
-    .card.unavailable .card-title { color: #888680; }
+
     .card-desc {
       font-size: 0.875rem;
       color: var(--text-secondary);
       line-height: 1.6;
       font-weight: 300;
+      max-width: 240px;
     }
 
-    .card-footer { margin-top: 4px; }
-    .badge {
+    .card-footer {
+      position: relative;
+      z-index: 1;
+      margin-top: 24px;
+    }
+
+    /* ── BUTTON ── */
+    .btn {
+      display: inline-block;
+      padding: 10px 22px;
+      border-radius: 8px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      text-decoration: none;
+      transition: filter 0.15s, transform 0.15s;
+    }
+    .btn:hover { filter: brightness(1.12); transform: translateY(-1px); }
+
+    .btn-disabled {
       display: inline-flex;
       align-items: center;
-      gap: 5px;
-      font-size: 0.72rem;
-      font-weight: 500;
-      padding: 4px 10px;
-      border-radius: 20px;
-    }
-    .badge-available {
-      background: var(--accent-light);
-      color: var(--accent);
-    }
-    .badge-soon {
-      background: #f0ede6;
-      color: #9a8f7e;
-    }
-    .badge-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      display: inline-block;
-    }
-    .badge-available .badge-dot { background: var(--accent); }
-    .badge-soon .badge-dot { background: #c4b89e; }
-
-    /* subtle top accent line on available cards */
-    .card.available::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 3px;
-      background: var(--accent);
-      border-radius: 12px 12px 0 0;
-      opacity: 0;
-      transition: opacity 0.2s;
-    }
-    .card.available:hover::before { opacity: 1; }
-
-    /* ── Footer ── */
-    .footer {
-      max-width: 860px;
-      margin: 48px auto 0;
-      padding: 0 32px;
-      border-top: 1px solid var(--border);
-      padding-top: 24px;
+      gap: 6px;
+      padding: 9px 16px;
+      border-radius: 8px;
       font-size: 0.8rem;
-      color: var(--text-secondary);
+      font-weight: 400;
+      color: var(--text-muted);
+      background: transparent;
+      border: 1px solid var(--card-border);
+    }
+    .btn-disabled-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--text-muted);
+      flex-shrink: 0;
+    }
+
+    .btn-blue   { background: #2563eb; }
+    .btn-yellow { background: #c4890a; }
+
+    .deco-blue   { background: #2563eb; }
+    .deco-yellow { background: #d4a017; }
+    .deco-pink   { background: #d946a8; }
+    .deco-green  { background: #16a34a; }
+    .deco-slate  { background: #64748b; }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      margin-top: 56px;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    /* Entrance */
+    .hero { animation: fadeIn 0.5s ease both; }
+    .card:nth-child(1) { animation: fadeUp 0.45s 0.05s ease both; }
+    .card:nth-child(2) { animation: fadeUp 0.45s 0.10s ease both; }
+    .card:nth-child(3) { animation: fadeUp 0.45s 0.15s ease both; }
+    .card:nth-child(4) { animation: fadeUp 0.45s 0.20s ease both; }
+    .card:nth-child(5) { animation: fadeUp 0.45s 0.25s ease both; }
+    .card:nth-child(6) { animation: fadeUp 0.45s 0.30s ease both; }
+
+    @keyframes fadeIn { from { opacity:0 } to { opacity:1 } }
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(18px); }
+      to   { opacity:1; transform:translateY(0); }
     }
   </style>
 </head>
@@ -276,131 +295,153 @@
           <rect x="8" y="8" width="5" height="5" rx="1" fill="white" opacity=".4"/>
         </svg>
       </div>
-      <span class="logo-text">Eszköztár</span>
+      <span class="nav-title">Eszköztár</span>
+      <button class="theme-btn" id="themeToggle">
+        <span id="themeIcon">☀</span>
+        <span id="themeLabel">Világos mód</span>
+      </button>
     </div>
   </header>
 
-  <section class="hero">
-    <span class="hero-label">Belső eszközök</span>
-    <h1>Minden eszköz<br>egy helyen</h1>
-    <p>Az alábbi programok az eszköztár részét képezik. Kattints bármelyik elérhető alkalmazásra a megnyitáshoz. A folyamatban lévő eszközök hamarosan webről is elérhetők lesznek.</p>
-  </section>
-
-  <div class="section-label">Programok — 4 eszköz</div>
+  <div class="hero">
+    <div class="logo-wrap">
+      <span class="logo-text-left">Eszköz</span>
+      <div class="logo-icon">
+        <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+          <rect x="2" y="2" width="10" height="10" rx="2" fill="white"/>
+          <rect x="14" y="2" width="10" height="10" rx="2" fill="white" opacity=".7"/>
+          <rect x="2" y="14" width="10" height="10" rx="2" fill="white" opacity=".7"/>
+          <rect x="14" y="14" width="10" height="10" rx="2" fill="white" opacity=".4"/>
+        </svg>
+      </div>
+      <span class="logo-text-right">tár</span>
+    </div>
+    <div class="hero-sub">Válassz eszközt!</div>
+  </div>
 
   <div class="grid">
 
-    <!-- 1. Kategorizáló -->
+    <!-- 01 Kategorizáló -->
     <div class="card unavailable">
-      <div class="card-top">
-        <div class="card-icon">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <rect x="2" y="2" width="7" height="7" rx="2" stroke="#a09890" stroke-width="1.5"/>
-            <rect x="11" y="2" width="7" height="7" rx="2" stroke="#a09890" stroke-width="1.5"/>
-            <rect x="2" y="11" width="7" height="7" rx="2" stroke="#a09890" stroke-width="1.5"/>
-            <rect x="11" y="11" width="7" height="7" rx="2" stroke="#a09890" stroke-width="1.5"/>
-          </svg>
-        </div>
-      </div>
-      <div class="card-body">
-        <div class="card-index">01</div>
+      <div class="card-deco deco-slate"></div>
+      <div class="card-content">
+        <div class="card-num">01</div>
         <div class="card-title">Kategorizáló</div>
-        <div class="card-desc">Tartalmak és elemek automatikus kategóriákba rendezése, strukturált csoportosítás.</div>
+        <div class="card-desc">Tartalmak és elemek automatikus kategóriákba rendezése.</div>
       </div>
       <div class="card-footer">
-        <span class="badge badge-soon">
-          <span class="badge-dot"></span>
+        <div class="btn-disabled">
+          <span class="btn-disabled-dot"></span>
           Nem indítható webből
-        </span>
+        </div>
       </div>
     </div>
 
-    <!-- 2. Címkéző -->
+    <!-- 02 Címkéző -->
     <div class="card unavailable">
-      <div class="card-top">
-        <div class="card-icon">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <path d="M3 5a2 2 0 012-2h5.172a2 2 0 011.414.586l5.828 5.828a2 2 0 010 2.828l-3.172 3.172a2 2 0 01-2.828 0L5.586 9.586A2 2 0 015 8.172V5z" stroke="#a09890" stroke-width="1.5"/>
-            <circle cx="7.5" cy="7.5" r="1" fill="#a09890"/>
-          </svg>
-        </div>
-      </div>
-      <div class="card-body">
-        <div class="card-index">02</div>
+      <div class="card-deco deco-slate"></div>
+      <div class="card-content">
+        <div class="card-num">02</div>
         <div class="card-title">Címkéző</div>
-        <div class="card-desc">Tételek és adatok gyors és rugalmas felcímkézése egyéni vagy előre definiált sémák alapján.</div>
+        <div class="card-desc">Tételek gyors felcímkézése egyéni vagy előre definiált sémák alapján.</div>
       </div>
       <div class="card-footer">
-        <span class="badge badge-soon">
-          <span class="badge-dot"></span>
+        <div class="btn-disabled">
+          <span class="btn-disabled-dot"></span>
           Nem indítható webből
-        </span>
+        </div>
       </div>
     </div>
 
-    <!-- 3. Vonalkódolvasó -->
+    <!-- 03 Vonalkódolvasó -->
     <a class="card available" href="vonalkodolvaso-leltar/vonalkodolvaso-leltar.html">
-      <div class="card-top">
-        <div class="card-icon">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <rect x="2" y="4" width="2" height="12" rx="0.5" fill="#2563eb"/>
-            <rect x="5.5" y="4" width="1" height="12" rx="0.5" fill="#2563eb"/>
-            <rect x="8" y="4" width="2.5" height="12" rx="0.5" fill="#2563eb"/>
-            <rect x="12" y="4" width="1" height="12" rx="0.5" fill="#2563eb"/>
-            <rect x="14.5" y="4" width="1" height="12" rx="0.5" fill="#2563eb"/>
-            <rect x="16.5" y="4" width="1.5" height="12" rx="0.5" fill="#2563eb"/>
-          </svg>
-        </div>
-        <svg class="card-arrow" viewBox="0 0 18 18" fill="none">
-          <path d="M4 14L14 4M14 4H7M14 4v7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </div>
-      <div class="card-body">
-        <div class="card-index">03</div>
+      <div class="card-deco deco-blue"></div>
+      <div class="card-content">
+        <div class="card-num">03</div>
         <div class="card-title">Vonalkódolvasó / Leltár</div>
-        <div class="card-desc">Vonalkódok beolvasása és leltárkezelés — gyors rögzítés, áttekinthető nyilvántartás.</div>
+        <div class="card-desc">Vonalkódok beolvasása és leltárkezelés — gyors rögzítés.</div>
       </div>
       <div class="card-footer">
-        <span class="badge badge-available">
-          <span class="badge-dot"></span>
-          Elérhető
-        </span>
+        <span class="btn btn-blue">Kiválaszt</span>
       </div>
     </a>
 
-    <!-- 4. Kollázskészítő -->
+    <!-- 04 Kollázskészítő -->
     <a class="card available" href="kollazs/kollazs.html">
-      <div class="card-top">
-        <div class="card-icon">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <rect x="2" y="2" width="8" height="11" rx="1.5" fill="#2563eb" opacity=".9"/>
-            <rect x="12" y="2" width="6" height="6" rx="1.5" fill="#2563eb" opacity=".55"/>
-            <rect x="2" y="15" width="5" height="3" rx="1" fill="#2563eb" opacity=".4"/>
-            <rect x="12" y="10" width="6" height="8" rx="1.5" fill="#2563eb" opacity=".7"/>
-          </svg>
-        </div>
-        <svg class="card-arrow" viewBox="0 0 18 18" fill="none">
-          <path d="M4 14L14 4M14 4H7M14 4v7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </div>
-      <div class="card-body">
-        <div class="card-index">04</div>
+      <div class="card-deco deco-yellow"></div>
+      <div class="card-content">
+        <div class="card-num">04</div>
         <div class="card-title">Kollázskészítő / Képszerkesztő</div>
-        <div class="card-desc">Képek szerkesztése, összeállítása és kollázsok létrehozása közvetlenül a böngészőből.</div>
+        <div class="card-desc">Képek szerkesztése és kollázsok létrehozása a böngészőből.</div>
       </div>
       <div class="card-footer">
-        <span class="badge badge-available">
-          <span class="badge-dot"></span>
-          Elérhető
-        </span>
+        <span class="btn btn-yellow">Kiválaszt</span>
       </div>
     </a>
 
+    <!-- 05 Kép Scraper -->
+    <div class="card unavailable">
+      <div class="card-deco deco-pink"></div>
+      <div class="card-content">
+        <div class="card-num">05</div>
+        <div class="card-title">Kép Scraper</div>
+        <div class="card-desc">Képek automatikus gyűjtése weboldalakról, tömeges feldolgozással.</div>
+      </div>
+      <div class="card-footer">
+        <div class="btn-disabled">
+          <span class="btn-disabled-dot"></span>
+          Nem indítható webből
+        </div>
+      </div>
+    </div>
+
+    <!-- 06 Hamarosan -->
+    <div class="card unavailable">
+      <div class="card-deco deco-green"></div>
+      <div class="card-content">
+        <div class="card-num">06</div>
+        <div class="card-title">Hamarosan…</div>
+        <div class="card-desc">Új eszköz fejlesztés alatt. Kövesd figyelemmel az eszköztárat.</div>
+      </div>
+      <div class="card-footer">
+        <div class="btn-disabled">
+          <span class="btn-disabled-dot"></span>
+          Fejlesztés alatt
+        </div>
+      </div>
+    </div>
+
   </div>
 
-  <div class="footer">
-    <p>2 / 4 eszköz érhető el webről &nbsp;·&nbsp; Eszköztár</p>
-  </div>
+  <div class="footer">2 / 6 eszköz érhető el webről &nbsp;·&nbsp; Eszköztár</div>
+
+  <script>
+    const toggleBtn = document.getElementById('themeToggle');
+    const themeIcon = document.getElementById('themeIcon');
+    const themeLabel = document.getElementById('themeLabel');
+
+    function setTheme(t) {
+      document.documentElement.setAttribute('data-theme', t);
+      if (t === 'dark') {
+        themeIcon.textContent = '☀';
+        themeLabel.textContent = 'Világos mód';
+      } else {
+        themeIcon.textContent = '☾';
+        themeLabel.textContent = 'Sötét mód';
+      }
+      try { localStorage.setItem('eszkoztar-theme', t); } catch(e) {}
+    }
+
+    // Init
+    let initTheme = 'dark';
+    try { initTheme = localStorage.getItem('eszkoztar-theme') || 'dark'; } catch(e) {}
+    setTheme(initTheme);
+
+    toggleBtn.addEventListener('click', function() {
+      const current = document.documentElement.getAttribute('data-theme');
+      setTheme(current === 'dark' ? 'light' : 'dark');
+    });
+  </script>
 
 </body>
 </html>

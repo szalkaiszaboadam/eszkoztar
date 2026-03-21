@@ -97,8 +97,7 @@ def letoltes_vegrehajtasa(page, p_url, mappa_path, fallback_idx):
 
 
 # --- 5. REKURZÍV KATEGÓRIA BEJÁRÓ (PÓK ROBOT) ---
-def kategoria_bejaro(page, url, kategoria_utvonal, letoltendo_db, eloszlas_mod, progress_file, befejezett_kategoriak,
-                     retry_list):
+def kategoria_bejaro(page, url, kategoria_utvonal, letoltendo_db, eloszlas_mod, progress_file, befejezett_kategoriak, retry_list, letolt_koztes):
     print(f"\n📂 Belépés ide: {' > '.join(kategoria_utvonal)}")
 
     try:
@@ -109,6 +108,23 @@ def kategoria_bejaro(page, url, kategoria_utvonal, letoltendo_db, eloszlas_mod, 
         return
 
     alkategoriak_lehetnek = page.locator("table#categoriesList tbody tr").count() > 0
+
+    # --- ÚJ: KÖZTES KATEGÓRIÁK LETÖLTÉSE ---
+    if alkategoriak_lehetnek and letolt_koztes:
+        if page.locator("table#productsList tbody tr").count() > 0:
+            print(f"   🔽 [Köztes kategória aktív] Termékek keresése a(z) {' > '.join(kategoria_utvonal)} szinten...")
+            
+            # Letöltjük a képeket ebből a köztes (összesítő) nézetből is
+            termek_letolto(page, url, kategoria_utvonal, letoltendo_db, eloszlas_mod, progress_file, befejezett_kategoriak, retry_list)
+            
+            # FIGYELEM: A termek_letolto elnavigált a termékek oldalára, így vissza kell töltenünk
+            # a kategória oldalát, hogy a pók folytatni tudja a bejárást lefelé!
+            try:
+                page.goto(url, timeout=60000)
+                time.sleep(2.5)
+            except Exception as e:
+                print(f"   ❌ Hiba az oldal visszatöltésekor: {e}")
+                return
 
     if alkategoriak_lehetnek:
         rows = page.locator("table#categoriesList tbody tr").all()
@@ -138,21 +154,20 @@ def kategoria_bejaro(page, url, kategoria_utvonal, letoltendo_db, eloszlas_mod, 
             uj_utvonal.append(link["nev"])
 
             if link["alkat_db"] > 0:
-                kategoria_bejaro(page, link["url"], uj_utvonal, letoltendo_db, eloszlas_mod, progress_file,
-                                 befejezett_kategoriak, retry_list)
+                # Továbbra is haladunk lefelé a fában, átadva a letolt_koztes kapcsolót
+                kategoria_bejaro(page, link["url"], uj_utvonal, letoltendo_db, eloszlas_mod, progress_file, befejezett_kategoriak, retry_list, letolt_koztes)
             elif link["termek_db"] > 0:
-                termek_letolto(page, link["url"], uj_utvonal, letoltendo_db, eloszlas_mod, progress_file,
-                               befejezett_kategoriak, retry_list)
+                # Elértünk egy "vonalvégi" (leaf) kategóriához
+                termek_letolto(page, link["url"], uj_utvonal, letoltendo_db, eloszlas_mod, progress_file, befejezett_kategoriak, retry_list)
 
     else:
+        # Ha nincsenek alkategóriák, akkor ez biztosan egy végkategória
         if page.locator("table#productsList tbody tr").count() > 0:
-            termek_letolto(page, url, kategoria_utvonal, letoltendo_db, eloszlas_mod, progress_file,
-                           befejezett_kategoriak, retry_list)
+            termek_letolto(page, url, kategoria_utvonal, letoltendo_db, eloszlas_mod, progress_file, befejezett_kategoriak, retry_list)
 
 
 # --- 6. TERMÉKEK KIGYŰJTÉSE ÉS FELDOLGOZÁSA (1. KÖR) ---
-def termek_letolto(page, url, kategoria_utvonal, letoltendo_db, eloszlas_mod, progress_file, befejezett_kategoriak,
-                   retry_list):
+def termek_letolto(page, url, kategoria_utvonal, letoltendo_db, eloszlas_mod, progress_file, befejezett_kategoriak, retry_list):
     kat_azonosito = " > ".join(kategoria_utvonal)
 
     # --- MENTÉS ELLENŐRZÉSE: Ha már kész van, átugorjuk! ---
@@ -268,6 +283,10 @@ if __name__ == "__main__":
         mod_valasz = input("Választás (1-2): ").strip()
     kivalasztott_mod = "random" if mod_valasz == "1" else "even"
 
+    # --- ÚJ BEKÉRÉS: Köztes kategóriák letöltése ---
+    koztes_valasz = input("\nSzeretnéd a köztes (alkategóriákat tartalmazó) mappákból is letölteni a 10 képet? (i/n): ").strip().lower()
+    letolt_koztes = True if koztes_valasz == 'i' else False
+
     # --- MENTÉS INICIALIZÁLÁSA ---
     progress_file = f"scraper_progress_{tiszta_nev(fokategoria)}.json"
     befejezett_kategoriak, retry_list = allapot_betoltese(progress_file)
@@ -298,8 +317,8 @@ if __name__ == "__main__":
                     print(f"✅ Főkategória megvan! Indul a robot pók (1. KÖR)...\n")
 
                     # --- 1. KÖR INDÍTÁSA ---
-                    kategoria_bejaro(page, teljes_kezdo_link, [fokategoria], kivan_db, kivalasztott_mod, progress_file,
-                                     befejezett_kategoriak, retry_list)
+                    # Átadjuk a letolt_koztes flaget is!
+                    kategoria_bejaro(page, teljes_kezdo_link, [fokategoria], kivan_db, kivalasztott_mod, progress_file, befejezett_kategoriak, retry_list, letolt_koztes)
 
                     # --- 2. KÖR: ÚJRAPRÓBÁLKOZÁS ---
                     if retry_list:
