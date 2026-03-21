@@ -1,8 +1,3 @@
-export default function middleware(request) {
-  return new Response('Hello', {
-    headers: { 'x-custom-header': 'hello' },
-  });
-}
 
 /*
 export default function middleware(req) {
