@@ -1,12 +1,10 @@
 export default function middleware(request) {
-  // import { next } from '@vercel/edge'; // Ez okozza a hibát
   return new Response('Hello', {
     headers: { 'x-custom-header': 'hello' },
   });
 }
 
-
-
+/*
 export default function middleware(req) {
   return next({
     headers: {
@@ -18,4 +16,4 @@ export default function middleware(req) {
         'max-age=31536000; includeSubDomains; preload',
     },
   });
-}
+}*/
