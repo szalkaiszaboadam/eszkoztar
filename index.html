@@ -5,51 +5,73 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Eszköztár</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <script defer src="/_vercel/insights/script.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     [data-theme="dark"] {
-      --bg: #161614;
-      --card-bg: #1f1f1c;
-      --card-border: #2a2a27;
-      --text-primary: #f0ede6;
-      --text-secondary: #888880;
-      --text-muted: #4a4a45;
+      --bg: #0d0d0c;
+      --bg-grad: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(37,99,235,0.12) 0%, transparent 60%);
+      --card-bg: #161614;
+      --card-border: #252522;
+      --nav-bg: rgba(13,13,12,0.85);
+      --text-primary: #f2efe8;
+      --text-secondary: #7a7870;
+      --text-muted: #3e3d39;
+      --divider: #1e1e1b;
     }
     [data-theme="light"] {
-      --bg: #f0ede6;
+      --bg: #f8f9fc;
+      --bg-grad: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(37,99,235,0.08) 0%, transparent 60%);
       --card-bg: #ffffff;
-      --card-border: #e0dcd4;
-      --text-primary: #1a1916;
-      --text-secondary: #6a6860;
-      --text-muted: #b0ada6;
+      --card-border: #e8eaf0;
+      --nav-bg: rgba(248,249,252,0.9);
+      --text-primary: #111218;
+      --text-secondary: #5a5d6b;
+      --text-muted: #b0b3bf;
+      --divider: #ebedf3;
     }
 
     body {
-      font-family: 'DM Sans', sans-serif;
+      font-family: 'Plus Jakarta Sans', sans-serif;
       background: var(--bg);
       color: var(--text-primary);
       min-height: 100vh;
-      padding-bottom: 80px;
+      padding-bottom: 100px;
       transition: background 0.3s, color 0.3s;
+    }
+
+    /* Background gradient overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: var(--bg-grad);
+      pointer-events: none;
+      z-index: 0;
+      transition: background 0.3s;
     }
 
     /* ── NAVBAR ── */
     header {
-      background: var(--card-bg);
+      background: var(--nav-bg);
       border-bottom: 1px solid var(--card-border);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
       transition: background 0.3s, border-color 0.3s;
     }
     .header-inner {
-      max-width: 860px;
+      max-width: 1200px;
       margin: 0 auto;
-      padding: 0 32px;
-      height: 52px;
+      padding: 0 48px;
+      height: 56px;
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
     }
     .logo-mark {
       width: 28px;
@@ -62,25 +84,25 @@
     }
     .logo-mark svg { display: block; }
     .nav-title {
-      font-size: 1rem;
+      font-size: 0.95rem;
       font-weight: 600;
       color: var(--text-primary);
       letter-spacing: -0.01em;
       flex: 1;
-      font-family: 'DM Sans', sans-serif;
     }
     .theme-btn {
-      background: transparent;
+      background: var(--card-bg);
       border: 1px solid var(--card-border);
-      border-radius: 20px;
-      padding: 5px 14px;
-      font-family: 'DM Sans', sans-serif;
+      border-radius: 8px;
+      padding: 6px 14px;
+      font-family: 'Plus Jakarta Sans', sans-serif;
       font-size: 0.78rem;
+      font-weight: 500;
       color: var(--text-secondary);
       cursor: pointer;
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 7px;
       transition: all 0.2s;
       flex-shrink: 0;
     }
@@ -88,73 +110,71 @@
       color: var(--text-primary);
       border-color: var(--text-secondary);
     }
+    .theme-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
 
-    /* ── HEADER / HERO ── */
+    /* ── HERO ── */
     .hero {
       text-align: center;
-      padding: 64px 32px 48px;
+      padding: 80px 32px 52px;
+      position: relative;
+      z-index: 1;
     }
-
-    .logo-wrap {
+    .hero-eyebrow {
       display: inline-flex;
       align-items: center;
-      justify-content: center;
-      gap: 4px;
-      margin-bottom: 32px;
+      gap: 6px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #2563eb;
+      margin-bottom: 20px;
+      opacity: 0.8;
     }
-
-    .logo-icon {
-      width: 52px;
-      height: 52px;
-      background: #c0392b;
-      border-radius: 12px;
-      display: grid;
-      place-items: center;
-      flex-shrink: 0;
-    }
-
-    .logo-text-left,
-    .logo-text-right {
-      font-family: 'DM Serif Display', serif;
-      font-size: 2.8rem;
+    .hero h1 {
+      font-size: clamp(2.6rem, 6vw, 4rem);
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 1.05;
       color: var(--text-primary);
-      letter-spacing: -0.02em;
-    }
-
-    .hero-sub {
-      font-family: 'DM Sans', sans-serif;
-      font-size: 1.25rem;
-      font-weight: 400;
-      color: var(--text-primary);
-      opacity: 0.85;
     }
 
     /* ── GRID ── */
-    .grid {
-      max-width: 1040px;
+    .grid-wrap {
+      max-width: 1200px;
       margin: 0 auto;
-      padding: 0 24px;
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 16px;
+      padding: 0 48px;
+      position: relative;
+      z-index: 1;
     }
 
-    @media (max-width: 860px) { .grid { grid-template-columns: repeat(2, 1fr); } }
-    @media (max-width: 560px) { .grid { grid-template-columns: 1fr; } }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+
+    @media (max-width: 900px)  { .grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 560px)  {
+      .grid { grid-template-columns: 1fr; }
+      .grid-wrap { padding: 0 20px; }
+      .header-inner { padding: 0 20px; }
+      .hero { padding: 60px 20px 40px; }
+    }
 
     /* ── CARD ── */
     .card {
       background: var(--card-bg);
       border: 1px solid var(--card-border);
       border-radius: 16px;
-      padding: 28px 28px 24px;
-      min-height: 220px;
+      padding: 26px 26px 22px;
+      min-height: 210px;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       position: relative;
       overflow: hidden;
-      transition: transform 0.2s, box-shadow 0.2s;
+      transition: transform 0.22s, box-shadow 0.22s, border-color 0.22s;
     }
 
     .card.available {
@@ -163,123 +183,134 @@
       color: inherit;
     }
     .card.available:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+      transform: translateY(-4px);
+      box-shadow: 0 16px 48px rgba(0,0,0,0.28);
+      border-color: rgba(255,255,255,0.08);
     }
-    .card.unavailable {
-      opacity: 0.65;
+    [data-theme="light"] .card.available:hover {
+      box-shadow: 0 16px 48px rgba(0,0,0,0.1);
+      border-color: #c8cad4;
     }
-
-    /* Decorative circle */
-    .card-deco {
-      position: absolute;
-      right: -20px;
-      bottom: -20px;
-      width: 120px;
-      height: 120px;
-      border-radius: 50%;
-      opacity: 0.12;
-    }
+    .card.unavailable { opacity: 1; }
 
     .card-content { position: relative; z-index: 1; }
 
+    /* ── Card deco icon (bottom-right, like the circles were) ── */
+    .card-deco-icon {
+      position: absolute;
+      right: -16px;
+      bottom: -16px;
+      width: 96px;
+      height: 96px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+    .card-deco-icon svg { width: 52px; height: 52px; }
+
+    .icon-slate   { background: #64748b; }
+    .icon-slate   svg { stroke: #fff; }
+    .icon-blue    { background: #2563eb; }
+    .icon-blue    svg { stroke: #fff; }
+    .icon-amber   { background: #d97706; }
+    .icon-amber   svg { stroke: #fff; }
+    .icon-pink    { background: #db2777; }
+    .icon-pink    svg { stroke: #fff; }
+    .icon-emerald { background: #059669; }
+    .icon-emerald svg { stroke: #fff; }
+
     .card-num {
-      font-size: 0.68rem;
-      font-weight: 500;
-      letter-spacing: 0.1em;
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
       color: var(--text-muted);
       text-transform: uppercase;
-      margin-bottom: 10px;
+      margin-bottom: 7px;
     }
-
     .card-title {
-      font-family: 'DM Serif Display', serif;
-      font-size: 1.55rem;
-      font-weight: 400;
+      font-size: 1.15rem;
+      font-weight: 700;
       color: var(--text-primary);
-      line-height: 1.2;
-      margin-bottom: 10px;
-      letter-spacing: -0.01em;
+      line-height: 1.25;
+      margin-bottom: 8px;
+      letter-spacing: -0.02em;
     }
-
     .card-desc {
-      font-size: 0.875rem;
+      font-size: 0.83rem;
       color: var(--text-secondary);
-      line-height: 1.6;
-      font-weight: 300;
-      max-width: 240px;
+      line-height: 1.65;
+      font-weight: 400;
     }
 
     .card-footer {
       position: relative;
       z-index: 1;
-      margin-top: 24px;
+      margin-top: 22px;
     }
 
     /* ── BUTTON ── */
     .btn {
-      display: inline-block;
-      padding: 10px 22px;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 9px 20px;
       border-radius: 8px;
-      font-family: 'DM Sans', sans-serif;
-      font-size: 0.875rem;
-      font-weight: 500;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 0.83rem;
+      font-weight: 600;
       color: #fff;
       border: none;
       cursor: pointer;
       text-decoration: none;
-      transition: filter 0.15s, transform 0.15s;
+      transition: filter 0.15s, transform 0.15s, box-shadow 0.15s;
     }
-    .btn:hover { filter: brightness(1.12); transform: translateY(-1px); }
+    .btn:hover {
+      filter: brightness(1.1);
+      transform: translateY(-1px);
+    }
+    .btn svg { width: 13px; height: 13px; }
+
+    .btn-blue   { background: #2563eb; }
+    .btn-amber  { background: #d97706; }
 
     .btn-disabled {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      padding: 9px 16px;
+      gap: 7px;
+      padding: 8px 14px;
       border-radius: 8px;
-      font-size: 0.8rem;
-      font-weight: 400;
+      font-size: 0.78rem;
+      font-weight: 500;
       color: var(--text-muted);
       background: transparent;
       border: 1px solid var(--card-border);
     }
     .btn-disabled-dot {
-      width: 6px; height: 6px;
+      width: 5px; height: 5px;
       border-radius: 50%;
       background: var(--text-muted);
       flex-shrink: 0;
     }
 
-    .btn-blue   { background: #2563eb; }
-    .btn-yellow { background: #c4890a; }
-
-    .deco-blue   { background: #2563eb; }
-    .deco-yellow { background: #d4a017; }
-    .deco-pink   { background: #d946a8; }
-    .deco-green  { background: #16a34a; }
-    .deco-slate  { background: #64748b; }
-
-    /* Footer */
+    /* ── FOOTER ── */
     .footer {
       text-align: center;
-      margin-top: 56px;
-      font-size: 0.78rem;
+      margin-top: 60px;
+      font-size: 0.75rem;
       color: var(--text-muted);
+      position: relative;
+      z-index: 1;
     }
 
-    /* Entrance */
+    /* ── ANIMATIONS ── */
     .hero { animation: fadeIn 0.5s ease both; }
-    .card:nth-child(1) { animation: fadeUp 0.45s 0.05s ease both; }
-    .card:nth-child(2) { animation: fadeUp 0.45s 0.10s ease both; }
-    .card:nth-child(3) { animation: fadeUp 0.45s 0.15s ease both; }
-    .card:nth-child(4) { animation: fadeUp 0.45s 0.20s ease both; }
-    .card:nth-child(5) { animation: fadeUp 0.45s 0.25s ease both; }
-    .card:nth-child(6) { animation: fadeUp 0.45s 0.30s ease both; }
+    .grid-wrap { animation: fadeUp 0.5s 0.08s ease both; }
 
     @keyframes fadeIn { from { opacity:0 } to { opacity:1 } }
     @keyframes fadeUp {
-      from { opacity:0; transform:translateY(18px); }
+      from { opacity:0; transform:translateY(20px); }
       to   { opacity:1; transform:translateY(0); }
     }
   </style>
@@ -298,149 +329,172 @@
       </div>
       <span class="nav-title">Eszköztár</span>
       <button class="theme-btn" id="themeToggle">
-        <span id="themeIcon">☀</span>
+        <!-- Sun icon (show in dark mode) -->
+        <svg id="iconSun" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364-6.364-.707.707M6.343 17.657l-.707.707M17.657 17.657l-.707-.707M6.343 6.343l-.707-.707M12 8a4 4 0 100 8 4 4 0 000-8z"/>
+        </svg>
+        <!-- Moon icon (show in light mode) -->
+        <svg id="iconMoon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" style="display:none">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 12.79A9 9 0 1111.21 3a7 7 0 109.79 9.79z"/>
+        </svg>
         <span id="themeLabel">Világos mód</span>
       </button>
     </div>
   </header>
 
   <div class="hero">
-    <div class="logo-wrap">
-      <span class="logo-text-left">Eszköz</span>
-      <div class="logo-icon">
-        <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
-          <rect x="2" y="2" width="10" height="10" rx="2" fill="white"/>
-          <rect x="14" y="2" width="10" height="10" rx="2" fill="white" opacity=".7"/>
-          <rect x="2" y="14" width="10" height="10" rx="2" fill="white" opacity=".7"/>
-          <rect x="14" y="14" width="10" height="10" rx="2" fill="white" opacity=".4"/>
-        </svg>
-      </div>
-      <span class="logo-text-right">tár</span>
-    </div>
-    <div class="hero-sub">Válassz eszközt!</div>
+    <div class="hero-eyebrow">Belső eszközök</div>
+    <h1>Válassz eszközt!</h1>
   </div>
 
-  <div class="grid">
+  <div class="grid-wrap">
+    <div class="grid">
 
-    <!-- 01 Kategorizáló -->
-    <div class="card unavailable">
-      <div class="card-deco deco-slate"></div>
-      <div class="card-content">
-        <div class="card-num">01</div>
-        <div class="card-title">Kategorizáló</div>
-        <div class="card-desc">Tartalmak és elemek automatikus kategóriákba rendezése.</div>
-      </div>
-      <div class="card-footer">
-        <div class="btn-disabled">
-          <span class="btn-disabled-dot"></span>
-          Nem indítható webből
+      <!-- 01 Kategorizáló -->
+      <div class="card unavailable">
+        <div class="card-deco-icon icon-slate">
+          <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <rect x="3" y="3" width="8" height="8" rx="2" stroke="currentColor" fill="none"/>
+            <rect x="13" y="3" width="8" height="8" rx="2" stroke="currentColor" fill="none"/>
+            <rect x="3" y="13" width="8" height="8" rx="2" stroke="currentColor" fill="none"/>
+            <rect x="13" y="13" width="8" height="8" rx="2" stroke="currentColor" fill="none"/>
+          </svg>
+        </div>
+        <div class="card-content">
+          <div class="card-num">01</div>
+          <div class="card-title">Kategorizáló</div>
+          <div class="card-desc">Tartalmak és elemek automatikus kategóriákba rendezése, strukturált csoportosítás.</div>
+        </div>
+        <div class="card-footer">
+          <div class="btn-disabled"><span class="btn-disabled-dot"></span>Nem indítható webből</div>
         </div>
       </div>
-    </div>
 
-    <!-- 02 Címkéző -->
-    <div class="card unavailable">
-      <div class="card-deco deco-slate"></div>
-      <div class="card-content">
-        <div class="card-num">02</div>
-        <div class="card-title">Címkéző</div>
-        <div class="card-desc">Tételek gyors felcímkézése egyéni vagy előre definiált sémák alapján.</div>
-      </div>
-      <div class="card-footer">
-        <div class="btn-disabled">
-          <span class="btn-disabled-dot"></span>
-          Nem indítható webből
+      <!-- 02 Címkéző -->
+      <div class="card unavailable">
+        <div class="card-deco-icon icon-slate">
+          <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L9.568 3z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6z"/>
+          </svg>
+        </div>
+        <div class="card-content">
+          <div class="card-num">02</div>
+          <div class="card-title">Címkéző</div>
+          <div class="card-desc">Tételek gyors felcímkézése egyéni vagy előre definiált sémák alapján.</div>
+        </div>
+        <div class="card-footer">
+          <div class="btn-disabled"><span class="btn-disabled-dot"></span>Nem indítható webből</div>
         </div>
       </div>
-    </div>
 
-    <!-- 03 Vonalkódolvasó -->
-    <a class="card available" href="vonalkodolvaso-leltar/vonalkodolvaso-leltar.html">
-      <div class="card-deco deco-blue"></div>
-      <div class="card-content">
-        <div class="card-num">03</div>
-        <div class="card-title">Vonalkódolvasó / Leltár</div>
-        <div class="card-desc">Vonalkódok beolvasása és leltárkezelés — gyors rögzítés.</div>
-      </div>
-      <div class="card-footer">
-        <span class="btn btn-blue">Kiválaszt</span>
-      </div>
-    </a>
+      <!-- 03 Vonalkódolvasó -->
+      <a class="card available" href="vonalkodolvaso-leltar/vonalkodolvaso-leltar.html">
+        <div class="card-deco-icon icon-blue">
+          <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 6.75h.75v.75h-.75v-.75zM6.75 16.5h.75v.75h-.75v-.75zM16.5 6.75h.75v.75h-.75v-.75zM13.5 13.5h.75v.75h-.75v-.75zM13.5 18.75h.75v.75h-.75v-.75zM18.75 13.5h.75v.75h-.75v-.75zM18.75 18.75h.75v.75h-.75v-.75zM16.5 16.5h.75v.75h-.75v-.75z"/>
+          </svg>
+        </div>
+        <div class="card-content">
+          <div class="card-num">03</div>
+          <div class="card-title">Vonalkódolvasó / Leltár</div>
+          <div class="card-desc">Vonalkódok beolvasása és leltárkezelés — gyors rögzítés, áttekinthető nyilvántartás.</div>
+        </div>
+        <div class="card-footer">
+          <span class="btn btn-blue">
+            Kiválaszt
+            <svg fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
+          </span>
+        </div>
+      </a>
 
-    <!-- 04 Kollázskészítő -->
-    <a class="card available" href="kollazs/kollazs.html">
-      <div class="card-deco deco-yellow"></div>
-      <div class="card-content">
-        <div class="card-num">04</div>
-        <div class="card-title">Kollázskészítő / Képszerkesztő</div>
-        <div class="card-desc">Képek szerkesztése és kollázsok létrehozása a böngészőből.</div>
-      </div>
-      <div class="card-footer">
-        <span class="btn btn-yellow">Kiválaszt</span>
-      </div>
-    </a>
+      <!-- 04 Kollázskészítő -->
+      <a class="card available" href="kollazs/kollazs.html">
+        <div class="card-deco-icon icon-amber">
+          <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"/>
+          </svg>
+        </div>
+        <div class="card-content">
+          <div class="card-num">04</div>
+          <div class="card-title">Kollázskészítő / Képszerkesztő</div>
+          <div class="card-desc">Képek szerkesztése, összeállítása és kollázsok létrehozása közvetlenül a böngészőből.</div>
+        </div>
+        <div class="card-footer">
+          <span class="btn btn-amber">
+            Kiválaszt
+            <svg fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/></svg>
+          </span>
+        </div>
+      </a>
 
-    <!-- 05 Kép Scraper -->
-    <div class="card unavailable">
-      <div class="card-deco deco-pink"></div>
-      <div class="card-content">
-        <div class="card-num">05</div>
-        <div class="card-title">Kép Scraper</div>
-        <div class="card-desc">Képek automatikus gyűjtése weboldalakról, tömeges feldolgozással.</div>
-      </div>
-      <div class="card-footer">
-        <div class="btn-disabled">
-          <span class="btn-disabled-dot"></span>
-          Nem indítható webből
+      <!-- 05 Kép Scraper -->
+      <div class="card unavailable">
+        <div class="card-deco-icon icon-pink">
+          <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/>
+          </svg>
+        </div>
+        <div class="card-content">
+          <div class="card-num">05</div>
+          <div class="card-title">Kép Scraper</div>
+          <div class="card-desc">Képek automatikus gyűjtése és letöltése weboldalakról, tömeges feldolgozással.</div>
+        </div>
+        <div class="card-footer">
+          <div class="btn-disabled"><span class="btn-disabled-dot"></span>Nem indítható webből</div>
         </div>
       </div>
-    </div>
 
-    <!-- 06 Hamarosan -->
-    <div class="card unavailable">
-      <div class="card-deco deco-green"></div>
-      <div class="card-content">
-        <div class="card-num">06</div>
-        <div class="card-title">Hamarosan…</div>
-        <div class="card-desc">Új eszköz fejlesztés alatt. Kövesd figyelemmel az eszköztárat.</div>
-      </div>
-      <div class="card-footer">
-        <div class="btn-disabled">
-          <span class="btn-disabled-dot"></span>
-          Fejlesztés alatt
+      <!-- 06 Hamarosan -->
+      <div class="card unavailable" style="border-style: dashed;">
+        <div class="card-deco-icon icon-emerald">
+          <svg fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </div>
+        <div class="card-content">
+          <div class="card-num">06</div>
+          <div class="card-title">Hamarosan…</div>
+          <div class="card-desc">Új eszköz fejlesztés alatt. Kövesd figyelemmel az eszköztárat a legújabb frissítésekért.</div>
+        </div>
+        <div class="card-footer">
+          <div class="btn-disabled"><span class="btn-disabled-dot"></span>Fejlesztés alatt</div>
         </div>
       </div>
-    </div>
 
+    </div>
   </div>
 
   <div class="footer">2 / 6 eszköz érhető el webről &nbsp;·&nbsp; Eszköztár</div>
 
   <script>
     const toggleBtn = document.getElementById('themeToggle');
-    const themeIcon = document.getElementById('themeIcon');
     const themeLabel = document.getElementById('themeLabel');
+    const iconSun = document.getElementById('iconSun');
+    const iconMoon = document.getElementById('iconMoon');
 
     function setTheme(t) {
       document.documentElement.setAttribute('data-theme', t);
       if (t === 'dark') {
-        themeIcon.textContent = '☀';
+        iconSun.style.display = '';
+        iconMoon.style.display = 'none';
         themeLabel.textContent = 'Világos mód';
       } else {
-        themeIcon.textContent = '☾';
+        iconSun.style.display = 'none';
+        iconMoon.style.display = '';
         themeLabel.textContent = 'Sötét mód';
       }
       try { localStorage.setItem('eszkoztar-theme', t); } catch(e) {}
     }
 
-    // Init
-    let initTheme = 'dark';
-    try { initTheme = localStorage.getItem('eszkoztar-theme') || 'dark'; } catch(e) {}
-    setTheme(initTheme);
+    let init = 'dark';
+    try { init = localStorage.getItem('eszkoztar-theme') || 'dark'; } catch(e) {}
+    setTheme(init);
 
     toggleBtn.addEventListener('click', function() {
-      const current = document.documentElement.getAttribute('data-theme');
-      setTheme(current === 'dark' ? 'light' : 'dark');
+      const cur = document.documentElement.getAttribute('data-theme');
+      setTheme(cur === 'dark' ? 'light' : 'dark');
     });
   </script>
 
