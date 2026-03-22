@@ -830,7 +830,7 @@
 
     <script>
         // ── THEME ──
-        function getTheme() { return localStorage.getItem('theme') || 'light'; }
+        function getTheme() { return localStorage.getItem('eszkoztar-theme') || 'dark'; }
         function applyTheme(t) {
             document.documentElement.setAttribute('data-theme', t);
             const isDark = t === 'dark';
@@ -852,7 +852,7 @@
             if (mb) mb.innerHTML = `<i data-lucide="${icon}"></i>`;
 
             lucide.createIcons();
-            localStorage.setItem('theme', t);
+            localStorage.setItem('eszkoztar-theme', t);
         }
         function toggleTheme() { applyTheme(getTheme() === 'light' ? 'dark' : 'light'); }
 
