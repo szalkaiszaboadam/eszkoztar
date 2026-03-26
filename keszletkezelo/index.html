@@ -84,19 +84,23 @@
         ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 
         /* ── NAV MOBILE ── */
+    
         nav {
             position: fixed;
-            top: 0; left: 0; width: 100%;
+            bottom: 0; left: 0; top: auto; width: 100%;
             display: flex;
             background: var(--surface);
-            border-bottom: 1px solid var(--border);
+            border-top: 1px solid var(--border);
+            border-bottom: none;
             z-index: 5000;
-            padding-top: env(safe-area-inset-top);
-            height: calc(var(--nav-h) + env(safe-area-inset-top));
+            padding-bottom: env(safe-area-inset-bottom);
+            padding-top: 0;
+            height: calc(var(--nav-h) + env(safe-area-inset-bottom));
             padding-left: 4px;
             padding-right: 4px;
-            align-items: flex-end;
+            align-items: flex-start;
         }
+
 
         .nav-brand {
             display: none;
@@ -147,11 +151,12 @@
         .tab-btn.active::after { transform: translateX(-50%) scaleX(1); }
         .tab-btn i { width: 18px; height: 18px; stroke-width: 1.8px; }
 
-        /* ── CONTENT AREAS ── */
+   /* ── CONTENT AREAS ── */
         .content-area {
             position: fixed;
-            top: calc(var(--nav-h) + env(safe-area-inset-top));
-            bottom: 0; left: 0; right: 0;
+            top: 52px; /* Pontosan a header.js magassága alá igazítjuk */
+            bottom: calc(var(--nav-h) + env(safe-area-inset-bottom)); /* Alul helyet hagyunk a menünek */
+            left: 0; right: 0;
             display: none;
             flex-direction: column;
             overflow: hidden;
@@ -232,9 +237,10 @@
         .mode-opt i { width: 13px; height: 13px; }
         .mode-opt.active { background: var(--accent); color: #fff; }
 
-        .camera-controls {
+  .camera-controls {
             position: absolute;
-            bottom: 44px; left: 50%;
+            bottom: calc(var(--nav-h) + 20px + env(safe-area-inset-bottom)); 
+            left: 50%;
             transform: translateX(-50%);
             display: flex; gap: 14px; z-index: 4000;
         }
@@ -330,7 +336,12 @@
         .tab-more-icon { width: 13px; height: 13px; opacity: 0.35; cursor: pointer; transition: opacity 0.12s; flex-shrink: 0; }
         .tab-more-icon:hover { opacity: 1; }
 
-        #active-ws-view { display: flex; flex-direction: column; height: 100%; }
+        #active-ws-view { 
+    position: absolute; /* Szigorúan a képernyőhöz horgonyozzuk */
+    top: 0; bottom: 0; left: 0; right: 0; 
+    display: flex; 
+    flex-direction: column; 
+}
 
         /* ── BUTTONS ── */
         .btn {
@@ -578,9 +589,11 @@
             .nav-version { font-size: 11px; color: var(--text-3); }
 
             .content-area {
-                position: relative; top: auto; bottom: auto; left: auto; right: auto;
-                height: 100dvh; flex: 1;
-            }
+            position: relative; top: auto; bottom: auto; left: auto; right: auto;
+            height: 100%;
+            flex: 1;
+            overflow: hidden;
+        }
 
             #reader, .scan-overlay, .camera-controls, .mode-switcher-container { display: none !important; }
 

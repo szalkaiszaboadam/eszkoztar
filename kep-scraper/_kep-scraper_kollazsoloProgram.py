@@ -406,42 +406,53 @@ def interaktiv_kollazs_fázis2(ctx: Context, image_map_full, collage_progress_fi
                 print(f"   ⚠️ Automatikus feltöltés hiba: {e}. Kérlek húzd be kézzel a képeket.")
 
             # FIGYELEM: Itt kellenek a dupla kapcsos zárójelek a JavaScript kód miatt
+            # FIGYELEM: Itt kellenek a dupla kapcsos zárójelek a JavaScript kód miatt
+            # FIGYELEM: Itt kellenek a dupla kapcsos zárójelek a JavaScript kód miatt
             header_js = f"""
-            () => {{
-                const oldHeader = document.getElementById('bot-header');
-                if (oldHeader) oldHeader.remove();
-
-                const header = document.createElement('div');
-                header.id = 'bot-header';
-                header.style.position = 'fixed';
-                header.style.top = '0'; header.style.left = '0'; header.style.width = '100%';
-                header.style.background = '#FFD700'; header.style.color = '#000'; header.style.zIndex = '999999';
-                header.style.padding = '10px'; header.style.textAlign = 'center'; header.style.fontFamily = 'Arial, sans-serif';
-                header.style.boxShadow = '0 4px 6px rgba(0,0,0,0.3)';
-                header.style.display = 'flex'; header.style.justifyContent = 'space-between'; header.style.alignItems = 'center';
-
-                header.innerHTML = `
-                    <div style="margin-left: 15px; text-align:left;">
-                        <span style="font-size:12px; display:block; font-weight:normal;">Aktuális kategória:</span>
-                        <span style="font-size:16px; font-weight:bold;">{kat_id}</span>
-                    </div>
-                    <div style="font-size:16px;">
-                        1. Rendezd el ➜ 2. Mentsd le (az oldal gombjával!) ➜ 
-                    </div>
-                    <button id="bot-tovabb-btn" style="margin-right:15px; padding:10px 20px; font-size:15px; font-weight:bold; background:#e74c3c; color:white; border:none; border-radius:5px; cursor:pointer;">
-                        VÉGEZTEM, KÖVETKEZŐ >
-                    </button>
-                `;
-                document.body.appendChild(header);
-                document.body.style.marginTop = '70px';
-
-                document.getElementById('bot-tovabb-btn').addEventListener('click', () => {{
-                    document.getElementById('bot-header').setAttribute('data-clicked', 'true');
-                    document.getElementById('bot-tovabb-btn').innerText = 'Feldolgozás...';
-                    document.getElementById('bot-tovabb-btn').style.background = '#95a5a6';
-                }});
-            }}
-            """
+                    () => {{
+                        const oldHeader = document.getElementById('bot-header');
+                        if (oldHeader) oldHeader.remove();
+            
+                        const header = document.createElement('div');
+                        header.id = 'bot-header';
+                        header.style.position = 'fixed';
+                        header.style.top = '20px'; /* FENT LEGYEN */
+                        header.style.left = '50%';
+                        header.style.transform = 'translateX(-50%)'; /* KÖZÉPRE IGAZÍTÁS */
+                        header.style.background = '#FFD700'; 
+                        header.style.color = '#000'; 
+                        header.style.zIndex = '999999';
+                        header.style.padding = '12px 25px'; 
+                        header.style.fontFamily = 'Arial, sans-serif';
+                        header.style.boxShadow = '0 8px 25px rgba(0,0,0,0.5)';
+                        header.style.display = 'flex'; 
+                        header.style.alignItems = 'center';
+                        header.style.gap = '20px';
+                        header.style.borderRadius = '50px'; /* Modern kerekített kinézet */
+            
+                        header.innerHTML = `
+                            <div style="text-align:left; line-height:1.2;">
+                                <span style="font-size:12px; font-weight:normal;">Aktuális kategória:</span><br>
+                                <span style="font-size:15px; font-weight:bold;">{kat_id}</span>
+                            </div>
+                            <div style="font-size:15px; font-weight:bold;">
+                                1. Rendezd el ➜ 2. Mentsd le ➜ 
+                            </div>
+                            <button id="bot-tovabb-btn" style="padding:10px 20px; font-size:14px; font-weight:bold; background:#e74c3c; color:white; border:none; border-radius:25px; cursor:pointer; text-transform:uppercase;">
+                                Következő >
+                            </button>
+                        `;
+                        document.body.appendChild(header);
+            
+                        /* A Body margin-top módosítását szándékosan kivettük, hogy ne tolja el a vásznat! */
+            
+                        document.getElementById('bot-tovabb-btn').addEventListener('click', () => {{
+                            document.getElementById('bot-header').setAttribute('data-clicked', 'true');
+                            document.getElementById('bot-tovabb-btn').innerText = 'Kérem várjon...';
+                            document.getElementById('bot-tovabb-btn').style.background = '#95a5a6';
+                        }});
+                    }}
+                    """
             page.evaluate(header_js)
 
             print(
