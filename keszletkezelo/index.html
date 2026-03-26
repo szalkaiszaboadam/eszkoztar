@@ -1550,46 +1550,72 @@
             }
         });
 
-        function createNewWorksheet() {
-            let maxNum = 0;
 
-            // 1. Megkeressük a JELENLEGI legnagyobb számot a meglévőkből (biztonsági háló)
+        function createNewWorksheet() {
+            const today = new Date();
+
+            // 1. Dátum az adatbázis napi számlálójához (pl. "2026_03_26")
+            const dateKey = today.getFullYear() + '_' +
+                String(today.getMonth() + 1).padStart(2, '0') + '_' +
+                String(today.getDate()).padStart(2, '0');
+
+            // 2. Dátum a megjelenítéshez (pl. "2026. 03. 26.")
+            const dateStr = today.getFullYear() + '. ' +
+                String(today.getMonth() + 1).padStart(2, '0') + '. ' +
+                String(today.getDate()).padStart(2, '0') + '.';
+
+            const baseName = `Leltár (${dateStr})`;
+
+            // 3. Biztonsági háló: megnézzük a jelenleg létező MAI munkalapok közül a legnagyobbat
+            let maxExisting = 0;
             if (allWorksheetsData) {
                 Object.values(allWorksheetsData).forEach(ws => {
-                    const match = ws.name.match(/Munkalap\((\d+)\)/);
-                    if (match) {
-                        const num = parseInt(match[1]);
-                        if (num > maxNum) maxNum = num;
+                    if (ws.name.startsWith(baseName)) {
+                        if (ws.name === baseName && maxExisting < 1) {
+                            maxExisting = 1;
+                        } else {
+                            const match = ws.name.match(/- (\d+)$/);
+                            if (match) {
+                                const num = parseInt(match[1]);
+                                if (num > maxExisting) maxExisting = num;
+                            }
+                        }
                     }
                 });
             }
 
-            // 2. Egy globális számlálót használunk az adatbázisban
-            const counterRef = db.ref('settings/worksheetCounter');
+            // 4. Firebase tranzakció: Lekérjük és növeljük a mai naphoz tartozó számlálót
+            const counterRef = db.ref('settings/dailyCounters/' + dateKey);
 
             counterRef.transaction(function (currentValue) {
                 // A számláló legyen a korábban mentett érték és a jelenlegi legnagyobb közül a nagyobb
                 const currentSaved = currentValue || 0;
-                const actualMax = Math.max(maxNum, currentSaved);
+                const actualMax = Math.max(maxExisting, currentSaved);
 
-                // Növeljük 1-gyel
-                return actualMax + 1;
+                return actualMax + 1; // Növeljük 1-gyel
             }, function (error, committed, snapshot) {
                 if (error) {
                     console.error("Hiba a számláló frissítésekor:", error);
                 } else if (committed) {
                     const nextNum = snapshot.val();
-                    const safeId = 'ws_' + Date.now();
+                    let finalName = baseName;
 
-                    // 3. Létrehozzuk az új munkalapot a garantáltan új sorszámmal
+                    // Ha nem az első a mai napon, akkor kap egy " - X" sorszámot
+                    if (nextNum > 1) {
+                        finalName = `${baseName} - ${nextNum}`;
+                    }
+
+                    // 5. Munkalap létrehozása a végleges névvel
+                    const safeId = 'ws_' + Date.now();
                     db.ref('worksheets/' + safeId).set({
-                        name: `Munkalap(${nextNum})`,
+                        name: finalName,
                         createdAt: firebase.database.ServerValue.TIMESTAMP,
                         items: {}
                     }).then(() => selectWorksheet(safeId));
                 }
             });
         }
+
 
         document.getElementById('desktop-barcode-input').addEventListener('keypress', function (e) {
             if (e.key === 'Enter') { const c = this.value.trim(); if (c) { onScanSuccess(c); this.value = ''; this.focus(); } }
