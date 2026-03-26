@@ -373,29 +373,46 @@ def interaktiv_kollazs_fázis2(ctx: Context, image_map_full, collage_progress_fi
                 continue
 
             try:
-                page.reload()
-                time.sleep(1)
-
-                # --- Téma váltó gomb automatikus megnyomása (Világos mód) ---
+                # --- ELŐZŐ KÉPEK ÉS VÁSZON TÖRLÉSE (Memória törlés reload előtt) ---
                 page.evaluate("""
-                            () => {
-                                const btn = document.getElementById('eh-theme-btn');
-                                const sunIcon = document.getElementById('eh-icon-sun');
+                                () => {
+                                    // Kimentjük a világos témát, hogy ne vesszen el
+                                    const theme = localStorage.getItem('kp-theme');
 
-                                // Ha a gomb létezik, megvizsgáljuk, sötét módban vagyunk-e.
-                                // (Sötét módban általában a nap ikon jelenik meg, vagy a HTML/BODY kap egy 'dark' class-t)
-                                if (btn) {
-                                    const isDark = (sunIcon && sunIcon.style.display !== 'none') || 
-                                                   document.documentElement.classList.contains('dark') || 
-                                                   document.body.classList.contains('dark') ||
-                                                   document.body.classList.contains('dark-theme');
-                                    if (isDark) {
-                                        btn.click();
+                                    // Teljesen kiürítjük a helyi memóriát (itt ragadnak be a képek)
+                                    localStorage.clear();
+                                    sessionStorage.clear();
+
+                                    // Visszatöltjük a témát
+                                    if (theme) localStorage.setItem('kp-theme', theme);
+
+                                    // Ha IndexedDB-t (nagy adatbázist) is használ az oldal a képek tárolására:
+                                    if (window.indexedDB && window.indexedDB.databases) {
+                                        window.indexedDB.databases().then(dbs => {
+                                            dbs.forEach(db => window.indexedDB.deleteDatabase(db.name));
+                                        }).catch(() => {});
                                     }
                                 }
-                            }
                             """)
-                time.sleep(0.5)  # Kis szünet, hogy a téma biztosan átváltson
+
+                # Most már tiszta lappal, üres memóriával frissítjük az oldalt!
+                page.reload()
+                time.sleep(1.5)  # Picit több időt hagyunk a tiszta betöltésre
+
+                # --- VILÁGOS MÓD KIKÉNSZERÍTÉSE AZ OLDAL SAJÁT LOGIKÁJÁVAL ---
+                page.evaluate("""
+                                () => {
+                                    const html = document.documentElement;
+                                    html.setAttribute('data-theme', 'light');
+                                    localStorage.setItem('kp-theme', 'light');
+
+                                    const lightIcon = document.getElementById('themeIconLight');
+                                    const darkIcon  = document.getElementById('themeIconDark');
+                                    if (lightIcon) lightIcon.style.display = 'none';
+                                    if (darkIcon)  darkIcon.style.display = 'block';
+                                }
+                            """)
+                time.sleep(0.5)
                 # ------------------------------------------------------------
 
                 file_input = page.locator('input[type="file"]').first
