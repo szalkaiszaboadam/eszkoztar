@@ -111,7 +111,6 @@
             width: 100%;
             display: flex;
             background: var(--surface);
-            border-top: 1px solid var(--border);
             border-bottom: none;
             z-index: 5000;
             padding-bottom: env(safe-area-inset-bottom);
@@ -1308,15 +1307,9 @@
             <i data-lucide="scan-line"></i>Szkenner
         </button>
 
-        <div class="nav-spacer" id="nav-spacer" style="display:none;"></div>
-
         <button class="tab-btn" onclick="showTab('settings', this)">
             <i data-lucide="settings"></i>Beállítások
         </button>
-
-        <div class="nav-bottom" id="nav-bottom" style="display:none;">
-            <span class="nav-version">v2.0</span>
-        </div>
     </nav>
 
     <!-- ══ WORKSHEETS ══ -->
@@ -1436,15 +1429,6 @@
                 </div>
             </div>
 
-            <div class="settings-group">
-                <span class="settings-group-label">Névjegy</span>
-                <div class="settings-card">
-                    <div class="settings-row">
-                        <div class="settings-row-label">LeltárPro</div>
-                        <span class="settings-row-val">v2.0</span>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 
