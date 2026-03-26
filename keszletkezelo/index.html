@@ -210,6 +210,49 @@
         }
 
         /* ── SCANNER ── */
+        .scanner-ws-selector {
+            position: absolute;
+            top: 56px;
+            /* A módváltó (Interaktív/Gyors) alá pozicionáljuk */
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.75);
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            z-index: 4500;
+            cursor: pointer;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(4px);
+            white-space: nowrap;
+            max-width: 90%;
+            box-shadow: var(--shadow-md);
+        }
+
+        .scanner-ws-selector i {
+            width: 14px;
+            height: 14px;
+            opacity: 0.8;
+        }
+
+        .scanner-ws-name-text {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 150px;
+        }
+
+        [data-theme="dark"] .scanner-ws-selector {
+            background: rgba(30, 34, 43, 0.85);
+            border-color: var(--border);
+        }
+
+
         #scanner {
             background: #000;
         }
@@ -1201,6 +1244,17 @@
                 display: none !important;
             }
 
+            .scanner-ws-selector {
+                position: relative;
+                top: auto;
+                left: auto;
+                transform: none;
+                margin: 0 auto 20px auto;
+                background: var(--surface);
+                color: var(--text-1);
+                border: 1px solid var(--border);
+            }
+
             .desktop-only-scanner {
                 display: flex !important;
                 flex-direction: column;
@@ -1372,6 +1426,12 @@
             </div>
         </div>
 
+
+        <div class="scanner-ws-selector" onclick="toggleWsListMenu(event)">
+            <i data-lucide="layers"></i>
+            <span class="scanner-ws-name-text" id="scanner-ws-name">---</span>
+            <i data-lucide="chevron-down"></i>
+        </div>
         <div id="reader"></div>
 
         <div class="desktop-only-scanner">
@@ -1608,7 +1668,11 @@
         function selectWorksheet(id) {
             currentWorksheetId = id;
             if (currentItemsRef) currentItemsRef.off();
+
+            // Itt frissítjük a neveket mindkét helyen:
             document.getElementById('active-ws-title').innerText = allWorksheetsData[id].name;
+            document.getElementById('scanner-ws-name').innerText = allWorksheetsData[id].name; // <-- EZ AZ ÚJ SOR
+
             document.getElementById('nav-scan-btn').style.display = "flex";
             currentItemsRef = db.ref('worksheets/' + id + '/items');
             currentItemsRef.on('value', (snap) => { inventoryData = snap.val() || {}; updateUI(); });
