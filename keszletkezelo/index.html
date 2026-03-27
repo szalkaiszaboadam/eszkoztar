@@ -101,21 +101,25 @@
             border-radius: 4px;
         }
 
-/* ── NAV MOBILE ── */
+        /* ── NAV MOBILE ── */
         nav {
             position: fixed;
-            top: 52px; /* Pontosan a felső (header.js) eszköztár alá */
-            bottom: auto; /* Alulról levesszük */
-            left: 0; 
+            top: 52px;
+            /* Pontosan a felső (header.js) eszköztár alá */
+            bottom: auto;
+            /* Alulról levesszük */
+            left: 0;
             width: 100%;
             display: flex;
             background: var(--surface);
-            border-bottom: 1px solid var(--border); /* Most már alulra kell a vonal */
+            border-bottom: 1px solid var(--border);
+            /* Most már alulra kell a vonal */
             border-top: none;
             z-index: 5000;
             padding-top: 0;
             padding-bottom: 0;
-            height: var(--nav-h); /* 56px */
+            height: var(--nav-h);
+            /* 56px */
             padding-left: 4px;
             padding-right: 4px;
             align-items: flex-start;
@@ -190,13 +194,17 @@
             stroke-width: 1.8px;
         }
 
-/* ── CONTENT AREAS ── */
+        /* ── CONTENT AREAS ── */
         .content-area {
             position: fixed;
-            top: 108px; /* Header (52px) + Menü (56px) = 108px */
-            bottom: 0; /* Alul már nincs menü, mehet a képernyő aljáig */
-            padding-bottom: env(safe-area-inset-bottom); /* iPhone alsó vonal miatti biztonsági sáv */
-            left: 0; right: 0;
+            top: 108px;
+            /* Header (52px) + Menü (56px) = 108px */
+            bottom: 0;
+            /* Alul már nincs menü, mehet a képernyő aljáig */
+            padding-bottom: env(safe-area-inset-bottom);
+            /* iPhone alsó vonal miatti biztonsági sáv */
+            left: 0;
+            right: 0;
             display: none;
             flex-direction: column;
             overflow: hidden;
@@ -349,12 +357,15 @@
             color: #fff;
         }
 
-.camera-controls {
+        .camera-controls {
             position: absolute;
-            bottom: calc(60px + env(safe-area-inset-bottom)); /* Pont az alsó munkalap-sáv fölé */
+            bottom: calc(60px + env(safe-area-inset-bottom));
+            /* Pont az alsó munkalap-sáv fölé */
             left: 50%;
             transform: translateX(-50%);
-            display: flex; gap: 14px; z-index: 4000;
+            display: flex;
+            gap: 14px;
+            z-index: 4000;
         }
 
         .control-btn {
