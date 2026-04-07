@@ -94,7 +94,7 @@ def letoltes_vegrehajtasa_fajl_visszaadas(page, p_url, mappa_path, fallback_idx)
         kep_url = kep_lista.first.get_attribute("href")
         if kep_url:
             if not kep_url.startswith("http"):
-                kep_url = "https:" + kep_url if kep_url.startswith("//") else "https://szvgtoolsshop.hu" + kep_url
+                kep_url = "https:" + kep_url if kep_url.startswith("//") else "https://ptdbolt.hu" + kep_url
             fajl_utvonal = os.path.join(mappa_path, f"{fajlnev}.jpg")
 
             if os.path.exists(fajl_utvonal):
@@ -141,7 +141,7 @@ def termek_letolto_fázis1(page, url, kategoria_utvonal, letoltendo_db, eloszlas
             try:
                 href = sor.locator("td").nth(2).locator("a").get_attribute("href")
                 if href:
-                    osszes_termek_link.append("https://szvgtoolsshop.hu/administrator/" + href)
+                    osszes_termek_link.append("https://ptdbolt.hu/administrator/" + href)
             except:
                 continue
 
@@ -219,7 +219,7 @@ def kategoria_bejaro_fázis1(page, url, kategoria_utvonal, alap_letoltendo_db, e
 
                 if alkat_db > 0 or termek_db > 0:
                     bejarando_linkek.append({
-                        "url": "https://szvgtoolsshop.hu/administrator/" + href,
+                        "url": "https://ptdbolt.hu/administrator/" + href,
                         "nev": cat_nev,
                         "alkat_db": alkat_db,
                         "termek_db": termek_db
@@ -500,7 +500,7 @@ def bejelentkezes_kezelese(browser: Browser, username, password, state_fajl="sta
         try:
             context = browser.new_context(storage_state=state_fajl, no_viewport=True, color_scheme='light')
             p = context.new_page()
-            p.goto("https://szvgtoolsshop.hu/administrator/index.php?view=store", timeout=15000)
+            p.goto("https://ptdbolt.hu/administrator/index.php?view=store", timeout=15000)
             p.locator("#searchField_all").wait_for(timeout=5000)
             p.close()
             return context
@@ -510,7 +510,7 @@ def bejelentkezes_kezelese(browser: Browser, username, password, state_fajl="sta
     context = browser.new_context(no_viewport=True, color_scheme='light')
     page = context.new_page()
     try:
-        page.goto("https://szvgtoolsshop.hu/administrator/", timeout=15000)
+        page.goto("https://ptdbolt.hu/administrator/", timeout=15000)
         page.fill("input[name='username']", username)
         page.fill("input[name='password']", password)
         page.click("button[type='submit']")
@@ -577,12 +577,12 @@ if __name__ == "__main__":
                     print(f"   (Folytatás... {len(befejezett_kategoriak)} kategória kész, {len(retry_list)} hiba)")
 
                 try:
-                    page.goto("https://szvgtoolsshop.hu/administrator/index.php?view=store", timeout=60000)
+                    page.goto("https://ptdbolt.hu/administrator/index.php?view=store", timeout=60000)
                     cel_sor = page.locator(f"table#categoriesList tbody tr td a b:has-text('{fokategoria}')").first
 
                     if cel_sor.count() > 0:
                         kezdo_link = cel_sor.locator("..").get_attribute("href")
-                        full_kezdo_link = "https://szvgtoolsshop.hu/administrator/" + kezdo_link
+                        full_kezdo_link = "https://ptdbolt.hu/administrator/" + kezdo_link
 
                         print(f"✅ Főkategória megvan. Indul a pók...\n")
 
