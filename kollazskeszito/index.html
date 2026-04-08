@@ -2545,6 +2545,7 @@ function markAsSaved() {
                     zoomLevels: [...zoomLevels],
                     imageOffsets: JSON.parse(JSON.stringify(imageOffsets)),
                     rotations: [...rotations],
+                    visibilities: [...visibilities], // <--- ÚJ
                     history: [...historyStack],
                     redo: [...redoStack]
                 };
@@ -2556,11 +2557,13 @@ function markAsSaved() {
                     uId: img.dataset.uId
                 })),
                 currentMode,
+                isGridFlipped, // <--- ÚJ
                 layoutStates, // Mindkét mód mentése
                 // Biztonsági mentés a jelenlegi állapotról a legfelső szinten is
                 zoomLevels: [...zoomLevels],
                 imageOffsets: JSON.parse(JSON.stringify(imageOffsets)),
                 rotations: [...rotations],
+                visibilities: [...visibilities], // <--- ÚJ
                 historyStack: [...historyStack],
                 redoStack: [...redoStack],
                 timestamp: Date.now()
@@ -2730,8 +2733,8 @@ function markAsSaved() {
                 const store = tx.objectStore(STORE_NAME);
                 const request = store.get("current_workspace");
 
-                // ... (az onload eleje, adatbázis megnyitása marad) ...
-                request.onsuccess = async () => {
+
+request.onsuccess = async () => {
                     const data = request.result;
                     if (!data || !data.allImageData || data.allImageData.length === 0) {
                         overlay.style.display = 'none';
@@ -2739,18 +2742,19 @@ function markAsSaved() {
                         return;
                     }
 
-                    isSessionActive = true; // --- ÚJ: Ha van érvényes adat a DB-ben, aktiváljuk a munkamenetet ---
+                    isSessionActive = true;
                     overlay.style.display = 'flex';
 
                     try {
                         // 1. Állapotok visszatöltése
                         layoutStates = data.layoutStates || layoutStates;
                         currentMode = data.currentMode || 'grid';
+                        isGridFlipped = data.isGridFlipped || false; // <--- ÚJ
 
-                        // Fontos: az éppen aktív értékeket a legfelső szintről vagy a layoutStates-ből vesszük
                         const savedZoom = data.zoomLevels || (layoutStates[currentMode]?.zoomLevels) || [];
                         const savedOffsets = data.imageOffsets || (layoutStates[currentMode]?.imageOffsets) || [];
                         const savedRots = data.rotations || (layoutStates[currentMode]?.rotations) || [];
+                        const savedVis = data.visibilities || (layoutStates[currentMode]?.visibilities) || []; // <--- ÚJ
 
                         historyStack = data.historyStack || (layoutStates[currentMode]?.history) || [];
                         redoStack = data.redoStack || (layoutStates[currentMode]?.redo) || [];
@@ -2760,6 +2764,7 @@ function markAsSaved() {
                         zoomLevels = [];
                         imageOffsets = [];
                         rotations = [];
+                        visibilities = []; // <--- ÚJ (Ürítjük, hogy újra feltöltsük)
 
                         // 2. Képek betöltése
                         for (let i = 0; i < data.allImageData.length; i++) {
@@ -2779,6 +2784,7 @@ function markAsSaved() {
                                 zoomLevels.push(savedZoom[i] !== undefined ? savedZoom[i] : 1.0);
                                 imageOffsets.push(savedOffsets[i] || { x: 0, y: 0 });
                                 rotations.push(savedRots[i] || 0);
+                                visibilities.push(savedVis[i] !== undefined ? savedVis[i] : true); // <--- ÚJ
                             } catch (e) { console.error("Hiba egy képnél"); }
                         }
 
@@ -2942,6 +2948,7 @@ function markAsSaved() {
                     zoomLevels: [...zoomLevels],
                     imageOffsets: JSON.parse(JSON.stringify(imageOffsets)),
                     rotations: [...rotations],
+                    visibilities: [...visibilities], // <--- ÚJ
                     history: [...historyStack],
                     redo: [...redoStack]
                 };
@@ -2957,6 +2964,7 @@ function markAsSaved() {
                     zoomLevels = [...layoutStates[mode].zoomLevels];
                     imageOffsets = JSON.parse(JSON.stringify(layoutStates[mode].imageOffsets));
                     rotations = [...layoutStates[mode].rotations];
+                    visibilities = layoutStates[mode].visibilities ? [...layoutStates[mode].visibilities] : loadedImages.map(() => true); // <--- ÚJ
                     historyStack = [...layoutStates[mode].history];
                     redoStack = [...layoutStates[mode].redo];
                 } else {

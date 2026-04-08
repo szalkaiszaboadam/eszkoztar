@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profi Termék Kollázs - Négyzet Blokk</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f9; color: #333;
+            display: flex; flex-direction: column; align-items: center; padding: 20px;
+        }
+        .controls {
+            background: white; padding: 20px; border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 20px;
+            display: flex; flex-direction: column; gap: 15px; align-items: center; width: 100%; max-width: 600px;
+        }
+        .row { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; justify-content: center; width: 100%; }
+        .slider-container { display: flex; align-items: center; gap: 10px; width: 100%; justify-content: center; }
+        input[type="file"] { font-size: 16px; }
+        button {
+            background-color: #2c3e50; color: white; border: none; padding: 10px 20px;
+            font-size: 16px; border-radius: 5px; cursor: pointer; transition: background 0.3s;
+        }
+        button:hover { background-color: #1a252f; }
+        .canvas-container {
+            position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            background: white; border-radius: 5px; overflow: hidden;
+        }
+        canvas { display: block; width: 500px; height: 500px; }
+        #loading {
+            display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(255,255,255,0.95); padding: 15px 25px; border-radius: 5px; font-weight: bold; text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Kollázs Generátor - Sorkizárt Négyzet Blokk</h1>
+
+    <div class="controls">
+        <div class="row">
+            <input type="file" id="imageInput" multiple accept="image/*">
+        </div>
+        <div class="slider-container">
+            <label for="paddingSlider"><strong>Tárgyak közti rés:</strong> <span id="padValue">15</span>px</label>
+            <input type="range" id="paddingSlider" min="0" max="60" value="15" style="width: 200px;">
+        </div>
+        <div class="row">
+            <button id="generateBtn">Kollázs Létrehozása</button>
+            <button id="downloadBtn" style="background-color: #27ae60; display: none;">Letöltés PNG-ként</button>
+        </div>
+    </div>
+
+    <div class="canvas-container">
+        <canvas id="resultCanvas" width="1000" height="1000"></canvas>
+        <div id="loading">Matematikai rács optimalizálása...<br><small>Több ezer kombináció tesztelése</small></div>
+    </div>
+
+    <script>
+        const imageInput = document.getElementById('imageInput');
+        const paddingSlider = document.getElementById('paddingSlider');
+        const padValue = document.getElementById('padValue');
+        const generateBtn = document.getElementById('generateBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const resultCanvas = document.getElementById('resultCanvas');
+        const ctx = resultCanvas.getContext('2d');
+        const loading = document.getElementById('loading');
+
+        let uploadedFiles = [];
+
+        paddingSlider.addEventListener('input', (e) => {
+            padValue.textContent = e.target.value;
+        });
+
+        imageInput.addEventListener('change', (e) => {
+            // Szigorú maximum 6 kép, hogy az algoritmus (faktoriális permutációk) villámgyors maradjon
+            uploadedFiles = Array.from(e.target.files).slice(0, 6);
+        });
+
+        generateBtn.addEventListener('click', async () => {
+            if (uploadedFiles.length === 0) {
+                alert("Kérlek válassz ki legalább 1 képet (max 6)!"); return;
+            }
+
+            loading.style.display = 'block';
+            ctx.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
+            downloadBtn.style.display = 'none';
+            const paddingSetting = parseInt(paddingSlider.value);
+
+            setTimeout(async () => {
+                try {
+                    const images = await Promise.all(uploadedFiles.map(file => loadImage(file)));
+                    const croppedImages = images.map(img => processAndCropImage(img));
+                    arrangeImagesSquareBlock(croppedImages, paddingSetting);
+                    downloadBtn.style.display = 'block';
+                } catch (err) {
+                    console.error(err);
+                    alert("Hiba történt a generálás során.");
+                } finally {
+                    loading.style.display = 'none';
+                }
+            }, 50);
+        });
+
+        downloadBtn.addEventListener('click', () => {
+            const link = document.createElement('a');
+            link.download = 'negyzet_kollazs.png';
+            link.href = resultCanvas.toDataURL('image/png');
+            link.click();
+        });
+
+        function loadImage(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => resolve(img);
+                    img.onerror = reject;
+                    img.src = e.target.result;
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // Háttér eltávolítása és szoros körbevágás (mint eddig)
+        function processAndCropImage(img) {
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = img.width; tempCanvas.height = img.height;
+            const tCtx = tempCanvas.getContext('2d');
+            tCtx.drawImage(img, 0, 0);
+
+            const imageData = tCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+            const data = imageData.data;
+            let minX = tempCanvas.width, minY = tempCanvas.height, maxX = 0, maxY = 0;
+
+            for (let y = 0; y < tempCanvas.height; y++) {
+                for (let x = 0; x < tempCanvas.width; x++) {
+                    const idx = (y * tempCanvas.width + x) * 4;
+                    const r = data[idx], g = data[idx+1], b = data[idx+2], a = data[idx+3];
+
+                    if (a > 20 && !(r > 240 && g > 240 && b > 240)) {
+                        if (x < minX) minX = x; if (x > maxX) maxX = x;
+                        if (y < minY) minY = y; if (y > maxY) maxY = y;
+                    } else {
+                        data[idx+3] = 0;
+                    }
+                }
+            }
+            tCtx.putImageData(imageData, 0, 0);
+
+            const cropW = maxX - minX + 1; const cropH = maxY - minY + 1;
+            const croppedCanvas = document.createElement('canvas');
+            if (cropW <= 0) return { canvas: tempCanvas, width: tempCanvas.width, height: tempCanvas.height, ar: 1 };
+
+            croppedCanvas.width = cropW; croppedCanvas.height = cropH;
+            croppedCanvas.getContext('2d').drawImage(tempCanvas, minX, minY, cropW, cropH, 0, 0, cropW, cropH);
+
+            // Kiszámoljuk a Képarányt (Aspect Ratio) - Ez a kulcs a sorkizárt rácshoz!
+            return { canvas: croppedCanvas, width: cropW, height: cropH, ar: cropW / cropH };
+        }
+
+        // --- MATEMATIKAI SEGÉDFÜGGVÉNYEK ---
+
+        // 1. Legenerálja a képek összes lehetséges sorrendjét (Permutációk)
+        function getPermutations(arr) {
+            if (arr.length <= 1) return [arr];
+            const result = [];
+            for (let i = 0; i < arr.length; i++) {
+                const current = arr[i];
+                const remaining = [...arr.slice(0, i), ...arr.slice(i + 1)];
+                const remainingPerms = getPermutations(remaining);
+                for (let perm of remainingPerms) {
+                    result.push([current, ...perm]);
+                }
+            }
+            return result;
+        }
+
+        // 2. Legenerálja, hogyan lehet N elemet sorokra bontani (Partíciók)
+        // Pl. 3 elem esetén: [3] (egy sorban mind), [2,1] (első sor 2, második 1), [1,2], [1,1,1]
+        function getPartitions(n) {
+            if (n === 0) return [];
+            const result = [];
+            const numSplits = 1 << (n - 1);
+            for (let i = 0; i < numSplits; i++) {
+                let currentPartition = [];
+                let currentCount = 1;
+                for (let j = 0; j < n - 1; j++) {
+                    if ((i & (1 << j)) !== 0) {
+                        currentPartition.push(currentCount);
+                        currentCount = 1;
+                    } else {
+                        currentCount++;
+                    }
+                }
+                currentPartition.push(currentCount);
+                result.push(currentPartition);
+            }
+            return result;
+        }
+
+        // --- ÚJ ALGORITMUS: Sorkizárt Négyzet (Justified Square Block) ---
+        function arrangeImagesSquareBlock(images, gap) {
+            const targetW = 900; // Egy virtuális szélesség (a margók miatt)
+            let bestDiff = Infinity;
+            let bestLayout = null;
+
+            // Számítási alapok lekérése
+            const perms = getPermutations(images);
+            const parts = getPartitions(images.length);
+
+            // Brute-force optimalizáció: Megvizsgáljuk az ÖSSZES lehetséges elrendezést
+            for (let perm of perms) {
+                for (let part of parts) {
+                    let totalH = 0;
+                    let valid = true;
+                    let imgIdx = 0;
+                    let rowData = [];
+
+                    // Kiszámoljuk, milyen magas lenne a blokk ennél a felosztásnál
+                    for (let count of part) {
+                        let sumAR = 0;
+                        for (let i = 0; i < count; i++) {
+                            sumAR += perm[imgIdx + i].ar;
+                        }
+
+                        // Képek rendelkezésére álló nettó szélesség a sorban (rések levonva)
+                        let availW = targetW - (count - 1) * gap;
+                        if (availW <= 0) { valid = false; break; }
+
+                        // Ahhoz, hogy a sor pontosan kitöltse a targetW-t, a magasságának ennyinek kell lennie:
+                        let rowH = availW / sumAR;
+                        totalH += rowH;
+
+                        rowData.push({ count, rowH, sumAR, startIndex: imgIdx });
+                        imgIdx += count;
+                    }
+
+                    if (!valid) continue;
+                    totalH += (part.length - 1) * gap; // Sorok közötti rések hozzáadása
+
+                    // Melyik áll a legközelebb a tökéletes négyzethez? (targetW == totalH)
+                    let diff = Math.abs(totalH - targetW);
+                    if (diff < bestDiff) {
+                        bestDiff = diff;
+                        bestLayout = { perm, part, rowData, totalH, targetW };
+                    }
+                }
+            }
+
+            // --- VÉGSŐ RAJZOLÁS ---
+
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, resultCanvas.width, resultCanvas.height);
+
+            // Az optimális blokkot leskálázzuk úgy, hogy tökéletesen középre illeszkedjen az 1000x1000-es vásznon
+            const maxCanvasSize = 900;
+            const finalScale = Math.min(maxCanvasSize / bestLayout.targetW, maxCanvasSize / bestLayout.totalH);
+
+            const finalBlockW = bestLayout.targetW * finalScale;
+            const finalBlockH = bestLayout.totalH * finalScale;
+
+            const offsetX = (resultCanvas.width - finalBlockW) / 2;
+            const offsetY = (resultCanvas.height - finalBlockH) / 2;
+
+            let currentY = offsetY;
+
+            // Végigmegyünk az optimális elrendezés sorain
+            for (let row of bestLayout.rowData) {
+                let currentX = offsetX;
+                let finalRowH = row.rowH * finalScale;
+                let finalGap = gap * finalScale;
+
+                for (let i = 0; i < row.count; i++) {
+                    let imgItem = bestLayout.perm[row.startIndex + i];
+
+                    // Kép végső méretei a rácsban
+                    let finalImgW = (imgItem.ar * row.rowH) * finalScale;
+
+                    // Kép kirajzolása! Torzítás mentesen, garantáltan pontos szélekkel.
+                    ctx.drawImage(imgItem.canvas, currentX, currentY, finalImgW, finalRowH);
+
+                    currentX += finalImgW + finalGap;
+                }
+                currentY += finalRowH + finalGap;
+            }
+        }
+    </script>
+</body>
+</html>
