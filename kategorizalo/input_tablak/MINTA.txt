@@ -1,4 +1,1 @@
-*Márka*
-*Kategória, Kategóriák*
-*Cikkszámok*
-    ...
+Cikkszám | Alkategória (több kategóriánál elválasztó: ";") | Márka

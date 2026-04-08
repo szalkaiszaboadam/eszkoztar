@@ -53,7 +53,7 @@ def adatok_beolvasasa(excel_fajl_neve):
 
 
 # --- 2. LÉPÉS: Fő Feldolgozó Funkció ---
-def run_processor(context: Context, termek_lista, progress_file_path, bemeneti_fajl_neve, feluliras_mod=False):
+def run_processor(context: Context, termek_lista, progress_file_path, bemeneti_fajl_neve, base_url, feluliras_mod=False):
     mar_kesz_db = 0
     sikertelen_lista_elso_kor = []
 
@@ -76,7 +76,7 @@ def run_processor(context: Context, termek_lista, progress_file_path, bemeneti_f
             state = {
                 "index": aktualis_index,
                 "retry_list": sikertelen_lista_elso_kor,
-                "feluliras_mod": feluliras_mod  # <-- ÚJ: Eltároljuk a kiválasztott módot is
+                "feluliras_mod": feluliras_mod
             }
             with open(progress_file_path, "w", encoding="utf-8") as f:
                 json.dump(state, f, ensure_ascii=False, indent=2)
@@ -117,19 +117,18 @@ def run_processor(context: Context, termek_lista, progress_file_path, bemeneti_f
 
             try:
                 if "administrator" not in page.url:
-                    page.goto("https://szvgtoolsshop.hu/administrator/", timeout=60000)
+                    page.goto(f"{base_url}/administrator/", timeout=60000)
 
                 search_field = page.locator("#searchField_all")
                 try:
                     search_field.wait_for(state="visible", timeout=5000)
                 except:
-                    page.goto("https://szvgtoolsshop.hu/administrator/", timeout=60000)
+                    page.goto(f"{base_url}/administrator/", timeout=60000)
                     search_field.wait_for(state="visible", timeout=10000)
 
                 search_field.fill(cikkszam)
                 search_field.press("Enter")
 
-                # --- ÚJ: MÁRKA ÉS NÉV SZŰRÉS LOGIKA ---
                 sorok = page.locator(f"tr:has(td:text-is('{cikkszam}'))")
                 sorok.first.wait_for(timeout=10000)
 
@@ -139,9 +138,6 @@ def run_processor(context: Context, termek_lista, progress_file_path, bemeneti_f
                     sor = sorok.first
                 elif talalat_db > 1:
                     print(f"  ⚠️ Több találat ({talalat_db} db). Szűrés márkára ('{marka}') és névre ('{nev}')...")
-                    # Rászűrünk a látható szövegre a soron belül, ami tartalmazza a márkát és a nevet is.
-                    # Ez sokkal biztonságosabb, ha a névben speciális karakterek (pl. " vagy ') vannak.
-                    # Szigorú szűrés a márkára (pontos cella), és a névre
                     szurt_sorok = sorok.filter(has=page.locator(f"td:text-is('{marka}')")).filter(has_text=nev)
                     szurt_db = szurt_sorok.count()
 
@@ -155,7 +151,6 @@ def run_processor(context: Context, termek_lista, progress_file_path, bemeneti_f
                             f"Több azonos cikkszám, de egyiknél sem stimmel a megadott márka és név egyszerre!")
                 else:
                     raise Exception("Nem található a cikkszám a keresés után!")
-                # -------------------------------
 
                 termek_link = sor.locator("a[href*='view=product']")
                 termek_link.click()
@@ -212,7 +207,6 @@ def run_processor(context: Context, termek_lista, progress_file_path, bemeneti_f
             except Exception as e:
                 hiba_uzenet = str(e)
                 print(f"  ❌ HIBA (1. KÖR): {hiba_uzenet}")
-                # Hozzáadjuk a nevet és a hibaüzenetet is a listához
                 sikertelen_lista_elso_kor.append([cikkszam, marka, nev, cimke_lista, hiba_uzenet])
                 try:
                     with open(log_fajl_neve, "a", encoding="utf-8") as f:
@@ -221,7 +215,7 @@ def run_processor(context: Context, termek_lista, progress_file_path, bemeneti_f
                     pass
 
                 try:
-                    page.goto("https://szvgtoolsshop.hu/administrator/", timeout=10000)
+                    page.goto(f"{base_url}/administrator/", timeout=10000)
                 except:
                     pass
 
@@ -233,11 +227,9 @@ def run_processor(context: Context, termek_lista, progress_file_path, bemeneti_f
         print(f"2. KÖR: Újrapróbálkozás ({len(sikertelen_lista_elso_kor)} db).")
         feldolgozando_retry = list(sikertelen_lista_elso_kor)
 
-        # Itt már 5 elemet csomagolunk ki
         for i, (cikkszam, marka, nev, cimke_lista, elozo_hiba) in enumerate(feldolgozando_retry):
             print(f"[{i + 1}/{len(feldolgozando_retry)}] Retry: {cikkszam} | {marka} | {nev}")
 
-            # Ha már az első körben duplikáció miatt dobta el, azt felesleges újrapróbálni
             if "Duplikáció" in elozo_hiba or "Több azonos cikkszám" in elozo_hiba:
                 print(f"  ⚠️ Újrapróbálkozás átugorva, mert korábban duplikációs hibát kapott.")
                 veglegesen_sikertelen_db += 1
@@ -247,7 +239,7 @@ def run_processor(context: Context, termek_lista, progress_file_path, bemeneti_f
                 continue
 
             try:
-                page.goto("https://szvgtoolsshop.hu/administrator/", timeout=60000)
+                page.goto(f"{base_url}/administrator/", timeout=60000)
                 sf = page.locator("#searchField_all")
                 sf.wait_for(state="visible", timeout=10000)
                 sf.fill(cikkszam)
@@ -261,7 +253,6 @@ def run_processor(context: Context, termek_lista, progress_file_path, bemeneti_f
                 if talalat_db == 1:
                     sor = sorok.first
                 elif talalat_db > 1:
-                    # Szigorú szűrés a márkára (pontos cella), és a névre
                     szurt_sorok = sorok.filter(has=page.locator(f"td:text-is('{marka}')")).filter(has_text=nev)
                     szurt_db = szurt_sorok.count()
                     if szurt_db == 1:
@@ -332,7 +323,7 @@ def run_processor(context: Context, termek_lista, progress_file_path, bemeneti_f
     print(f"Sikeres: {sikeres_db}")
     print(f"Végleges hiba: {veglegesen_sikertelen_db}")
 
-    # --- ÚJ: HIBALISTA EXPORTÁLÁSA NÉVVEL ÉS MEGJEGYZÉSSEL ---
+    # --- HIBALISTA EXPORTÁLÁSA NÉVVEL ÉS MEGJEGYZÉSSEL ---
     if veglegesen_sikertelen_lista:
         try:
             os.makedirs("sikertelen_tablak", exist_ok=True)
@@ -345,7 +336,6 @@ def run_processor(context: Context, termek_lista, progress_file_path, bemeneti_f
                     "Megjegyzés": h
                 } for c, m, n, l, h in veglegesen_sikertelen_lista
             ])
-            # Kinyerjük a bemeneti fájl nevét kiterjesztés nélkül (pl. "termekek.xlsx" -> "termekek")
             alap_nev = os.path.splitext(os.path.basename(bemeneti_fajl_neve))[0]
             fnev = f"sikertelen_tablak/{alap_nev}_hiba_{datetime.datetime.now().strftime('%Y%m%d_%H%M')}.xlsx"
 
@@ -355,15 +345,15 @@ def run_processor(context: Context, termek_lista, progress_file_path, bemeneti_f
             print(f"Nem sikerült a hibalistát elmenteni: {e}")
 
 
-# --- 3. LÉPÉS: Bejelentkezés kezelése (Változatlan) ---
-def bejelentkezes_kezelese(browser: Browser, username, password, state_fajl="state.json"):
+# --- 3. LÉPÉS: Bejelentkezés kezelése ---
+def bejelentkezes_kezelese(browser: Browser, username, password, base_url, state_fajl="state.json"):
     context = None
     if os.path.exists(state_fajl):
         print(f"\nMeglévő bejelentkezési fájl ('{state_fajl}') található.")
         try:
             context = browser.new_context(storage_state=state_fajl)
             page_test = context.new_page()
-            page_test.goto("https://szvgtoolsshop.hu/administrator/", timeout=15000)
+            page_test.goto(f"{base_url}/administrator/", timeout=15000)
             page_test.locator("#searchField_all").wait_for(timeout=5000)
             print("✅ Bejelentkezés érvényes.")
             page_test.close()
@@ -375,7 +365,7 @@ def bejelentkezes_kezelese(browser: Browser, username, password, state_fajl="sta
     print("\nÚj bejelentkezés...")
     context = browser.new_context()
     page = context.new_page()
-    page.goto("https://szvgtoolsshop.hu/administrator/", timeout=15000)
+    page.goto(f"{base_url}/administrator/", timeout=15000)
     try:
         page.fill("input[name='username']", username)
         page.fill("input[name='password']", password)
@@ -391,16 +381,32 @@ def bejelentkezes_kezelese(browser: Browser, username, password, state_fajl="sta
     return context
 
 
-# --- 4. LÉPÉS: Main (Változatlan) ---
+# --- 4. LÉPÉS: Main ---
 if __name__ == "__main__":
     load_dotenv()
-    STATE_FAJL = "state.json"
     FAJLOK_MAPPAJA = "input_tablak"
-    FELHASZNALONEV = os.environ.get("ADMIN_USERNAME")
-    JELSZO = os.environ.get("ADMIN_PASSWORD")
+
+    # --- WEBSHOP VÁLASZTÁS ---
+    print("\n--- Melyik webshopot szeretnéd használni? ---")
+    print("  1: SZVG Tools (szvgtoolsshop.hu)")
+    print("  2: PTD Bolt (ptdbolt.hu)")
+    shop_valasz = ""
+    while shop_valasz not in ["1", "2"]:
+        shop_valasz = input("Választás (1-2): ").strip()
+
+    if shop_valasz == '1':
+        FELHASZNALONEV = os.environ.get("SZVG_USERNAME")
+        JELSZO = os.environ.get("SZVG_PASSWORD")
+        BASE_URL = "https://szvgtoolsshop.hu"
+        STATE_FAJL = "state_szvg.json"
+    else:
+        FELHASZNALONEV = os.environ.get("PTD_USERNAME")
+        JELSZO = os.environ.get("PTD_PASSWORD")
+        BASE_URL = "https://ptdbolt.hu"
+        STATE_FAJL = "state_ptd.json"
 
     if not FELHASZNALONEV or not JELSZO:
-        print("HIBA: Nincs user/pass a .env-ben!")
+        print(f"HIBA: Nincs user/pass a .env-ben a kiválasztott webshophoz!")
         sys.exit(1)
 
     if not os.path.exists(FAJLOK_MAPPAJA): os.makedirs(FAJLOK_MAPPAJA); sys.exit(1)
@@ -431,7 +437,6 @@ if __name__ == "__main__":
             f"\n⚠️ Találtam egy félbemaradt mentést ehhez a fájlhoz.\nSzeretnéd folytatni onnan, ahol abbamaradt? (i/n): ").strip().lower()
         if valasz_folytat == 'i':
             folytatas = True
-            # Kiolvassuk az előző futás módját (Hozzáadás vagy Felülírás)
             try:
                 with open(progress_file, "r", encoding="utf-8") as f:
                     state_data = json.load(f)
@@ -461,7 +466,7 @@ if __name__ == "__main__":
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
-        context = bejelentkezes_kezelese(browser, FELHASZNALONEV, JELSZO, STATE_FAJL)
+        context = bejelentkezes_kezelese(browser, FELHASZNALONEV, JELSZO, BASE_URL, STATE_FAJL)
         if context:
-            run_processor(context, termekek, progress_file, valasztott_path, feluliras_mod=feluliras)
+            run_processor(context, termekek, progress_file, valasztott_path, base_url=BASE_URL, feluliras_mod=feluliras)
         browser.close()

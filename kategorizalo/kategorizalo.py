@@ -10,10 +10,11 @@ import re
 from dotenv import load_dotenv
 
 
-# --- 1. LÉPÉS: Adatbeolvasás (Okosított verzió: Jegyzet felismerése és ; elválasztó) ---
+# --- 1. LÉPÉS: Adatbeolvasás (SORONKÉNTI, Fejléces verzió) ---
 def adatok_beolvasasa(excel_fajl_neve):
     try:
-        df = pd.read_excel(excel_fajl_neve, header=None, dtype=str)
+        # Most már van fejléc, így elhagyjuk a header=None beállítást
+        df = pd.read_excel(excel_fajl_neve, dtype=str)
     except FileNotFoundError:
         print(f"HIBA: Az '{excel_fajl_neve}' fájl nem található.")
         return None
@@ -21,37 +22,35 @@ def adatok_beolvasasa(excel_fajl_neve):
         print(f"HIBA az Excel beolvasása közben: {e}")
         return None
 
-    if len(df) < 2:
-        print("HIBA: Az Excelnek legalább 2 sort kell tartalmaznia!")
+    # Ellenőrizzük, hogy megvannak-e a kötelező oszlopok
+    szukseges_oszlopok = ["Cikkszám", "Alkategória", "Márka"]
+    hianyzo_oszlopok = [oszlop for oszlop in szukseges_oszlopok if oszlop not in df.columns]
+
+    if hianyzo_oszlopok:
+        print(f"HIBA: Az Excel fájlból hiányoznak a következő kötelező oszlopok: {', '.join(hianyzo_oszlopok)}")
+        print(f"A fájl jelenlegi oszlopai: {', '.join(df.columns.tolist())}")
         return None
 
     feldolgozando_lista = []
 
-    for col_idx in range(len(df.columns)):
-        elso_cella = str(df.iloc[0, col_idx]).strip()
+    for index, row in df.iterrows():
+        cikkszam = str(row["Cikkszám"]).strip()
+        marka = str(row["Márka"]).strip()
+        kategoria_fejlec = str(row["Alkategória"]).strip()
 
-        # Generált hiba fájl felismerése
-        if elso_cella.upper().startswith("JEGYZET"):
-            marka = str(df.iloc[1, col_idx]).strip()
-            kategoria_fejlec = str(df.iloc[2, col_idx]).strip()
-            cikkszamok = df.iloc[3:, col_idx].dropna().tolist()
-        else:
-            marka = str(df.iloc[0, col_idx]).strip()
-            kategoria_fejlec = str(df.iloc[1, col_idx]).strip()
-            cikkszamok = df.iloc[2:, col_idx].dropna().tolist()
-
-        if marka.lower() == 'nan' or kategoria_fejlec.lower() == 'nan':
+        # Ha nincs cikkszám, vagy hiányzik a márka/kategória, átugorjuk a sort
+        if not cikkszam or cikkszam.lower() == 'nan' or marka.lower() == 'nan' or kategoria_fejlec.lower() == 'nan':
             continue
 
+        # Tisztítás
         tiszta_fejlec = re.sub(r'\.\d+$', '', kategoria_fejlec)
 
-        # ÚJ: Pontosvessző (;) alapján választjuk szét a multi kategóriákat!
+        # Pontosvessző (;) alapján választjuk szét a multi kategóriákat!
         kategoriak_listaja = [k.strip() for k in tiszta_fejlec.split(';') if k.strip()]
 
-        for cikkszam in cikkszamok:
-            cikkszam_str = str(cikkszam).strip()
-            if cikkszam_str and cikkszam_str.lower() != 'nan' and kategoriak_listaja:
-                feldolgozando_lista.append((cikkszam_str, marka, kategoria_fejlec, kategoriak_listaja))
+        if kategoriak_listaja:
+            # Hozzáadjuk a listához pontosan úgy, ahogy a feldolgozó (run_processor) várja
+            feldolgozando_lista.append((cikkszam, marka, kategoria_fejlec, kategoriak_listaja))
 
     return feldolgozando_lista
 
@@ -59,10 +58,6 @@ def adatok_beolvasasa(excel_fajl_neve):
 # --- ÚJ, GOLYÓÁLLÓ KATEGÓRIA KIVÁLASZTÓ ---
 def stabil_kategoria_valasztas(page, input_locator, dropdown_locator, kategoria_nev):
     cel_nev = kategoria_nev.strip()
-
-    # TRÜKK: A Selectize.js a vesszőkre új elemet akar létrehozni.
-    # Emiatt csak a vessző ELŐTTI részt gépeljük be, hogy szűkítsük a listát,
-    # a kattintásnál viszont már a TELJES nevet fogjuk ellenőrizni!
     gepelendo_szoveg = cel_nev.split(',')[0].strip()
 
     try:
@@ -70,10 +65,7 @@ def stabil_kategoria_valasztas(page, input_locator, dropdown_locator, kategoria_
         input_locator.fill("")
         time.sleep(0.5)
 
-        # Lassan gépeljük be a szűrő szöveget
         input_locator.press_sequentially(gepelendo_szoveg, delay=60)
-
-        # Várunk a legördülő menüre és hagyunk időt a rendszernek betölteni
         dropdown_locator.wait_for(state="visible", timeout=8000)
         time.sleep(1.5)
 
@@ -84,12 +76,10 @@ def stabil_kategoria_valasztas(page, input_locator, dropdown_locator, kategoria_
             input_locator.press("Escape")
             return False
 
-        # Keressük meg a PONTOS egyezést
         for opcio in opciok:
             nyers_szoveg = opcio.inner_text()
             tiszta_html_nev = re.sub(r'^[- \t\xa0]+', '', nyers_szoveg).strip()
 
-            # PONTOS, teljes neves összehasonlítás
             if tiszta_html_nev.lower() == cel_nev.lower():
                 print(f"      ✅ Megvan a kategória: '{nyers_szoveg}'")
                 opcio.click(force=True)
@@ -110,7 +100,7 @@ def stabil_kategoria_valasztas(page, input_locator, dropdown_locator, kategoria_
 
 
 # --- 2. LÉPÉS: Fő Feldolgozó Funkció ---
-def run_processor(context: Context, termek_lista, mod, progress_file_path, bemeneti_fajl_neve):
+def run_processor(context: Context, termek_lista, mod, progress_file_path, bemeneti_fajl_neve, base_url):
     mar_kesz_db = 0
     sikertelen_lista_elso_kor = []
 
@@ -129,7 +119,6 @@ def run_processor(context: Context, termek_lista, mod, progress_file_path, bemen
 
     def mentes_allapot(aktualis_index):
         try:
-            # ÚJ: Eltároljuk a futási módot (mod) is a mentésben!
             state = {"index": aktualis_index, "retry_list": sikertelen_lista_elso_kor, "mod": mod}
             with open(progress_file_path, "w", encoding="utf-8") as f:
                 json.dump(state, f, ensure_ascii=False, indent=2)
@@ -156,7 +145,7 @@ def run_processor(context: Context, termek_lista, mod, progress_file_path, bemen
         print(f"  Cikkszám: {cikkszam} | Márka: {marka} | Kategória db: {len(kategoriak)}")
 
         try:
-            page.goto("https://szvgtoolsshop.hu/administrator/", timeout=60000)
+            page.goto(f"{base_url}/administrator/", timeout=60000)
             search_field = page.locator("#searchField_all")
             search_field.wait_for(timeout=10000)
             time.sleep(0.5)
@@ -188,7 +177,7 @@ def run_processor(context: Context, termek_lista, mod, progress_file_path, bemen
             termek_link = sor.locator("a[href*='view=product']")
             termek_link.wait_for(timeout=10000)
             termek_link.click()
-            time.sleep(2)  # Várunk az oldal betöltésére
+            time.sleep(2)
 
             # --- KATEGORIZÁLÓ MÓD (Hozzáadás meglévőkhöz) ---
             if mod == "kategorizalo":
@@ -200,7 +189,6 @@ def run_processor(context: Context, termek_lista, mod, progress_file_path, bemen
                 popup_kereso = popup_ablak.locator("div.selectize-control.categories input[type='text']")
                 dropdown = page.locator("div.selectize-dropdown.categories")
 
-                # Végigmegyünk az összes megadott kategórián
                 for kat in kategoriak:
                     stabil_kategoria_valasztas(page, popup_kereso, dropdown, kat)
 
@@ -225,7 +213,6 @@ def run_processor(context: Context, termek_lista, mod, progress_file_path, bemen
                     "div.selectize-control.categories div.selectize-input input[type='text']").first
                 dropdown = page.locator("div.selectize-dropdown.categories").first
 
-                # Végigmegyünk az összes megadott kategórián
                 for kat in kategoriak:
                     stabil_kategoria_valasztas(page, atkat_kereso, dropdown, kat)
 
@@ -260,7 +247,7 @@ def run_processor(context: Context, termek_lista, mod, progress_file_path, bemen
                 continue
 
             try:
-                page.goto("https://szvgtoolsshop.hu/administrator/", timeout=60000)
+                page.goto(f"{base_url}/administrator/", timeout=60000)
                 search_field = page.locator("#searchField_all")
                 search_field.wait_for(timeout=10000)
                 time.sleep(0.5)
@@ -393,13 +380,13 @@ def run_processor(context: Context, termek_lista, mod, progress_file_path, bemen
 
 
 # --- 3. LÉPÉS: Bejelentkezés ---
-def bejelentkezes_kezelese(browser: Browser, username, password, state_fajl="state.json"):
+def bejelentkezes_kezelese(browser: Browser, username, password, base_url, state_fajl="state.json"):
     if os.path.exists(state_fajl):
         print(f"\nMeglévő bejelentkezés ('{state_fajl}') ellenőrzése...")
         try:
             context = browser.new_context(storage_state=state_fajl)
             page_test = context.new_page()
-            page_test.goto("https://szvgtoolsshop.hu/administrator/", timeout=15000)
+            page_test.goto(f"{base_url}/administrator/", timeout=15000)
             page_test.locator("#searchField_all").wait_for(timeout=5000)
             print("✅ Bejelentkezés érvényes.")
             page_test.close()
@@ -411,7 +398,7 @@ def bejelentkezes_kezelese(browser: Browser, username, password, state_fajl="sta
     print("\nÚj automatikus bejelentkezés...")
     context = browser.new_context()
     page = context.new_page()
-    page.goto("https://szvgtoolsshop.hu/administrator/", timeout=15000)
+    page.goto(f"{base_url}/administrator/", timeout=15000)
 
     try:
         page.fill("input[name='username']", username)
@@ -437,13 +424,33 @@ def bejelentkezes_kezelese(browser: Browser, username, password, state_fajl="sta
 if __name__ == "__main__":
     load_dotenv()
 
-    STATE_FAJL = "state.json"
     FAJLOK_MAPPAJA = "input_tablak"
-    FELHASZNALONEV = os.environ.get("ADMIN_USERNAME")
-    JELSZO = os.environ.get("ADMIN_PASSWORD")
+
+    # --- WEBSHOP VÁLASZTÁS ---
+    print("\n" + "=" * 50)
+    print(" 📂 EXCEL ALAPÚ KATEGORIZÁLÓ ASSZISZTENS 📂")
+    print("=" * 50)
+
+    print("\n--- Melyik webshopot szeretnéd használni? ---")
+    print("  1: SZVG Tools (szvgtoolsshop.hu)")
+    print("  2: PTD Bolt (ptdbolt.hu)")
+    shop_valasz = ""
+    while shop_valasz not in ["1", "2"]:
+        shop_valasz = input("Választás (1-2): ").strip()
+
+    if shop_valasz == '1':
+        FELHASZNALONEV = os.environ.get("SZVG_USERNAME")
+        JELSZO = os.environ.get("SZVG_PASSWORD")
+        BASE_URL = "https://szvgtoolsshop.hu"
+        STATE_FAJL = "state_szvg.json"
+    else:
+        FELHASZNALONEV = os.environ.get("PTD_USERNAME")
+        JELSZO = os.environ.get("PTD_PASSWORD")
+        BASE_URL = "https://ptdbolt.hu"
+        STATE_FAJL = "state_ptd.json"
 
     if not FELHASZNALONEV or not JELSZO:
-        print("HIBA: Nincs .env fájl vagy hiányzó adatok!")
+        print(f"HIBA: Nincs user/pass a .env-ben a kiválasztott webshophoz!")
         sys.exit(1)
 
     if not os.path.exists(FAJLOK_MAPPAJA):
@@ -473,18 +480,17 @@ if __name__ == "__main__":
 
     termekek = adatok_beolvasasa(kivalasztott_fajl_utvonala)
     progress_file = kivalasztott_fajl_utvonala + ".progress.json"
+
     if not termekek: sys.exit(1)
 
     folytatas = False
     mod = ""
 
-    # --- ÚJ: Félbemaradt mentés ellenőrzése ---
     if os.path.exists(progress_file):
         valasz_folytat = input(
             f"\n⚠️ Találtam egy félbemaradt mentést ehhez a fájlhoz.\nSzeretnéd folytatni onnan, ahol abbamaradt? (i/n): ").strip().lower()
         if valasz_folytat == 'i':
             folytatas = True
-            # Kiolvassuk az előző futás módját (kategorizalo vagy atkategorizalo)
             try:
                 with open(progress_file, "r", encoding="utf-8") as f:
                     state_data = json.load(f)
@@ -497,7 +503,6 @@ if __name__ == "__main__":
             os.remove(progress_file)
             print("   🗑️ Régi mentés törölve. Tiszta lappal indulunk.")
 
-    # --- Ha nincs mentés, vagy újat kezdtünk, jöhet a kérdés ---
     if not folytatas or not mod:
         while True:
             print("\n--- Mód Választás ---")
@@ -511,7 +516,7 @@ if __name__ == "__main__":
     with sync_playwright() as p:
         print("\nBöngésző indítása...")
         browser = p.chromium.launch(headless=True)
-        ctx = bejelentkezes_kezelese(browser, FELHASZNALONEV, JELSZO, STATE_FAJL)
+        ctx = bejelentkezes_kezelese(browser, FELHASZNALONEV, JELSZO, BASE_URL, STATE_FAJL)
         if ctx:
-            run_processor(ctx, termekek, mod, progress_file, kivalasztott_fajl_utvonala)
+            run_processor(ctx, termekek, mod, progress_file, kivalasztott_fajl_utvonala, base_url=BASE_URL)
         browser.close()
