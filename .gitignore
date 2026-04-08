@@ -208,3 +208,5 @@ __marimo__/
 
 **/.DS_Store
 **/state.json
+**/state_ptd.json
+**/state_szvg.json
