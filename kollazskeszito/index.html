@@ -317,14 +317,29 @@
             box-shadow: 0 4px 14px var(--accent-glow);
         }
 
-        #downloadBtn {
+#downloadBtn {
             background: var(--text-main) !important;
             color: var(--bg-panel) !important;
             border-color: transparent !important;
+            transition: all 0.3s ease; /* Ezt hozzáadtuk a sima váltáshoz */
         }
 
         #downloadBtn:hover {
             opacity: 0.88;
+        }
+
+        /* --- ÚJ: Mentés állapotok --- */
+        #downloadBtn.is-saved {
+            background: var(--bg-sunken) !important;
+            color: var(--text-secondary) !important;
+            border: 1px solid var(--border-subtle) !important;
+            pointer-events: none; /* Ne lehessen feleslegesen újra rányomni, ha nem történt változás */
+        }
+
+        #downloadBtn.needs-saving {
+            background: var(--accent-color) !important;
+            color: #fff !important;
+            box-shadow: 0 2px 8px var(--accent-glow);
         }
 
         #resetBtnHeader {
@@ -586,7 +601,7 @@
             position: relative;
             cursor: crosshair;
             overflow: visible !important;
-            border-radius: var(--radius-sm);
+            border-radius: 0; /* IDE KERÜLT A 0 */
             transition: box-shadow 0.3s ease;
         }
 
@@ -598,7 +613,7 @@
             width: 100%;
             height: 100%;
             display: block;
-            border-radius: var(--radius-sm);
+            border-radius: 0; /* IDE KERÜLT A 0 */
         }
 
         .bg-white {
@@ -652,7 +667,7 @@
             pointer-events: none;
             width: 100%;
             height: 100%;
-            border-radius: var(--radius-sm);
+            border-radius: 0; /* IDE KERÜLT A 0 */
         }
 
         /* ── Canvas column layout ── */
@@ -924,8 +939,8 @@
         }
 
         .btn-batch .lucide {
-            width: 11px;
-            height: 11px;
+            width: 15px;
+            height: 15px;
         }
 
         /* ── Sliders Container ── */
@@ -1202,8 +1217,8 @@
         }
 
         .shuffle-btn .lucide {
-            width: 12px;
-            height: 12px;
+            width: 13px;
+            height: 13px;
         }
 
         /* ============================================================
@@ -1290,7 +1305,7 @@
             background: var(--bg-overlay);
             backdrop-filter: blur(6px);
             z-index: 9999 !important;
-            border-radius: var(--radius-sm);
+            border-radius: 0; /* IDE KERÜLT A 0 */
         }
 
         .spinner {
@@ -2091,25 +2106,29 @@
 
 
                 <div id="layout-controls" style="display: flex; align-items: center; gap: 7px;">
-                    <span class="toolbar-label">Elrendezés</span>
-                    <div class="segmented-wrapper">
-                        <label>
-                            <input type="radio" name="layout" value="grid" class="segmented-input" checked
-                                onchange="renderCollage()">
-                            <span class="segmented-label">Rács</span>
-                        </label>
-                        <label>
-                            <input type="radio" name="layout" value="horizontal" class="segmented-input"
-                                onchange="renderCollage()">
-                            <span class="segmented-label">Mellé</span>
-                        </label>
-                        <label>
-                            <input type="radio" name="layout" value="vertical" class="segmented-input"
-                                onchange="renderCollage()">
-                            <span class="segmented-label">Alá</span>
-                        </label>
-                    </div>
-                </div>
+    <span class="toolbar-label">Elrendezés</span>
+    <div class="segmented-wrapper">
+        <label>
+            <input type="radio" name="layout" value="grid" class="segmented-input" checked
+                onchange="renderCollage()">
+            <span class="segmented-label">Rács</span>
+        </label>
+        <label>
+            <input type="radio" name="layout" value="horizontal" class="segmented-input"
+                onchange="renderCollage()">
+            <span class="segmented-label">Mellé</span>
+        </label>
+        <label>
+            <input type="radio" name="layout" value="vertical" class="segmented-input"
+                onchange="renderCollage()">
+            <span class="segmented-label">Alá</span>
+        </label>
+    </div>
+
+<button id="flipLayoutBtn" class="btn-compact" onclick="toggleGridLayout()" title="Sorok felcserélése (pl. 1 felül, 2 alul -> 2 felül, 1 alul)" style="display: none;">
+        <i data-lucide="arrow-up-down"></i>
+    </button>
+</div>
 
             </div>
 
@@ -2155,11 +2174,11 @@
                             <label class="popover-item">
                                 <div class="item-info">
                                     <i data-lucide="layers-2"></i>
-                                    <span>Haladó szerkesztés</span>
+                                    <span>Egyszerűsített mód</span>
                                 </div>
                                 <div class="switch-wrapper">
-                                    <input type="checkbox" id="advancedEditingToggle" class="toggle-checkbox"
-                                        onchange="toggleAdvancedEditing()">
+                                    <input type="checkbox" id="simplifiedEditingToggle" class="toggle-checkbox"
+                                        onchange="toggleSimplifiedEditing()">
                                     <div class="toggle-switch-ui"></div>
                                 </div>
                             </label>
@@ -2380,6 +2399,34 @@
         }
 
 
+
+
+        let hasUnsavedChanges = false;
+
+// Átkapcsolja a gombot "Menteni kell" állapotba
+function markAsUnsaved() {
+    if (hasUnsavedChanges) return; // Ha már át van kapcsolva, nem terheljük a DOM-ot
+    hasUnsavedChanges = true;
+    const btn = document.getElementById('downloadBtn');
+    if (btn) {
+        btn.className = 'btn-compact needs-saving';
+        btn.innerHTML = '<i data-lucide="download"></i><span>Mentés *</span>';
+        if (window.lucide) refreshIcons();
+    }
+}
+
+// Átkapcsolja a gombot "Mentve" állapotba
+function markAsSaved() {
+    hasUnsavedChanges = false;
+    const btn = document.getElementById('downloadBtn');
+    if (btn) {
+        btn.className = 'btn-compact is-saved';
+        btn.innerHTML = '<i data-lucide="check"></i><span>Mentve</span>';
+        if (window.lucide) refreshIcons();
+    }
+}
+
+
         /* --- GLOBÁLIS VÁLTOZÓK --- */
         let originalImages = [];
         let loadedImages = [];
@@ -2392,18 +2439,16 @@
         let isGridVisible = false;
         let isSnapEnabled = true; // Alapértelmezés szerint bekapcsolva
 
-        // A globális változók közé (pl. az isSnapEnabled mellé):
-        let isAdvancedEditingEnabled = false;
+        let isSimplifiedEditingEnabled = false; // Alapértelmezésben KI van kapcsolva (tehát a haladó az alap)
 
-        // A toggleAdvancedEditing függvény:
-        function toggleAdvancedEditing() {
-            isAdvancedEditingEnabled = document.getElementById('advancedEditingToggle').checked;
-            localStorage.setItem('collage_advanced_editing', isAdvancedEditingEnabled);
-            updateVisualSelection(); // Azonnal frissítjük a fogantyúk láthatóságá
+        function toggleSimplifiedEditing() {
+            isSimplifiedEditingEnabled = document.getElementById('simplifiedEditingToggle').checked;
+            localStorage.setItem('collage_simplified_editing', isSimplifiedEditingEnabled);
+            updateVisualSelection();
             updateCanvasHUD();
         }
 
-
+        let isGridFlipped = false;
         let currentMode = 'grid';
         let activeImageIndex = -1;
 
@@ -2547,9 +2592,11 @@
                     uId: img.dataset.uId,
                     zoom: zoomLevels[i],
                     rotation: rotations[i],
-                    offset: { x: imageOffsets[i].x, y: imageOffsets[i].y }
+                    offset: { x: imageOffsets[i].x, y: imageOffsets[i].y },
+                    visible: visibilities[i] // ÚJ: elmentjük, hogy látható-e
                 })),
                 currentMode: currentMode,
+                isGridFlipped: isGridFlipped, // ÚJ: elmentjük a rács irányát
                 activeImageIndex: activeImageIndex,
                 selectedIndices: Array.from(selectedIndices)
             };
@@ -2571,6 +2618,8 @@
 
             updateHistoryButtonsUI();
             saveToPersistentStorage();
+
+            markAsUnsaved(); // <--- ÚJ: Bármilyen módosítás történik, jelezzük
         }
 
         async function undo() {
@@ -2584,6 +2633,7 @@
             await applyState(lastState);
 
             saveToPersistentStorage(); // Adatbázis szinkron
+            markAsUnsaved(); // <--- ÚJ
         }
 
         async function redo() {
@@ -2597,62 +2647,61 @@
             await applyState(nextState);
 
             saveToPersistentStorage(); // Adatbázis szinkron
+            markAsUnsaved(); // <--- ÚJ
         }
 
         async function applyState(stateJson) {
-            if (!stateJson) return;
-            const state = JSON.parse(stateJson);
-            const overlay = document.getElementById('processingOverlay');
-            if (overlay) overlay.style.display = 'flex';
+    if (!stateJson) return;
+    const state = JSON.parse(stateJson);
+    const overlay = document.getElementById('processingOverlay');
+    if (overlay) overlay.style.display = 'flex';
 
-            try {
-                // Paraméterek ürítése és újratöltése a mentett állapotból
-                const newLoadedImages = [];
-                const newOriginalImages = [];
-                const newZoomLevels = [];
-                const newRotations = [];
-                const newImageOffsets = [];
+    try {
+        const newLoadedImages = [];
+        const newOriginalImages = [];
+        const newZoomLevels = [];
+        const newRotations = [];
+        const newImageOffsets = [];
+        const newVisibilities = []; // ÚJ
 
-                // Megvárjuk, amíg az összes kép betöltődik az adott állapotból
-                for (const item of state.images) {
-                    const img = await new Promise((resolve, reject) => {
-                        const i = new Image();
-                        i.onload = () => resolve(i);
-                        i.onerror = reject;
-                        i.src = item.src;
-                    });
-                    img.dataset.uId = item.uId;
+        for (const item of state.images) {
+            const img = await new Promise((resolve, reject) => {
+                const i = new Image();
+                i.onload = () => resolve(i);
+                i.onerror = reject;
+                i.src = item.src;
+            });
+            img.dataset.uId = item.uId;
 
-                    newLoadedImages.push(img);
-                    newOriginalImages.push(img); // Szinkronban tartás
-                    newZoomLevels.push(item.zoom);
-                    newRotations.push(item.rotation);
-                    newImageOffsets.push(item.offset);
-                }
-
-                // Globális változók frissítése
-                loadedImages = newLoadedImages;
-                originalImages = newOriginalImages;
-                zoomLevels = newZoomLevels;
-                rotations = newRotations;
-                imageOffsets = newImageOffsets;
-                currentMode = state.currentMode;
-                activeImageIndex = state.activeImageIndex;
-                selectedIndices = new Set(state.selectedIndices);
-
-                // UI Frissítés
-                updateUIControls();
-                renderCollage(true);
-                updateHistoryButtonsUI();
-
-            } catch (err) {
-                console.error("Hiba az állapot visszaállításakor:", err);
-            } finally {
-                if (overlay) overlay.style.display = 'none';
-            }
+            newLoadedImages.push(img);
+            newOriginalImages.push(img);
+            newZoomLevels.push(item.zoom);
+            newRotations.push(item.rotation);
+            newImageOffsets.push(item.offset);
+            newVisibilities.push(item.visible !== undefined ? item.visible : true); // ÚJ
         }
 
+        loadedImages = newLoadedImages;
+        originalImages = newOriginalImages;
+        zoomLevels = newZoomLevels;
+        rotations = newRotations;
+        imageOffsets = newImageOffsets;
+        visibilities = newVisibilities; // ÚJ
+        currentMode = state.currentMode;
+        isGridFlipped = state.isGridFlipped || false; // ÚJ
+        activeImageIndex = state.activeImageIndex;
+        selectedIndices = new Set(state.selectedIndices);
 
+        updateUIControls(); // Ez most már látni fogja a helyes darabszámot!
+        renderCollage(true);
+        updateHistoryButtonsUI();
+
+    } catch (err) {
+        console.error("Hiba az állapot visszaállításakor:", err);
+    } finally {
+        if (overlay) overlay.style.display = 'none';
+    }
+}
 
         // UI frissítése: gombok halványítása, ha nincs mit visszavonni/ismételni
         function updateHistoryButtonsUI() {
@@ -2825,11 +2874,11 @@
             // Alapértelmezett: FALSE (kikapcsolva), ha nincs mentett adat
             isGridVisible = savedGridEnabled === null ? false : (savedGridEnabled === 'true');
 
-            const savedAdvanced = localStorage.getItem('collage_advanced_editing');
-            // Alapértelmezett: TRUE (bekapcsolva), ha nincs mentett adat
-            isAdvancedEditingEnabled = savedAdvanced === null ? true : (savedAdvanced === 'true');
-            const advEl = document.getElementById('advancedEditingToggle');
-            if (advEl) advEl.checked = isAdvancedEditingEnabled;
+            const savedSimplified = localStorage.getItem('collage_simplified_editing');
+            // Alapértelmezett: FALSE (kikapcsolva = haladó mód az alap), ha nincs mentett adat
+            isSimplifiedEditingEnabled = savedSimplified === null ? false : (savedSimplified === 'true');
+            const simpEl = document.getElementById('simplifiedEditingToggle');
+            if (simpEl) simpEl.checked = isSimplifiedEditingEnabled;
 
             // Kapcsoló UI beállítása
             const gridToggle = document.getElementById('gridToggle');
@@ -2883,13 +2932,7 @@
 
 
 
-        function toggleAdvancedEditing() {
-            isAdvancedEditingEnabled = document.getElementById('advancedEditingToggle').checked;
-            localStorage.setItem('collage_advanced_editing', isAdvancedEditingEnabled);
-            updateVisualSelection();
-            // AZONNALI FRISSÍTÉS:
-            updateCanvasHUD();
-        }
+
 
         function setMode(mode) {
             if (currentMode === mode) return;
@@ -3040,6 +3083,7 @@
                 // UI frissítése (Ez már nem fog elszállni)
                 updateUIControls();
                 renderCollage();
+                markAsUnsaved(); // <--- ÚJ: Új kép feltöltése is változást jelent
 
             } catch (error) {
                 console.error("Részletes hiba:", error);
@@ -3178,7 +3222,7 @@
             toggleView('start');
             document.getElementById('upload-step').classList.remove('d-none'); // Mutassuk a feltöltőt
             document.getElementById('mode-selection-step').classList.add('d-none'); // Rejtsük a módválasztót
-            showToast("Minden adat és előzmény törölve", "trash-2", "#ff4d4f");
+            //showToast("Minden adat és előzmény törölve", "trash-2", "#ff4d4f");
         }
 
 
@@ -3247,18 +3291,31 @@
             if (addBtnHeader) addBtnHeader.classList.remove('pulse-button');
             slidersArea.style.display = 'flex';
 
+
+            // --- GOMBOK LÁTHATÓSÁGÁNAK OKOS KEZELÉSE ---
+
+            // 1. Kiszámoljuk, hány kép látható ténylegesen
+            const visibleCount = visibilities.filter(v => v !== false).length;
+
             if (layoutControls) {
-                layoutControls.style.display = (currentMode === 'grid' && loadedImages.length > 1) ? 'flex' : 'none';
+                // Az elrendezés választó csak Rács módban és min. 2 látható képnél kell
+                layoutControls.style.display = (currentMode === 'grid' && visibleCount > 1) ? 'flex' : 'none';
             }
 
-            if (shuffleBtn) {
-                shuffleBtn.style.display = (loadedImages.length >= 2 && currentMode !== 'free') ? 'inline-flex' : 'none';
+if (shuffleBtn) {
+                // Csak akkor jelenik meg, ha NEM szabad (manuális) módban vagyunk, és van min. 2 látható kép
+                shuffleBtn.style.display = (currentMode !== 'free' && visibleCount >= 2) ? 'inline-flex' : 'none';
             }
 
-            // <--- EZT A BLOKKOT ADD HOZZÁ --->
             if (selectAllBtn) {
-                // Csak akkor mutatjuk, ha van legalább 2 kép, különben nincs értelme az "Összes" kijelölésnek
+                // Az 'Összes' gomb maradhat a feltöltött képek alapján
                 selectAllBtn.style.display = (loadedImages.length >= 2) ? 'inline-flex' : 'none';
+            }
+
+            const flipBtn = document.getElementById('flipLayoutBtn');
+            if (flipBtn) {
+                // A fordítógomb csak Rács módban, min. 3 látható képnél, ha a számuk páratlan
+                flipBtn.style.display = (currentMode === 'grid' && visibleCount > 1 && visibleCount % 2 !== 0) ? 'inline-flex' : 'none';
             }
 
             sliderContainer.innerHTML = '';
@@ -3274,13 +3331,13 @@
                 batchHeader.style.marginBottom = '8px';
                 batchHeader.innerHTML = `
                     <button class="btn-batch" style="flex:1; justify-content:center;" onclick="batchToggleVisibilitySelected()" title="Kijelöltek elrejtése/megjelenítése">
-                        <i data-lucide="eye"></i> Lát
+                        <i data-lucide="eye"></i>
                     </button>
                     <button class="btn-batch" style="flex:1; justify-content:center;" onclick="batchResetSelected()">
-                        <i data-lucide="rotate-ccw"></i> Reset
+                        <i data-lucide="rotate-ccw"></i>
                     </button>
                     <button class="btn-batch del" style="flex:1; justify-content:center;" onclick="batchDeleteSelected()">
-                        <i data-lucide="trash-2"></i> Törlés
+                        <i data-lucide="trash-2"></i>
                     </button>
                 `;
                 sliderContainer.appendChild(batchHeader);
@@ -3651,7 +3708,8 @@
             sliderGroups.forEach(group => {
                 const slider = group.querySelector('input[type="range"]');
                 if (slider) {
-                    slider.style.display = isAdvancedEditingEnabled ? 'none' : 'block';
+                    // Ha egyszerűsített mód van (igaz), mutassuk a csúszkát. Ha haladó (hamis), rejtsük el.
+                    slider.style.display = isSimplifiedEditingEnabled ? 'block' : 'none';
                 }
                 // A csoport maga marad flex, hogy a label látszódjon
                 group.style.display = 'flex';
@@ -3711,8 +3769,8 @@
                 div.style.top = (box.cy * scale) + 'px';
                 div.style.transform = `translate(-50%, -50%) rotate(${box.rotation}deg)`;
 
-                // --- CSAK HALADÓ MÓDBAN ADUNK HOZZÁ FOGANTYÚKAT ---
-                if (isPrimary && isAdvancedEditingEnabled) {
+                // --- CSAK AKKOR ADUNK HOZZÁ FOGANTYÚKAT, HA AZ EGYSZERŰSÍTETT MÓD KI VAN KAPCSOLVA ---
+                if (isPrimary && !isSimplifiedEditingEnabled) {
                     ['top-left', 'top-right', 'bottom-left', 'bottom-right'].forEach(pos => {
                         const h = document.createElement('div');
                         h.className = 'visual-handle';
@@ -3798,80 +3856,97 @@
 
 
         function renderGridMode(ctx, CANVAS_SIZE) {
-            const count = loadedImages.length;
-
-            // Lekérjük a kiválasztott elrendezést
-            const layoutInputs = document.querySelectorAll('input[name="layout"]');
-            let layout = 'grid'; // Alapértelmezett a rács
-            layoutInputs.forEach(input => { if (input.checked) layout = input.value; });
-
-            let rowCount = Math.round(Math.sqrt(count)); // Automata rács (pl. 4 képnél 2x2)
-
-            // Ha a felhasználó felülírja a gombokkal:
-            if (layout === 'horizontal') {
-                rowCount = 1; // 1 sor = az összes kép egymás mellé kerül
-            } else if (layout === 'vertical') {
-                rowCount = count; // Annyi sor, ahány kép = az összes kép egymás alá kerül
-            }
-
-            const distribution = distributeImages(count, rowCount);
-            const rowHeight = CANVAS_SIZE / rowCount;
-
-            // Először kiszámoljuk az összes kép adatait egy ideiglenes listába
-            let tempItems = [];
-            let imgIdx = 0;
-            for (let r = 0; r < rowCount; r++) {
-                const imagesInThisRow = distribution[r];
-                const colWidth = CANVAS_SIZE / imagesInThisRow;
-                for (let c = 0; c < imagesInThisRow; c++) {
-                    tempItems.push({
-                        img: loadedImages[imgIdx],
-                        idx: imgIdx,
-                        cellX: c * colWidth,
-                        cellY: r * rowHeight,
-                        colWidth: colWidth,
-                        rowHeight: rowHeight
-                    });
-                    imgIdx++;
-                }
-            }
-
-            // Most kirajzoljuk őket FORDÍTOTT sorrendben (utolsótól az elsőig)
-            // Így az 1. kép (0. index) marad a helyén, de ha takarás van, ő lesz felül.
-            for (let i = tempItems.length - 1; i >= 0; i--) {
-                const item = tempItems[i];
-                const img = item.img;
-                const index = item.idx;
-
-                if (visibilities[index] === false) continue; // <--- EZT A SORT ADD HOZZÁ
-
-                const zoom = zoomLevels[index];
-                const offset = imageOffsets[index];
-                const rotation = rotations[index];
-
-                const centerX = item.cellX + (item.colWidth / 2) + offset.x;
-                const centerY = item.cellY + (item.rowHeight / 2) + offset.y;
-
-                const hRatio = item.colWidth / img.width;
-                const vRatio = item.rowHeight / img.height;
-                let ratio = Math.min(hRatio, vRatio) * zoom;
-                const newWidth = img.width * ratio;
-                const newHeight = img.height * ratio;
-
-                renderHitBoxes.push({
-                    index: index,
-                    x: centerX - newWidth / 2, y: centerY - newHeight / 2,
-                    w: newWidth, h: newHeight,
-                    cx: centerX, cy: centerY, rotation: rotation
-                });
-
-                ctx.save();
-                ctx.translate(centerX, centerY);
-                ctx.rotate(rotation * Math.PI / 180);
-                ctx.drawImage(img, -newWidth / 2, -newHeight / 2, newWidth, newHeight);
-                ctx.restore();
-            }
+    // 1. Csak a látható képek indexeinek kigyűjtése
+    const visibleIndices = [];
+    for (let i = 0; i < loadedImages.length; i++) {
+        if (visibilities[i] !== false) {
+            visibleIndices.push(i);
         }
+    }
+
+    const count = visibleIndices.length;
+    if (count === 0) return; // Ha nincs látható kép, nem rajzolunk semmit
+
+    // Lekérjük a kiválasztott elrendezést
+    const layoutInputs = document.querySelectorAll('input[name="layout"]');
+    let layout = 'grid'; // Alapértelmezett a rács
+    layoutInputs.forEach(input => { if (input.checked) layout = input.value; });
+
+    let rowCount = Math.round(Math.sqrt(count)); // Automata rács (pl. 4 képnél 2x2)
+
+    // Ha a felhasználó felülírja a gombokkal:
+    if (layout === 'horizontal') {
+        rowCount = 1; // 1 sor = az összes kép egymás mellé kerül
+    } else if (layout === 'vertical') {
+        rowCount = count; // Annyi sor, ahány kép = az összes kép egymás alá kerül
+    }
+
+    const distribution = distributeImages(count, rowCount);
+
+    // --- ÚJ RÉSZ: Ha a felhasználó megfordította az elrendezést ---
+    if (isGridFlipped) {
+        distribution.reverse();
+    }
+    // --------------------------------------------------------------
+
+    const rowHeight = CANVAS_SIZE / rowCount;
+
+    // Először kiszámoljuk a látható képek adatait egy ideiglenes listába
+    let tempItems = [];
+    let visibleArrayIdx = 0;
+    for (let r = 0; r < rowCount; r++) {
+        const imagesInThisRow = distribution[r];
+        const colWidth = CANVAS_SIZE / imagesInThisRow;
+        for (let c = 0; c < imagesInThisRow; c++) {
+            const originalIdx = visibleIndices[visibleArrayIdx];
+            tempItems.push({
+                img: loadedImages[originalIdx],
+                idx: originalIdx,
+                cellX: c * colWidth,
+                cellY: r * rowHeight,
+                colWidth: colWidth,
+                rowHeight: rowHeight
+            });
+            visibleArrayIdx++;
+        }
+    }
+
+    // Most kirajzoljuk őket FORDÍTOTT sorrendben (utolsótól az elsőig)
+    for (let i = tempItems.length - 1; i >= 0; i--) {
+        const item = tempItems[i];
+        const img = item.img;
+        const index = item.idx;
+
+        // (Itt már nem kell a 'continue' vizsgálat, mert csak a láthatókat dolgozzuk fel)
+
+        const zoom = zoomLevels[index];
+        const offset = imageOffsets[index];
+        const rotation = rotations[index];
+
+        const centerX = item.cellX + (item.colWidth / 2) + offset.x;
+        const centerY = item.cellY + (item.rowHeight / 2) + offset.y;
+
+        const hRatio = item.colWidth / img.width;
+        const vRatio = item.rowHeight / img.height;
+        let ratio = Math.min(hRatio, vRatio) * zoom;
+        const newWidth = img.width * ratio;
+        const newHeight = img.height * ratio;
+
+        renderHitBoxes.push({
+            index: index,
+            x: centerX - newWidth / 2, y: centerY - newHeight / 2,
+            w: newWidth, h: newHeight,
+            cx: centerX, cy: centerY, rotation: rotation
+        });
+
+        ctx.save();
+        ctx.translate(centerX, centerY);
+        ctx.rotate(rotation * Math.PI / 180);
+        ctx.drawImage(img, -newWidth / 2, -newHeight / 2, newWidth, newHeight);
+        ctx.restore();
+    }
+}
+
 
         function renderFreeMode(ctx, CANVAS_SIZE) {
             const centerCanvasX = CANVAS_SIZE / 2;
@@ -3978,8 +4053,9 @@
                 const mx = (e.clientX - rect.left) * (800 / rect.width);
                 const my = (e.clientY - rect.top) * (800 / rect.height);
 
-                // A. Fogantyú kezelése (BÁRHOL a képernyőn)
-                if (activeImageIndex !== -1 && isAdvancedEditingEnabled) { // Beépítve az isAdvancedEditingEnabled feltétel
+
+                // A. Fogantyú kezelése (BÁRHOL a képernyőn, ha az egyszerűsített mód ki van kapcsolva)
+                if (activeImageIndex !== -1 && !isSimplifiedEditingEnabled) {
                     const box = renderHitBoxes.find(b => b.index === activeImageIndex);
                     const handle = getHandleAtMouse(mx, my, box);
 
@@ -4354,7 +4430,7 @@
 
             updateUIControls();
             renderCollage();
-            showToast("Kép eltávolítva", "trash-2", "#ff9f43");
+            //showToast("Kép eltávolítva", "trash-2", "#ff9f43");
         }
 
         // Toolbar törlés gombja
@@ -4392,7 +4468,7 @@
             activeImageIndex = -1;
             updateUIControls();
             renderCollage();
-            showToast(`${count} kép eltávolítva`, "trash-2", "#ff9f43");
+            //showToast(`${count} kép eltávolítva`, "trash-2", "#ff9f43");
         }
 
 
@@ -4446,7 +4522,7 @@
             updateCanvasHUD();
 
             // Vizuális visszajelzés
-            showToast("Minden kép kijelölve!", "check-square", "var(--accent-color)");
+            //showToast("Minden kép kijelölve!", "check-square", "var(--accent-color)");
         }
 
 
@@ -4804,12 +4880,14 @@
             renderCollage(true, false);
 
             // --- ÚJ: Visszajelzés küldése a felhasználónak ---
-            showToast("Kép sikeresen mentve a számítógépre!");
+            //showToast("Kép sikeresen mentve a számítógépre!");
+            markAsSaved(); // <--- ÚJ: Ezt a sort add a legvégére
         }
 
         // Csoportos alaphelyzetbe állítás
         function batchResetSelected() {
-            if (selectedIndices.size < 2) return;
+            if (selectedIndices.size === 0) return; // JAVÍTVA: < 2 helyett === 0
+            pushState(); // ÚJ: Hozzáadva a visszavonhatóság miatt
 
             selectedIndices.forEach(idx => {
                 zoomLevels[idx] = (currentMode === 'free' ? 0.8 : 1.0);
@@ -4823,13 +4901,18 @@
 
         // Csoportos törlés (átnevezve/tisztázva)
         function batchDeleteSelected() {
-            if (selectedIndices.size < 2) return;
+            if (selectedIndices.size === 0) return; // JAVÍTVA: < 2 helyett === 0
             if (confirm(`Biztosan törölni szeretnéd a kijelölt ${selectedIndices.size} képet?`)) {
+                pushState(); // ÚJ: Hozzáadva a visszavonhatóság miatt
                 deleteSelectedImages(); // Ezt a függvényt már korábban megírtuk
             }
         }
 
-
+        function toggleGridLayout() {
+            pushState(); // Mentjük az állapotot, hogy a visszavonás (Ctrl+Z) működjön
+            isGridFlipped = !isGridFlipped; // Átállítjuk az ellenkezőjére
+            renderCollage(); // Újrarajzoljuk a vásznat
+        }
 
         function updateScrollFades() {
             const container = document.getElementById('sliders-container');
@@ -4980,7 +5063,7 @@
             // 4. Az input mezőt is ürítjük, hogy ugyanazt a képet újra fel lehessen tölteni
             document.getElementById('imageInput').value = '';
 
-            showToast("Képek törölve, új feltöltés indítható", "image", "#888");
+            //showToast("Képek törölve, új feltöltés indítható", "image", "#888");
         }
 
     </script>
