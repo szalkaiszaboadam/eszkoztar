@@ -129,7 +129,8 @@ def run_processor(context: Context, termek_lista, mod, progress_file_path, bemen
 
     def mentes_allapot(aktualis_index):
         try:
-            state = {"index": aktualis_index, "retry_list": sikertelen_lista_elso_kor}
+            # ÚJ: Eltároljuk a futási módot (mod) is a mentésben!
+            state = {"index": aktualis_index, "retry_list": sikertelen_lista_elso_kor, "mod": mod}
             with open(progress_file_path, "w", encoding="utf-8") as f:
                 json.dump(state, f, ensure_ascii=False, indent=2)
         except:
@@ -474,15 +475,38 @@ if __name__ == "__main__":
     progress_file = kivalasztott_fajl_utvonala + ".progress.json"
     if not termekek: sys.exit(1)
 
+    folytatas = False
     mod = ""
-    while True:
-        print("\n--- Mód Választás ---")
-        print("  1: Kategorizáló (Hozzáadás meglévőkhöz)")
-        print("  2: Átkategorizáló (Régi törlése, új kategóriák hozzáadása)")
-        val = input("Választás (1-2): ").strip()
 
-        if val == '1': mod = "kategorizalo"; break
-        if val == '2': mod = "atkategorizalo"; break
+    # --- ÚJ: Félbemaradt mentés ellenőrzése ---
+    if os.path.exists(progress_file):
+        valasz_folytat = input(
+            f"\n⚠️ Találtam egy félbemaradt mentést ehhez a fájlhoz.\nSzeretnéd folytatni onnan, ahol abbamaradt? (i/n): ").strip().lower()
+        if valasz_folytat == 'i':
+            folytatas = True
+            # Kiolvassuk az előző futás módját (kategorizalo vagy atkategorizalo)
+            try:
+                with open(progress_file, "r", encoding="utf-8") as f:
+                    state_data = json.load(f)
+                    mod = state_data.get("mod", "")
+            except:
+                pass
+            mod_nev = "Kategorizáló (Hozzáadás)" if mod == "kategorizalo" else "Átkategorizáló (Törlés + Új)"
+            print(f"   ⏩ Folytatás kiválasztva. (Mód: {mod_nev})")
+        else:
+            os.remove(progress_file)
+            print("   🗑️ Régi mentés törölve. Tiszta lappal indulunk.")
+
+    # --- Ha nincs mentés, vagy újat kezdtünk, jöhet a kérdés ---
+    if not folytatas or not mod:
+        while True:
+            print("\n--- Mód Választás ---")
+            print("  1: Kategorizáló (Hozzáadás meglévőkhöz)")
+            print("  2: Átkategorizáló (Régi törlése, új kategóriák hozzáadása)")
+            val = input("Választás (1-2): ").strip()
+
+            if val == '1': mod = "kategorizalo"; break
+            if val == '2': mod = "atkategorizalo"; break
 
     with sync_playwright() as p:
         print("\nBöngésző indítása...")

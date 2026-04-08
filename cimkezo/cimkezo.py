@@ -75,7 +75,8 @@ def run_processor(context: Context, termek_lista, progress_file_path, bemeneti_f
         try:
             state = {
                 "index": aktualis_index,
-                "retry_list": sikertelen_lista_elso_kor
+                "retry_list": sikertelen_lista_elso_kor,
+                "feluliras_mod": feluliras_mod  # <-- ÚJ: Eltároljuk a kiválasztott módot is
             }
             with open(progress_file_path, "w", encoding="utf-8") as f:
                 json.dump(state, f, ensure_ascii=False, indent=2)
@@ -112,7 +113,7 @@ def run_processor(context: Context, termek_lista, progress_file_path, bemeneti_f
         for i, (cikkszam, marka, nev, cimke_lista) in enumerate(feldolgozando_maradek):
             aktualis_sorszam = start_index + i + 1
             print(f"\n[{aktualis_sorszam}/{len(termek_lista)}] Feldolgozás...")
-            print(f"  Cikkszám: {cikkszam} | Márka: {marka} | Név: {nev}")
+            print(f"  Cikkszám: {cikkszam} | Márka: {marka} | Név : {nev}")
 
             try:
                 if "administrator" not in page.url:
@@ -421,16 +422,39 @@ if __name__ == "__main__":
 
     progress_file = valasztott_path + ".progress.json"
 
-    print("\n--- Működési Mód ---")
-    print("  1: HOZZÁADÁS (Meglévők maradnak)")
-    print("  2: FELÜLÍRÁS (Meglévők törlése)")
+    folytatas = False
+    feluliras = False
 
-    mod_valasz = ""
-    while mod_valasz not in ["1", "2"]:
-        mod_valasz = input("Válassz (1/2): ").strip()
+    # --- ÚJ: Félbemaradt mentés ellenőrzése ---
+    if os.path.exists(progress_file):
+        valasz_folytat = input(
+            f"\n⚠️ Találtam egy félbemaradt mentést ehhez a fájlhoz.\nSzeretnéd folytatni onnan, ahol abbamaradt? (i/n): ").strip().lower()
+        if valasz_folytat == 'i':
+            folytatas = True
+            # Kiolvassuk az előző futás módját (Hozzáadás vagy Felülírás)
+            try:
+                with open(progress_file, "r", encoding="utf-8") as f:
+                    state_data = json.load(f)
+                    feluliras = state_data.get("feluliras_mod", False)
+            except:
+                pass
+            print(f"   ⏩ Folytatás kiválasztva. (Mód: {'FELÜLÍRÁS' if feluliras else 'HOZZÁADÁS'})")
+        else:
+            os.remove(progress_file)
+            print("   🗑️ Régi mentés törölve. Tiszta lappal indulunk.")
 
-    feluliras = (mod_valasz == "2")
-    print(f">> Mód: {'FELÜLÍRÁS' if feluliras else 'HOZZÁADÁS'}")
+    # --- Ha nincs mentés, vagy újat kezdtünk, jöhetnek a kérdések ---
+    if not folytatas:
+        print("\n--- Működési Mód ---")
+        print("  1: HOZZÁADÁS (Meglévők maradnak)")
+        print("  2: FELÜLÍRÁS (Meglévők törlése)")
+
+        mod_valasz = ""
+        while mod_valasz not in ["1", "2"]:
+            mod_valasz = input("Válassz (1/2): ").strip()
+
+        feluliras = (mod_valasz == "2")
+        print(f">> Mód: {'FELÜLÍRÁS' if feluliras else 'HOZZÁADÁS'}")
 
     termekek = adatok_beolvasasa(valasztott_path)
     if not termekek: sys.exit(1)

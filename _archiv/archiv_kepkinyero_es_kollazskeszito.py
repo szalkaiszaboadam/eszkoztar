@@ -123,7 +123,7 @@ def termek_letolto_fázis1(page, url, kategoria_utvonal, letoltendo_db, eloszlas
     kat_azonosito = " > ".join(kategoria_utvonal)
 
     tiszta_utvonal = [tiszta_nev(p) for p in kategoria_utvonal]
-    mappa_path = os.path.join("Kollazs_Kepek", *tiszta_utvonal)
+    mappa_path = os.path.join("../kepkinyero/Kollazs_Kepek", *tiszta_utvonal)
     os.makedirs(mappa_path, exist_ok=True)
 
     try:
@@ -271,7 +271,7 @@ def kategoria_bejaro_fázis1(page, url, kategoria_utvonal, alap_letoltendo_db, e
             aktualis_db = alap_letoltendo_db * sajat_melyseg
             egyedi_linkek = list(set(osszes_osszegujtott_link))
             tiszta_utvonal = [tiszta_nev(p) for p in kategoria_utvonal]
-            mappa_path = os.path.join("Kollazs_Kepek", *tiszta_utvonal)
+            mappa_path = os.path.join("../kepkinyero/Kollazs_Kepek", *tiszta_utvonal)
 
             kat_azonosito_full = " > ".join(kategoria_utvonal) + " (Összesítő)"
 
@@ -364,7 +364,7 @@ def interaktiv_kollazs_fázis2(ctx: Context, image_map_full, collage_progress_fi
 
             tiszta_kat_id = kat_id.replace(" (Összesítő)", "")
             kat_utvonal = tiszta_kat_id.split(" > ")
-            current_download_dir[0] = os.path.join("Kollazs_Kepek", *[tiszta_nev(p) for p in kat_utvonal])
+            current_download_dir[0] = os.path.join("../kepkinyero/Kollazs_Kepek", *[tiszta_nev(p) for p in kat_utvonal])
 
             abs_fajlok = [os.path.abspath(f) for f in fajl_list if os.path.exists(f)]
 
@@ -599,7 +599,7 @@ if __name__ == "__main__":
                             for item in list(retry_list):
                                 try:
                                     tiszta_utvonal = [tiszta_nev(p) for p in item["kategoria_utvonal"]]
-                                    mappa_path = os.path.join("Kollazs_Kepek", *tiszta_utvonal)
+                                    mappa_path = os.path.join("../kepkinyero/Kollazs_Kepek", *tiszta_utvonal)
                                     os.makedirs(mappa_path, exist_ok=True)
 
                                     fajl_ut = letoltes_vegrehajtasa_fajl_visszaadas(page, item["url"], mappa_path,
@@ -638,13 +638,13 @@ if __name__ == "__main__":
                 if not final_image_map and befejezett_kategoriak:
                     print("🔄 Belső fájl-térkép rekonstruálása a Kollazs_Kepek mappából...")
 
-                    if os.path.exists("Kollazs_Kepek"):
+                    if os.path.exists("../kepkinyero/Kollazs_Kepek"):
                         for f_id in befejezett_kategoriak:
                             tiszta_id = f_id.replace(" (Összesítő)", "")
                             utvonal = tiszta_id.split(" > ")
 
                             tiszta_utvonal = [tiszta_nev(p) for p in utvonal]
-                            mappa_path = os.path.join("Kollazs_Kepek", *tiszta_utvonal)
+                            mappa_path = os.path.join("../kepkinyero/Kollazs_Kepek", *tiszta_utvonal)
 
                             if os.path.exists(mappa_path):
                                 image_files = []
