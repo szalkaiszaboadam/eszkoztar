@@ -331,53 +331,36 @@ def run_processor(context: Context, termek_lista, mod, progress_file_path, bemen
     if os.path.exists(progress_file_path) and not sikertelen_lista_elso_kor:
         os.remove(progress_file_path)
 
-    # --- EXPORTÁLÁS ---
-    if veglegesen_sikertelen_lista:
-        print(f"\n📑 Exportálás: {len(veglegesen_sikertelen_lista)} sikertelen termék...")
-        SIKERTELEN_MAPPA = "sikertelen_tablak"
-        try:
-            os.makedirs(SIKERTELEN_MAPPA, exist_ok=True)
+        # --- EXPORTÁLÁS ---
+        if veglegesen_sikertelen_lista:
+            print(f"\n📑 Exportálás: {len(veglegesen_sikertelen_lista)} sikertelen termék...")
+            SIKERTELEN_MAPPA = "sikertelen_tablak"
+            try:
+                os.makedirs(SIKERTELEN_MAPPA, exist_ok=True)
 
-            oszlop_adatok = {}
-            for cikkszam, marka, eredeti_fejlec, kats, hiba in veglegesen_sikertelen_lista:
-                kulcs = (marka, eredeti_fejlec)
-                if kulcs not in oszlop_adatok:
-                    oszlop_adatok[kulcs] = {"duplikaciok": [], "hibak": []}
+                # ÚJ, SOROS FORMÁTUM (Bemeneti fájllal megegyező)
+                export_adatok = []
+                for cikkszam, marka, eredeti_fejlec, kats, hiba in veglegesen_sikertelen_lista:
+                    export_adatok.append({
+                        "Cikkszám": cikkszam,
+                        "Márka": marka,
+                        "Alkategória": eredeti_fejlec,
+                        "Hiba oka": str(hiba).strip()
+                    })
 
-                oszlop_adatok[kulcs]["hibak"].append(cikkszam)
-                if "DUPLIKÁCIÓ" in str(hiba):
-                    oszlop_adatok[kulcs]["duplikaciok"].append(cikkszam)
+                # DataFrame létrehozása a dict listából
+                df_sikertelen = pd.DataFrame(export_adatok)
 
-            max_sor = max([len(d["hibak"]) for d in oszlop_adatok.values()]) if oszlop_adatok else 0
+                alap_nev = os.path.splitext(os.path.basename(bemeneti_fajl_neve))[0]
+                timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M")
+                fnev = f"{alap_nev}_hiba_{mod}_{timestamp}.xlsx"
+                utvonal = os.path.join(SIKERTELEN_MAPPA, fnev)
 
-            df_dict = {}
-            col_idx = 0
-            for (marka, fejlec), data in oszlop_adatok.items():
-                if data["duplikaciok"]:
-                    jegyzet_str = f"JEGYZET: Duplikáció miatt átugorva: {', '.join(data['duplikaciok'])}"
-                else:
-                    jegyzet_str = "JEGYZET: -"
-
-                col_list = [jegyzet_str, marka, fejlec]
-                col_list.extend(data["hibak"])
-
-                while len(col_list) < max_sor + 3:
-                    col_list.append("")
-
-                df_dict[f"Col_{col_idx}"] = col_list
-                col_idx += 1
-
-            df_sikertelen = pd.DataFrame(df_dict)
-            alap_nev = os.path.splitext(os.path.basename(bemeneti_fajl_neve))[0]
-            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M")
-            fnev = f"{alap_nev}_hiba_{mod}_{timestamp}.xlsx"
-            utvonal = os.path.join(SIKERTELEN_MAPPA, fnev)
-
-            df_sikertelen.to_excel(utvonal, index=False, header=False, engine='openpyxl')
-            print(f"  ✅ Sikeres export: {utvonal}")
-        except Exception as e:
-            print(f"  ❌ HIBA az exportnál: {e}")
-
+                # Mentés Excelbe, fejlécekkel együtt! (header=True az alapértelmezett, ezért elhagyható a header=False)
+                df_sikertelen.to_excel(utvonal, index=False, engine='openpyxl')
+                print(f"  ✅ Sikeres export: {utvonal}")
+            except Exception as e:
+                print(f"  ❌ HIBA az exportnál: {e}")
 
 # --- 3. LÉPÉS: Bejelentkezés ---
 def bejelentkezes_kezelese(browser: Browser, username, password, base_url, state_fajl="state.json"):
