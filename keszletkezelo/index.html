@@ -1441,10 +1441,15 @@
                 <div class="settings-card">
                     <div class="settings-row">
                         <div class="settings-row-label">Zoom szint</div>
-                        <div style="display:flex;align-items:center;gap:10px;">
-                            <input type="range" id="zoom-slider" min="1" max="5" step="0.1" value="2.0"
-                                oninput="applyZoom(this.value)">
-                            <span class="settings-row-val" id="zoom-label">2.0x</span>
+                        <div style="display:flex;align-items:center;gap:12px;">
+                            <button class="btn btn-outline btn-qty" onclick="changeZoom(-0.2)">
+                                <i data-lucide="minus"></i>
+                            </button>
+                            <span class="settings-row-val" id="zoom-label"
+                                style="min-width: 45px; text-align: center; font-variant-numeric: tabular-nums;">2.0x</span>
+                            <button class="btn btn-outline btn-qty" onclick="changeZoom(0.2)">
+                                <i data-lucide="plus"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -1506,6 +1511,10 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 
     <script>
+
+        // Új globális változó a zoom követéséhez
+        let currentZoomValue = parseFloat(localStorage.getItem("app_zoom")) || 2.0;
+
         // ── THEME ──
         function getTheme() { return localStorage.getItem('eszkoztar-theme') || 'dark'; }
         function applyTheme(t) {
@@ -1747,15 +1756,19 @@
             setTimeout(() => btn.style.transform = "rotate(0deg)", 500);
         }
 
+        // A setupExtras-t is frissítsd, hogy ne akarja a slider értékét beállítani
         function setupExtras() {
             const video = document.querySelector("#reader video");
             if (video && video.srcObject) {
                 videoTrack = video.srcObject.getVideoTracks()[0];
                 const caps = videoTrack.getCapabilities();
+
                 document.getElementById("torch-btn").classList.remove('active');
-                const savedZoom = localStorage.getItem("app_zoom") || 2.0;
-                applyZoom(savedZoom);
-                document.getElementById("zoom-slider").value = savedZoom;
+
+                // Betöltjük a mentett zoomot
+                currentZoomValue = parseFloat(localStorage.getItem("app_zoom")) || 2.0;
+                applyZoom(currentZoomValue);
+
                 document.getElementById("torch-btn").style.display = caps.torch ? "flex" : "none";
             }
         }
@@ -1918,10 +1931,27 @@
             }
         }
 
+        function changeZoom(delta) {
+            // Kiszámoljuk az új értéket (határok: 1.0 és 5.0 között)
+            let newVal = currentZoomValue + delta;
+            if (newVal < 1) newVal = 1;
+            if (newVal > 5) newVal = 5;
+
+            currentZoomValue = newVal;
+            applyZoom(currentZoomValue);
+        }
+
         function applyZoom(v) {
+            v = parseFloat(v);
             if (videoTrack) {
-                videoTrack.applyConstraints({ advanced: [{ zoom: parseFloat(v) }] });
-                document.getElementById("zoom-label").innerText = parseFloat(v).toFixed(1) + "x";
+                // Megpróbáljuk alkalmazni a kamerára
+                videoTrack.applyConstraints({ advanced: [{ zoom: v }] })
+                    .catch(e => console.warn("Zoom nem támogatott ezen az eszközön", e));
+
+                // UI frissítése
+                const label = document.getElementById("zoom-label");
+                if (label) label.innerText = v.toFixed(1) + "x";
+
                 localStorage.setItem("app_zoom", v);
             }
         }
