@@ -5,15 +5,15 @@ document.addEventListener('DOMContentLoaded', function () {
         {
             id: 'kollazs',
             label: 'Kollázskészítő',
-            sub: 'Képszerkesztő',
+            sub: '',
             color: '#d97706',
             href: '../kollazskeszito/',
             icon: `<path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5z"/>`
         },
         {
             id: 'keszlet',
-            label: 'Készletkezelő',
-            sub: 'Leltárkezelés',
+            label: 'Vonalkódolvasó',
+            sub: '',
             color: '#2563eb',
             href: '../keszletkezelo/',
             icon: `<path stroke-linecap="round" stroke-linejoin="round" d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z"/>`
@@ -52,7 +52,7 @@ document.addEventListener('DOMContentLoaded', function () {
             align-items: center;
             justify-content: space-between;
             padding: 0 20px;
-            z-index: 99999;
+            z-index: 1000000;
             font-family: 'Plus Jakarta Sans', sans-serif;
         }
         [data-theme="light"] #eszkoztar-header {
@@ -87,7 +87,7 @@ document.addEventListener('DOMContentLoaded', function () {
             border:1px solid #252522;
             border-radius:12px;
             box-shadow:0 24px 60px rgba(0,0,0,0.5);
-            padding:6px; z-index:99999;
+            padding:6px; z-index: 1000001;
         }
         [data-theme="light"] .eh-dropdown {
             background:#ffffff;
@@ -166,7 +166,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     </div>
                     <div>
                         <div class="eh-home-label">Eszköztár főoldal</div>
-                        <div class="eh-home-sub">Összes eszköz</div>
+                        
                     </div>
                 </a>
             </div>

@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Leltár Pro</title>
+    <title>Vonalkódolvasó</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
@@ -1275,6 +1275,10 @@
             .settings-inner {
                 padding: 28px 24px;
             }
+
+            #zoom-settings-group {
+                display: none !important;
+            }
         }
 
         /* Desktop scanner elements */
@@ -1436,7 +1440,7 @@
         <div class="settings-inner">
             <h3>Beállítások</h3>
 
-            <div class="settings-group">
+            <div class="settings-group" id="zoom-settings-group">
                 <span class="settings-group-label">Kamera</span>
                 <div class="settings-card">
                     <div class="settings-row">
@@ -1592,7 +1596,7 @@
                 String(today.getMonth() + 1).padStart(2, '0') + '. ' +
                 String(today.getDate()).padStart(2, '0') + '.';
 
-            const baseName = `Leltár (${dateStr})`;
+            const baseName = `Munkalap (${dateStr})`;
 
             // 3. Biztonsági háló: megnézzük a jelenleg létező MAI munkalapok közül a legnagyobbat
             let maxExisting = 0;
@@ -1972,7 +1976,7 @@
             const dateStr = new Date().toISOString().slice(0, 10);
             const safeComment = comment.replace(/[/\\?%*:|"<>]/g, '-').trim();
             const fileName = `leltar_${dateStr}${safeComment ? '_' + safeComment : ''}.xlsx`;
-            const sheetName = safeComment ? safeComment.substring(0, 31) : "Leltár";
+            const sheetName = safeComment ? safeComment.substring(0, 31) : "Munkalap";
             const data = Object.keys(inventoryData).map(k => ({ "Vonalkód": k, "Mennyiség": inventoryData[k] }));
             const ws_sheet = XLSX.utils.json_to_sheet(data);
             const wb = XLSX.utils.book_new();
