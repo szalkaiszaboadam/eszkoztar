@@ -544,7 +544,7 @@ def feltoltes_falis3(ctx: Context, image_map_full, base_url):
             page.locator("label[for='kepek']").click()
             time.sleep(1.5)
 
-            # --- ÚJ: MEGLÉVŐ KÉPEK TÖRLÉSE ---
+            # --- MEGLÉVŐ KÉPEK TÖRLÉSE ---
             def handle_dialog(dialog):
                 try:
                     dialog.accept()
@@ -563,17 +563,28 @@ def feltoltes_falis3(ctx: Context, image_map_full, base_url):
                 print("   🧹 A kategória eddig is üres volt (nincs törlendő kép).")
 
             page.remove_listener("dialog", handle_dialog)
-            # ----------------------------------
 
             # --- ÚJ KÉP FELTÖLTÉSE ---
             file_input = page.locator("input#newImage")
             file_input.set_input_files(file_path)
 
             print("   ⏳ Új kollázs feltöltése a szerverre folyamatban...")
-            time.sleep(4)
+            time.sleep(5)  # Hagyunk időt, hogy az admin rendszere elkezdje a töltést
 
-            page.locator("a#save_close").click()
+            mentes_gomb = page.locator("a#save_close")
 
+            # --- JAVÍTÁS 1: Várjuk meg, amíg eltűnik a "disabled" attribútum (max 20 mp) ---
+            try:
+                page.wait_for_selector("a#save_close:not([disabled])", timeout=20000)
+            except:
+                pass  # Ha letelt az idő, megpróbáljuk azért ráküldeni
+
+            time.sleep(1)  # Egy utolsó lélegzetvétel a kattintás előtt
+
+            # --- JAVÍTÁS 2: Erőszakos kattintás, ami áthatol a lebegő toolbaron ---
+            mentes_gomb.click(force=True)
+
+            # Visszavárjuk a valódi táblázatot
             page.locator("table#categoriesList:not(.fixedHeader)").first.wait_for(state="visible", timeout=15000)
 
             print(f"   ✅ Kép sikeresen kicserélve ehhez: {kat_id}!")
@@ -583,7 +594,6 @@ def feltoltes_falis3(ctx: Context, image_map_full, base_url):
 
     page.close()
     print("\n✅ Képcsere fázis lezárva.")
-
 
 # ==============================================================================
 # --- MAIN FLOW ---
