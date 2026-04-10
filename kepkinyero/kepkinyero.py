@@ -506,94 +506,103 @@ def feltoltes_falis3(ctx: Context, image_map_full, base_url):
 
     print(f"Összesen {len(feltoltendo_kollazsok)} db kategóriához van kész kollázs.")
 
-    for kat_id, file_path in feltoltendo_kollazsok.items():
-        print(f"\n🔼 Kép cseréje indul: {kat_id}")
-        kat_utvonal = [p.strip() for p in kat_id.split(" > ")]
+    max_feltoltesi_kor = 3
+    aktualis_kor = 1
 
-        try:
-            page.goto(f"{base_url}/administrator/index.php?view=store", timeout=30000)
-            time.sleep(2)
+    while feltoltendo_kollazsok and aktualis_kor <= max_feltoltesi_kor:
+        print(f"\n--- 🔄 {aktualis_kor}. FELTÖLTÉSI KÖR INDUL ---")
+        sikertelen_kollazsok = {}
 
-            sikeres_navigacio = True
+        for kat_id, file_path in feltoltendo_kollazsok.items():
+            print(f"\n🔼 Kép cseréje indul: {kat_id}")
+            kat_utvonal = [p.strip() for p in kat_id.split(" > ")]
 
-            for i, part in enumerate(kat_utvonal):
-                asztal = page.locator("table#categoriesList:not(.fixedHeader)").first
-                sor = asztal.locator("tbody tr", has=page.locator(f"b:has-text('{part}')")).first
+            try:
+                page.goto(f"{base_url}/administrator/index.php?view=store", timeout=30000)
+                time.sleep(2)
 
-                if sor.count() == 0:
-                    print(f"   ❌ Hiba: Nem találom a '{part}' nevű kategóriát a valódi táblázatban.")
-                    sikeres_navigacio = False
-                    break
+                sikeres_navigacio = True
 
-                if i == len(kat_utvonal) - 1:
-                    print(f"   🔗 Cél kategória megvan ({part}), belépés a szerkesztésbe...")
-                    szerkesztes_gomb = sor.locator("a.btn.btn-default:has-text('Szerkesztés')").first
-                    szerkesztes_gomb.click()
-                    time.sleep(2)
-                else:
-                    print(f"   📂 Belépés ide: {part}")
-                    kategoria_link = sor.locator(f"a:has(b:has-text('{part}'))").first
-                    kategoria_link.click()
-                    time.sleep(2)
+                for i, part in enumerate(kat_utvonal):
+                    asztal = page.locator("table#categoriesList:not(.fixedHeader)").first
+                    sor = asztal.locator("tbody tr", has=page.locator(f"b:has-text('{part}')")).first
 
-            if not sikeres_navigacio:
-                continue
+                    if sor.count() == 0:
+                        print(f"   ❌ Hiba: Nem találom a '{part}' nevű kategóriát. (Újrapróbáljuk később)")
+                        sikeres_navigacio = False
+                        break
 
-            # --- KÉPEK FÜL MEGNYITÁSA ---
-            page.locator("label[for='kepek']").wait_for(state="visible", timeout=10000)
-            page.locator("label[for='kepek']").click()
-            time.sleep(1.5)
+                    if i == len(kat_utvonal) - 1:
+                        print(f"   🔗 Cél kategória megvan ({part}), belépés a szerkesztésbe...")
+                        sor.locator("a.btn.btn-default:has-text('Szerkesztés')").first.click()
+                        time.sleep(2)
+                    else:
+                        print(f"   📂 Belépés ide: {part}")
+                        sor.locator(f"a:has(b:has-text('{part}'))").first.click()
+                        time.sleep(2)
 
-            # --- MEGLÉVŐ KÉPEK TÖRLÉSE ---
-            def handle_dialog(dialog):
+                if not sikeres_navigacio:
+                    sikertelen_kollazsok[kat_id] = file_path
+                    continue
+
+                # KÉPEK FÜL
+                page.locator("label[for='kepek']").wait_for(state="visible", timeout=10000)
+                page.locator("label[for='kepek']").click()
+                time.sleep(1.5)
+
+                # TÖRLÉS
+                def handle_dialog(dialog):
+                    try:
+                        dialog.accept()
+                    except:
+                        pass
+
+                page.on("dialog", handle_dialog)
+                torles_gombok = page.locator("ul#categoryImages li div.deleteImage")
+                if torles_gombok.count() > 0:
+                    while torles_gombok.count() > 0:
+                        torles_gombok.first.click(force=True)
+                        time.sleep(1.5)
+                page.remove_listener("dialog", handle_dialog)
+
+                # FELTÖLTÉS
+                page.locator("input#newImage").set_input_files(file_path)
+                print("   ⏳ Új kollázs feltöltése a szerverre folyamatban...")
+                time.sleep(5)
+
+                # MENTÉS
                 try:
-                    dialog.accept()
+                    page.wait_for_selector("a#save_close:not([disabled])", timeout=20000)
                 except:
                     pass
 
-            page.on("dialog", handle_dialog)
+                time.sleep(1)
+                page.locator("a#save_close").click(force=True)
+                page.locator("table#categoriesList:not(.fixedHeader)").first.wait_for(state="visible", timeout=15000)
 
-            torles_gombok = page.locator("ul#categoryImages li div.deleteImage")
-            if torles_gombok.count() > 0:
-                print(f"   🗑️ {torles_gombok.count()} db meglévő kép törlése...")
-                while torles_gombok.count() > 0:
-                    torles_gombok.first.click(force=True)
-                    time.sleep(1.5)
-            else:
-                print("   🧹 A kategória eddig is üres volt (nincs törlendő kép).")
+                print(f"   ✅ Kép sikeresen kicserélve ehhez: {kat_id}!")
 
-            page.remove_listener("dialog", handle_dialog)
+            except Exception as e:
+                print(f"   ❌ Hiba a feltöltés során ({kat_id}): {e}")
+                print("   🔄 Hozzáadva a következő körhöz...")
+                sikertelen_kollazsok[kat_id] = file_path  # Elmentjük a hibásat a következő körre
 
-            # --- ÚJ KÉP FELTÖLTÉSE ---
-            file_input = page.locator("input#newImage")
-            file_input.set_input_files(file_path)
+        # Ciklus vége: felkészülés a következő körre
+        feltoltendo_kollazsok = sikertelen_kollazsok
+        aktualis_kor += 1
 
-            print("   ⏳ Új kollázs feltöltése a szerverre folyamatban...")
-            time.sleep(5)  # Hagyunk időt, hogy az admin rendszere elkezdje a töltést
+        if feltoltendo_kollazsok and aktualis_kor <= max_feltoltesi_kor:
+            print(f"\n⏳ Rövid szünet a következő feltöltési kör előtt...")
+            time.sleep(3)
 
-            mentes_gomb = page.locator("a#save_close")
-
-            # --- JAVÍTÁS 1: Várjuk meg, amíg eltűnik a "disabled" attribútum (max 20 mp) ---
-            try:
-                page.wait_for_selector("a#save_close:not([disabled])", timeout=20000)
-            except:
-                pass  # Ha letelt az idő, megpróbáljuk azért ráküldeni
-
-            time.sleep(1)  # Egy utolsó lélegzetvétel a kattintás előtt
-
-            # --- JAVÍTÁS 2: Erőszakos kattintás, ami áthatol a lebegő toolbaron ---
-            mentes_gomb.click(force=True)
-
-            # Visszavárjuk a valódi táblázatot
-            page.locator("table#categoriesList:not(.fixedHeader)").first.wait_for(state="visible", timeout=15000)
-
-            print(f"   ✅ Kép sikeresen kicserélve ehhez: {kat_id}!")
-
-        except Exception as e:
-            print(f"   ❌ Hiba a feltöltés során ({kat_id}): {e}")
+    if feltoltendo_kollazsok:
+        print(
+            f"\n⚠️ {len(feltoltendo_kollazsok)} db kollázst {max_feltoltesi_kor} kör alatt sem sikerült feltölteni. Ezeket kézzel kell javítani.")
 
     page.close()
     print("\n✅ Képcsere fázis lezárva.")
+
+
 
 # ==============================================================================
 # --- MAIN FLOW ---
@@ -703,20 +712,23 @@ if __name__ == "__main__":
 
     letolt_koztes = True
     final_image_map = {}
+    befejezett_kategoriak, retry_list = allapot_betoltese_scraper(scr_prog_f)
 
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False, args=['--start-maximized'])
-        ctx = bejelentkezes_kezelese(browser, F_NEV, J_SZO, BASE_URL, STATE_F)
+    # ==============================================================================
+    # 1. FÁZIS: LETÖLTÉS (LÁTHATATLAN - HEADLESS: TRUE)
+    # ==============================================================================
+    if letoltes_szukseges:
+        print("\n" + "=" * 50)
+        print(" ⚙️ 1. FÁZIS: KÉPEK LETÖLTÉSE A HÁTTÉRBEN (Láthatatlanul) ⚙️")
+        print("=" * 50)
 
-        if ctx:
-            page = ctx.new_page()
+        with sync_playwright() as p:
+            # ITT VAN A LÉNYEG: headless=True
+            browser = p.chromium.launch(headless=True, args=['--start-maximized'])
+            ctx = bejelentkezes_kezelese(browser, F_NEV, J_SZO, BASE_URL, STATE_F)
 
-            befejezett_kategoriak, retry_list = allapot_betoltese_scraper(scr_prog_f)
-
-            if letoltes_szukseges:
-                print("\n" + "=" * 50)
-                print(" ⚙️ 1. FÁZIS: KÉPEK LETÖLTÉSE A HÁTTÉRBEN ⚙️")
-                print("=" * 50)
+            if ctx:
+                page = ctx.new_page()
 
                 if not os.path.exists(scr_prog_f):
                     print("   (Új munkamenet indítása)")
@@ -739,29 +751,48 @@ if __name__ == "__main__":
                                                                         letolt_koztes, BASE_URL)
 
                         if retry_list:
-                            print("\n" + "-" * 30)
-                            print(f" ♻️ 2. KÖR: Hibás letöltések javítása ({len(retry_list)} db)")
-                            print("-" * 30)
+                            max_letoltesi_kor = 5  # Maximum 5-ször fut neki a hibás képeknek
+                            aktualis_let_kor = 2
 
-                            for item in list(retry_list):
-                                try:
-                                    tiszta_utvonal = [tiszta_nev(p) for p in item["kategoria_utvonal"]]
-                                    mappa_path = os.path.join("Kollazs_Kepek", *tiszta_utvonal)
-                                    os.makedirs(mappa_path, exist_ok=True)
+                            while retry_list and aktualis_let_kor <= max_letoltesi_kor:
+                                print("\n" + "-" * 30)
+                                print(
+                                    f" ♻️ {aktualis_let_kor}. KÖR: Hibás letöltések javítása ({len(retry_list)} db maradék)")
+                                print("-" * 30)
 
-                                    fajl_ut = letoltes_vegrehajtasa_fajl_visszaadas(page, item["url"], mappa_path,
-                                                                                    item["fallback_idx"], BASE_URL)
+                                # Egy ideiglenes lista az ebben a körben is elhasaló elemeknek
+                                uj_retry_list = []
 
-                                    if fajl_ut:
-                                        kat_id = " > ".join(item["kategoria_utvonal"])
-                                        if kat_id in final_image_map: final_image_map[kat_id].append(fajl_ut)
+                                for item in retry_list:
+                                    try:
+                                        tiszta_utvonal = [tiszta_nev(p) for p in item["kategoria_utvonal"]]
+                                        mappa_path = os.path.join("Kollazs_Kepek", *tiszta_utvonal)
+                                        os.makedirs(mappa_path, exist_ok=True)
 
-                                    retry_list.remove(item)
-                                    allapot_mentese_scraper(scr_prog_f, befejezett_kategoriak, retry_list)
-                                except Exception as e:
-                                    print(f"      ❌ Végleges hiba: {e}")
-                                    retry_list.remove(item)
-                                    allapot_mentese_scraper(scr_prog_f, befejezett_kategoriak, retry_list)
+                                        fajl_ut = letoltes_vegrehajtasa_fajl_visszaadas(page, item["url"], mappa_path,
+                                                                                        item["fallback_idx"], BASE_URL)
+
+                                        if fajl_ut:
+                                            kat_id = " > ".join(item["kategoria_utvonal"])
+                                            if kat_id in final_image_map: final_image_map[kat_id].append(fajl_ut)
+                                        else:
+                                            uj_retry_list.append(item)  # Nem sikerült, megy a köv körbe
+
+                                    except Exception as e:
+                                        print(f"      ❌ Újabb hiba: {e}")
+                                        uj_retry_list.append(item)  # Hiba volt, megy a köv körbe
+
+                                # Lista frissítése és mentése
+                                retry_list = uj_retry_list
+                                allapot_mentese_scraper(scr_prog_f, befejezett_kategoriak, retry_list)
+                                aktualis_let_kor += 1
+
+                                if retry_list and aktualis_let_kor <= max_letoltesi_kor:
+                                    time.sleep(3)  # Pihentetjük a szervert picit a köv kör előtt
+
+                            if retry_list:
+                                print(
+                                    f"\n⚠️ {len(retry_list)} db fájlt {max_letoltesi_kor} kör alatt sem sikerült letölteni. Továbblépünk.")
 
                         if not retry_list:
                             print("\n✅ 1. Fázis sikeresen befejeződött.")
@@ -780,45 +811,67 @@ if __name__ == "__main__":
                     sys.exit()
                 finally:
                     page.close()
-            else:
-                print("\n✅ 1. Fázis (Letöltés) átugorva, adatok betöltése a mappákból...")
-                page.close()
-                if not final_image_map and befejezett_kategoriak:
-                    print("🔄 Belső fájl-térkép rekonstruálása a Kollazs_Kepek mappából...")
+            browser.close()  # Letöltő böngésző bezárása
+    else:
+        print("\n✅ 1. Fázis (Letöltés) átugorva, adatok betöltése a mappákból...")
 
-                    if os.path.exists("Kollazs_Kepek"):
-                        for f_id in befejezett_kategoriak:
-                            tiszta_id = f_id.replace(" (Összesítő)", "")
-                            utvonal = tiszta_id.split(" > ")
+        # Belső fájl-térkép rekonstruálása Playwright nélkül
+        if not final_image_map and befejezett_kategoriak:
+            print("🔄 Belső fájl-térkép rekonstruálása a Kollazs_Kepek mappából...")
 
-                            tiszta_utvonal = [tiszta_nev(p) for p in utvonal]
-                            mappa_path = os.path.join("Kollazs_Kepek", *tiszta_utvonal)
+            if os.path.exists("Kollazs_Kepek"):
+                for f_id in befejezett_kategoriak:
+                    tiszta_id = f_id.replace(" (Összesítő)", "")
+                    utvonal = tiszta_id.split(" > ")
 
-                            if os.path.exists(mappa_path):
-                                image_files = []
-                                for filename in os.listdir(mappa_path):
-                                    if filename.lower().endswith(('.jpg', '.jpeg', '.png')) and not filename.startswith(
-                                            '_kollazs'):
-                                        image_files.append(os.path.join(mappa_path, filename))
+                    tiszta_utvonal = [tiszta_nev(p) for p in utvonal]
+                    mappa_path = os.path.join("Kollazs_Kepek", *tiszta_utvonal)
 
-                                if image_files: final_image_map[f_id] = image_files
-                    print(f"   ({len(final_image_map)} kategória rekonstruálva)")
+                    if os.path.exists(mappa_path):
+                        image_files = []
+                        for filename in os.listdir(mappa_path):
+                            if filename.lower().endswith(('.jpg', '.jpeg', '.png')) and not filename.startswith(
+                                    '_kollazs'):
+                                image_files.append(os.path.join(mappa_path, filename))
 
-            kollazs_valasz = input("\n🎨 Szeretnéd most elkészíteni a kollázsokat? (i/n): ").strip().lower()
+                        if image_files: final_image_map[f_id] = image_files
+            print(f"   ({len(final_image_map)} kategória rekonstruálva)")
 
-            if kollazs_valasz == 'i':
-                interaktiv_kollazs_fázis2(ctx, final_image_map, coll_prog_f)
+    kollazs_valasz = input("\n🎨 Szeretnéd most elkészíteni a kollázsokat? (i/n): ").strip().lower()
 
-                if os.path.exists(scr_prog_f) and not os.path.exists(coll_prog_f):
-                    os.remove(scr_prog_f)
-                    print("🗑️ Letöltési menetfájl törölve (Minden kész).")
+    # ==============================================================================
+    # 2. FÁZIS: KOLLÁZS (LÁTHATÓ - HEADLESS: FALSE)
+    # ==============================================================================
+    if kollazs_valasz == 'i':
+        with sync_playwright() as p:
+            # Böngésző indítása maximalizálva
+            browser = p.chromium.launch(headless=False, args=['--start-maximized'])
 
-                valasz = input(
-                    "\nSzeretnéd most automatikusan feltölteni az elkészült kollázsokat? (i/n): ").strip().lower()
-                if valasz == 'i':
+            # ITT A JAVÍTÁS: no_viewport=True engedi, hogy kitöltse a teljes képernyőt!
+            ctx = browser.new_context(no_viewport=True)
+
+            interaktiv_kollazs_fázis2(ctx, final_image_map, coll_prog_f)
+            browser.close()  # Kollázskészítő böngésző bezárása
+
+        if os.path.exists(scr_prog_f) and not os.path.exists(coll_prog_f):
+            os.remove(scr_prog_f)
+            print("🗑️ Letöltési menetfájl törölve (Minden kész).")
+
+        valasz = input("\nSzeretnéd most automatikusan feltölteni az elkészült kollázsokat? (i/n): ").strip().lower()
+
+        # ==============================================================================
+        # 3. FÁZIS: FELTÖLTÉS (LÁTHATATLAN - HEADLESS: TRUE)
+        # ==============================================================================
+        if valasz == 'i':
+            with sync_playwright() as p:
+                # ITT VAN A LÉNYEG: headless=True
+                browser = p.chromium.launch(headless=True, args=['--start-maximized'])
+                # Újra betöltjük a korábbi bejelentkezést a feltöltéshez
+                ctx = bejelentkezes_kezelese(browser, F_NEV, J_SZO, BASE_URL, STATE_F)
+                if ctx:
                     feltoltes_falis3(ctx, final_image_map, BASE_URL)
-            else:
-                print("\n⏭️ Kollázskészítés és feltöltés kihagyva.")
+                browser.close()  # Feltöltő böngésző bezárása
+    else:
+        print("\n⏭️ Kollázskészítés és feltöltés kihagyva.")
 
-        browser.close()
-        print("\n🎉 Program befejeződött!")
+    print("\n🎉 Program befejeződött!")

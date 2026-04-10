@@ -5765,7 +5765,6 @@ padding: 10px 0 32px;
 
 
         function switchLayoutMode() {
-            // Képeket megtartjuk, állapotot tisztítjuk
             clearPersistentStorage();
             historyStack = [];
             redoStack = [];
@@ -5773,11 +5772,12 @@ padding: 10px 0 32px;
             activeImageIndex = -1;
             isSessionActive = false;
 
-            // Vissza a módválasztóra, de a képek megmaradnak a memóriában
             toggleView('start');
             document.getElementById('upload-step').classList.add('d-none');
             document.getElementById('mode-selection-step').classList.remove('d-none');
 
+            renderUploadPreview();
+            updateAutoModeCard();
             lucide.createIcons();
         }
 
