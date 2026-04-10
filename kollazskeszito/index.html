@@ -249,6 +249,7 @@
             z-index: 10001 !important;
         }
 
+
         .toolbar-section {
             display: flex;
             align-items: center;
@@ -356,8 +357,6 @@
         }
 
         #layoutModeBtnHeader {
-            width: 30px;
-            padding: 0;
             color: var(--accent-color) !important;
             border-color: transparent !important;
             background: var(--accent-subtle) !important;
@@ -425,9 +424,7 @@
 
         /* ── Settings Popover ── */
         .settings-popover {
-            position: absolute;
-            top: calc(100% + 10px);
-            right: 0;
+            position: fixed;
             width: 240px;
             background: var(--bg-elevated);
             border-radius: var(--radius-lg);
@@ -2016,37 +2013,37 @@
         }
 
 
-.upload-preview-grid {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    justify-content: center;
-    max-width: 640px;
-    max-height: 190px;
-    overflow-y: auto;
-    margin: 0 auto 24px;
-    padding: 4px 6px;
-    scrollbar-width: thin;
-    scrollbar-color: var(--border-medium) transparent;
-}
+        .upload-preview-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            max-width: 640px;
+            max-height: 190px;
+            overflow-y: auto;
+            margin: 0 auto 24px;
+            padding: 4px 6px;
+            scrollbar-width: thin;
+            scrollbar-color: var(--border-medium) transparent;
+        }
 
-.upload-preview-grid::-webkit-scrollbar {
-    height: 4px;
-    width: 4px;
-}
+        .upload-preview-grid::-webkit-scrollbar {
+            height: 4px;
+            width: 4px;
+        }
 
-.upload-preview-grid::-webkit-scrollbar-track {
-    background: transparent;
-}
+        .upload-preview-grid::-webkit-scrollbar-track {
+            background: transparent;
+        }
 
-.upload-preview-grid::-webkit-scrollbar-thumb {
-    background: var(--border-medium);
-    border-radius: 20px;
-}
+        .upload-preview-grid::-webkit-scrollbar-thumb {
+            background: var(--border-medium);
+            border-radius: 20px;
+        }
 
-.upload-preview-grid::-webkit-scrollbar-thumb:hover {
-    background: var(--border-strong);
-}
+        .upload-preview-grid::-webkit-scrollbar-thumb:hover {
+            background: var(--border-strong);
+        }
 
         .upload-preview-item {
             position: relative;
@@ -2091,6 +2088,17 @@
 
         .upload-preview-del:hover {
             opacity: 0.8;
+        }
+
+        .edit-thumb {
+            pointer-events: none;
+        }
+
+        .btn-reset-icon:disabled,
+        .btn-delete-icon:disabled {
+            opacity: 0.25;
+            cursor: not-allowed;
+            pointer-events: none;
         }
     </style>
 
@@ -2239,7 +2247,7 @@ padding: 10px 0 32px;
                     <button class="btn-compact" onclick="backToAutoSelect()" style="height:36px;padding:0 16px;">
                         <i data-lucide="arrow-left"></i><span>Vissza</span>
                     </button>
-                    <button class="btn-compact" onclick="downloadAutoCollage()"
+                    <button id="autoDownloadBtn" class="btn-compact" onclick="downloadAutoCollage()"
                         style="height:36px;padding:0 16px;background:var(--text-main)!important;color:var(--bg-panel)!important;border-color:transparent!important;">
                         <i data-lucide="download"></i><span>Letöltés</span>
                     </button>
@@ -2294,7 +2302,6 @@ padding: 10px 0 32px;
                     </div>
                 </div>
 
-
                 <div id="layout-controls" style="display: flex; align-items: center; gap: 7px;">
                     <span class="toolbar-label">Elrendezés</span>
                     <div class="segmented-wrapper">
@@ -2320,7 +2327,6 @@ padding: 10px 0 32px;
                         <i data-lucide="arrow-up-down"></i>
                     </button>
                 </div>
-
             </div>
 
             <!-- Right Section -->
@@ -2395,11 +2401,11 @@ padding: 10px 0 32px;
 
                 <button id="layoutModeBtnHeader" class="btn-compact" onclick="switchLayoutMode()"
                     title="Elrendezési mód váltása">
-                    <i data-lucide="layout-template"></i>
+                    <i data-lucide="layout-template"></i> Mód váltás
                 </button>
 
                 <button id="resetBtnHeader" class="btn-compact" onclick="resetCollage()" title="Munkaterület ürítése">
-                    <i data-lucide="trash-2"></i>
+                    <i data-lucide="trash-2"></i> Vászon törlés
                 </button>
 
                 <div class="toolbar-separator"></div>
@@ -2622,6 +2628,22 @@ padding: 10px 0 32px;
                 btn.innerHTML = '<i data-lucide="check"></i><span>Mentve</span>';
                 if (window.lucide) refreshIcons();
             }
+        }
+
+        function markAutoAsUnsaved() {
+            const btn = document.getElementById('autoDownloadBtn');
+            if (!btn) return;
+            btn.style.cssText = 'height:36px;padding:0 16px;background:var(--accent-color)!important;color:#fff!important;border-color:transparent!important;box-shadow:0 2px 8px var(--accent-glow);';
+            btn.innerHTML = '<i data-lucide="download"></i><span>Letöltés *</span>';
+            if (window.lucide) refreshIcons();
+        }
+
+        function markAutoAsSaved() {
+            const btn = document.getElementById('autoDownloadBtn');
+            if (!btn) return;
+            btn.style.cssText = 'height:36px;padding:0 16px;background:var(--bg-sunken)!important;color:var(--text-secondary)!important;border:1px solid var(--border-subtle)!important;';
+            btn.innerHTML = '<i data-lucide="check"></i><span>Mentve</span>';
+            if (window.lucide) refreshIcons();
         }
 
 
@@ -3343,24 +3365,24 @@ padding: 10px 0 32px;
             updateAutoModeCard();
         }
 
-        
+
         function updateAutoModeCard() {
-    const autoCard = document.querySelector('.mode-card[onclick="finalizeModeSelection(\'auto\')"]');
-    if (!autoCard) return;
+            const autoCard = document.querySelector('.mode-card[onclick="finalizeModeSelection(\'auto\')"]');
+            if (!autoCard) return;
 
-    const tooMany = loadedImages.length > 6;
-    autoCard.classList.toggle('disabled', tooMany);
+            const tooMany = loadedImages.length > 6;
+            autoCard.classList.toggle('disabled', tooMany);
 
-    const existing = autoCard.querySelector('.mode-card-limit-badge');
-    if (existing) existing.remove();
+            const existing = autoCard.querySelector('.mode-card-limit-badge');
+            if (existing) existing.remove();
 
-    if (tooMany) {
-        const badge = document.createElement('span');
-        badge.className = 'mode-card-limit-badge';
-        badge.textContent = 'Max. 6 kép';
-        autoCard.appendChild(badge);
-    }
-}
+            if (tooMany) {
+                const badge = document.createElement('span');
+                badge.className = 'mode-card-limit-badge';
+                badge.textContent = 'Max. 6 kép';
+                autoCard.appendChild(badge);
+            }
+        }
 
         // A régi initCollage most már csak egy híd a handleFiles felé
         function initCollage() {
@@ -3564,8 +3586,22 @@ padding: 10px 0 32px;
             const visibleCount = visibilities.filter(v => v !== false).length;
 
             if (layoutControls) {
-                // Az elrendezés választó csak Rács módban és min. 2 látható képnél kell
                 layoutControls.style.display = (currentMode === 'grid' && visibleCount > 1) ? 'flex' : 'none';
+
+                const gridOption = document.querySelector('input[name="layout"][value="grid"]');
+                const gridLabel = gridOption?.closest('label');
+                if (gridLabel) {
+                    gridLabel.style.display = visibleCount === 2 ? 'none' : '';
+                }
+
+                // Ha 2 képnél a "Rács" volt kijelölve, váltsunk "Mellé"-re
+                if (visibleCount === 2 && gridOption?.checked) {
+                    const horizontal = document.querySelector('input[name="layout"][value="horizontal"]');
+                    if (horizontal) {
+                        horizontal.checked = true;
+                        renderCollage();
+                    }
+                }
             }
 
             if (shuffleBtn) {
@@ -3629,20 +3665,20 @@ padding: 10px 0 32px;
                 card.innerHTML = `
             <div class="edit-card-header">
                 <div class="edit-thumb-container" style="opacity: ${isHidden ? '0.3' : '1'};">
-                    <img src="${img.src}" class="edit-thumb">
+                    <img src="${img.src}" class="edit-thumb" draggable="false">
                 </div>
                 <span class="edit-card-title" style="text-decoration: ${isHidden ? 'line-through' : 'none'}; color: ${isHidden ? 'var(--text-muted)' : 'var(--text-main)'}">${index + 1}. kép</span>
-                <div style="display: flex; gap: 4px;">
-                    <button class="btn-reset-icon" onclick="event.stopPropagation(); toggleVisibility(${index})" title="${isHidden ? 'Megjelenítés' : 'Elrejtés'}">
-                        <i data-lucide="${isHidden ? 'eye-off' : 'eye'}"></i>
-                    </button>
-                    <button class="btn-reset-icon" onclick="event.stopPropagation(); resetImageParams(${index})" title="Alaphelyzet">
-                        <i data-lucide="undo-2"></i>
-                    </button>
-                    <button class="btn-delete-icon" onclick="event.stopPropagation(); removeImage(${index})" title="Törlés">
-                        <i data-lucide="trash-2"></i>
-                    </button>
-                </div>
+<div style="display: flex; gap: 4px;">
+    <button class="btn-reset-icon" ${selectedIndices.size > 1 && isSelected ? 'disabled' : `onclick="event.stopPropagation(); toggleVisibility(${index})"`} title="${isHidden ? 'Megjelenítés' : 'Elrejtés'}">
+        <i data-lucide="${isHidden ? 'eye-off' : 'eye'}"></i>
+    </button>
+    <button class="btn-reset-icon" ${selectedIndices.size > 1 && isSelected ? 'disabled' : `onclick="event.stopPropagation(); resetImageParams(${index})"`} title="Alaphelyzet">
+        <i data-lucide="undo-2"></i>
+    </button>
+    <button class="btn-delete-icon" ${selectedIndices.size > 1 && isSelected ? 'disabled' : `onclick="event.stopPropagation(); removeImage(${index})"`} title="Törlés">
+        <i data-lucide="trash-2"></i>
+    </button>
+</div>
             </div>
         `;
                 sliderContainer.appendChild(card);
@@ -5249,40 +5285,20 @@ padding: 10px 0 32px;
 
         // --- SIDEBAR DRAG & DROP LOGIKA ---
         function setupSidebarDrop() {
-            const slidersArea = document.getElementById('sliders-area');
-
-            if (!slidersArea) return;
-
-            // Megakadályozzuk az alapértelmezett böngésző-nyitást
-            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                slidersArea.addEventListener(eventName, (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                }, false);
+            document.body.addEventListener('dragover', (e) => {
+                if (!isSessionActive) return;
+                if (!e.dataTransfer.types.includes('Files')) return;
+                e.preventDefault();
             });
 
-            // Amikor elkezded fölé húzni a fájlt
-            ['dragenter', 'dragover'].forEach(eventName => {
-                slidersArea.addEventListener(eventName, () => {
-                    slidersArea.classList.add('drag-active');
-                }, false);
-            });
-
-            // Amikor kihúzod vagy elengeded
-            ['dragleave', 'drop'].forEach(eventName => {
-                slidersArea.addEventListener(eventName, () => {
-                    slidersArea.classList.remove('drag-active');
-                }, false);
-            });
-
-            // A tényleges fájl-dobás eseménye
-            slidersArea.addEventListener('drop', (e) => {
-                const dt = e.dataTransfer;
-                const files = dt.files;
-                if (files && files.length > 0) {
-                    handleFiles(files); // Meghívjuk a már létező fájlkezelődet
+            document.body.addEventListener('drop', (e) => {
+                if (!isSessionActive) return;
+                if (!e.dataTransfer.types.includes('Files')) return;
+                e.preventDefault();
+                if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                    handleFiles(e.dataTransfer.files);
                 }
-            }, false);
+            });
         }
 
 
@@ -5301,7 +5317,7 @@ padding: 10px 0 32px;
 
 
         function finalizeModeSelection(selectedMode) {
-             if (selectedMode === 'auto' && loadedImages.length > 6) return; 
+            if (selectedMode === 'auto' && loadedImages.length > 6) return;
             if (selectedMode === 'auto') {
                 toggleView('editor');
                 setupCanvasInteractions();
@@ -5580,7 +5596,7 @@ padding: 10px 0 32px;
 
                 const canvas = document.createElement('canvas');
                 renderAutoCanvas(canvas, layout);
-canvas.style.cssText = 'width:260px;height:260px;border-radius:0;display:block;border:1px solid var(--border-subtle);';
+                canvas.style.cssText = 'width:260px;height:260px;border-radius:0;display:block;border:1px solid var(--border-subtle);';
 
                 const label = document.createElement('div');
                 label.style.cssText = 'font-size:11px;font-weight:700;color:var(--text-secondary);letter-spacing:.01em;';
@@ -5624,6 +5640,7 @@ canvas.style.cssText = 'width:260px;height:260px;border-radius:0;display:block;b
             renderAutoCanvas(canvas, layout);
 
             if (typeof lucide !== 'undefined') lucide.createIcons();
+            markAutoAsUnsaved();
         }
 
         function backToAutoSelect() {
@@ -5647,6 +5664,7 @@ canvas.style.cssText = 'width:260px;height:260px;border-radius:0;display:block;b
             link.href = canvas.toDataURL('image/png');
             link.click();
             //showToast('Kollázs letöltve!', 'download', 'var(--success)');
+            markAutoAsSaved();
         }
 
         // ── SZERKESZTÉS MEGNYITÁSA (FREE módban, grid nem rontja el) ──
@@ -5768,6 +5786,7 @@ canvas.style.cssText = 'width:260px;height:260px;border-radius:0;display:block;b
 
 
     </script>
+
 
 </body>
 
