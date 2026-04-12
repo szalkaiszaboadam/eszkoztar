@@ -107,11 +107,11 @@ def algoritmus_alapu_rendezes(termek_lista):
 # --- OLDAL MÉRET BEÁLLÍTÁSA 400-ra ---
 def osszes_termek_egy_oldalra(page, url):
     if "limit=" in url:
-        url = re.sub(r'limit=\d+', 'limit=400', url)
+        url = re.sub(r'limit=\d+', 'limit=800', url)
     elif "?" in url:
-        url += "&limit=400"
+        url += "&limit=800"
     else:
-        url += "?limit=400"
+        url += "?limit=800"
     
     page.goto(url, timeout=60000)
     page.wait_for_selector("table#productsList tbody tr", timeout=5000)
