@@ -2019,10 +2019,11 @@
             gap: 10px;
             justify-content: center;
             max-width: 640px;
-            max-height: 190px;
+            max-height: 200px;
+            overflow-x: hidden;
             overflow-y: auto;
             margin: 0 auto 24px;
-            padding: 4px 6px;
+            padding: 8px 8px 4px 8px;
             scrollbar-width: thin;
             scrollbar-color: var(--border-medium) transparent;
         }
@@ -2100,6 +2101,59 @@
             cursor: not-allowed;
             pointer-events: none;
         }
+
+
+        /* ============================================================
+   RESPONSIVE TOOLBAR FIX (1024px - 1300px) - JAVÍTOTT
+============================================================ */
+
+/* 1. Lépcső (1300px alatt): Térközök és belső margók finom csökkentése. 
+   MINDEN felirat megmarad, csak kompaktabb lesz az elrendezés. */
+@media (max-width: 1300px) {
+    .secondary-header {
+        padding: 0 8px;
+        gap: 4px;
+    }
+    .toolbar-section {
+        gap: 6px;
+    }
+    /* A Vászon és Elrendezés melletti inline gap (7px) felülbírálása */
+    .toolbar-section > div {
+        gap: 4px !important; 
+    }
+    
+    .btn-compact {
+        padding: 4 7px;
+        font-size: 12px;
+        gap: 4px;
+    }
+    
+    /* A Vászon/Elrendezés gombjainak belső margóját is szűkebbre vesszük */
+    .segmented-label {
+        padding: 3px 6px;
+    }
+
+    /* A szürke címkéket picit kisebbre vesszük, de LÁTHATÓAK maradnak */
+    .toolbar-label {
+        font-size: 10px;
+        letter-spacing: 0.04em;
+    }
+}
+
+/* 2. Lépcső (1150px alatt): CSAK a sima gombok (Kép hozzáadása, Mentés, stb.) 
+   szövegét rejtjük el. A Vászon és az Elrendezés kapcsolói érintetlenek maradnak! */
+@media (max-width: 1150px) {
+    .secondary-header .btn-compact span {
+        display: none;
+    }
+    /* Kicsit szélesebb gombok, ha már csak az ikon van bennük */
+    .secondary-header .btn-compact {
+        padding: 0 10px;
+    }
+    .toolbar-separator {
+        margin: 0 3px;
+    }
+}
     </style>
 
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -2120,8 +2174,7 @@
 
     <!-- ── Mobile warning ── -->
     <div id="mobile-warning">
-        <div style="font-size: 40px; margin-bottom: 16px;">💻</div>
-        <h2 style="font-family: 'Syne', sans-serif; font-size: 22px; margin-bottom: 8px;">Csak asztali gépen használható
+        <h2 style="font-size: 25px; margin-bottom: 8px;">Csak asztali gépen használható
         </h2>
         <p style="color: var(--text-muted); font-size: 14px;">A szerkesztő felület túl összetett mobil
             képernyőkhöz.<br>Kérjük, nyisd meg számítógépen.</p>
@@ -2399,14 +2452,14 @@ padding: 10px 0 32px;
 
                 <div class="toolbar-separator"></div>
 
-                <button id="layoutModeBtnHeader" class="btn-compact" onclick="switchLayoutMode()"
-                    title="Elrendezési mód váltása">
-                    <i data-lucide="layout-template"></i> Mód váltás
-                </button>
+<button id="layoutModeBtnHeader" class="btn-compact" onclick="switchLayoutMode()"
+    title="Elrendezési mód váltása">
+    <i data-lucide="layout-template"></i> <span>Mód váltás</span>
+</button>
 
-                <button id="resetBtnHeader" class="btn-compact" onclick="resetCollage()" title="Munkaterület ürítése">
-                    <i data-lucide="trash-2"></i> Vászon törlés
-                </button>
+<button id="resetBtnHeader" class="btn-compact" onclick="resetCollage()" title="Munkaterület ürítése">
+    <i data-lucide="trash-2"></i> <span>Vászon törlés</span>
+</button>
 
                 <div class="toolbar-separator"></div>
 
@@ -4573,6 +4626,20 @@ padding: 10px 0 32px;
         });
 
         document.addEventListener('keydown', (e) => {
+
+            // Undo: Ctrl+Z
+            if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+                e.preventDefault();
+                undo();
+                return;
+            }
+            // Redo: Ctrl+Y vagy Ctrl+Shift+Z
+            if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+                e.preventDefault();
+                redo();
+                return;
+            }
+
             // Ha nincs kijelölés vagy épp szöveget ír be a felhasználó, ne csináljon semmit
             if (selectedIndices.size === 0) return;
             if (e.target.tagName === 'INPUT') return;
@@ -4669,24 +4736,30 @@ padding: 10px 0 32px;
         }
 
         function selectImageFromSidebar(index, event) {
-            // MÓDOSÍTÁS: Itt is csak a SHIFT-et vizsgáljuk
             const isMulti = event ? event.shiftKey : false;
 
             if (isMulti) {
-                if (selectedIndices.has(index)) selectedIndices.delete(index);
-                else selectedIndices.add(index);
-
-                if (selectedIndices.has(index)) activeImageIndex = index;
+                if (selectedIndices.has(index)) {
+                    selectedIndices.delete(index);
+                    // Ha az aktív képet töröltük ki, az első maradó legyen az aktív
+                    if (activeImageIndex === index) {
+                        activeImageIndex = selectedIndices.size > 0
+                            ? selectedIndices.values().next().value
+                            : -1;
+                    }
+                } else {
+                    selectedIndices.add(index);
+                    activeImageIndex = index;
+                }
             } else {
                 selectedIndices.clear();
                 selectedIndices.add(index);
                 activeImageIndex = index;
             }
 
-            activeImageIndex = index;
-
             updateUIControls(true);
             renderCollage();
+            updateVisualSelection();
             updateCanvasHUD();
         }
 
