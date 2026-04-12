@@ -8,6 +8,55 @@ from dotenv import load_dotenv
 # --- .env betöltése egy mappával feljebb ---
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
 
+# --- MAGYAR ABC SORREND ---
+MAGYAR_ABC = {
+    'a': 1, 'á': 2,
+    'b': 3,
+    'c': 4, 'cs': 5,
+    'd': 6, 'dz': 7, 'dzs': 8,
+    'e': 9, 'é': 10,
+    'f': 11,
+    'g': 12, 'gy': 13,
+    'h': 14,
+    'i': 15, 'í': 16,
+    'j': 17,
+    'k': 18,
+    'l': 19, 'ly': 20,
+    'm': 21,
+    'n': 22, 'ny': 23,
+    'o': 24, 'ó': 25, 'ö': 26, 'ő': 27,
+    'p': 28,
+    'r': 29,
+    's': 30, 'sz': 31,
+    't': 32, 'ty': 33,
+    'u': 34, 'ú': 35, 'ü': 36, 'ű': 37,
+    'v': 38,
+    'z': 39, 'zs': 40,
+    'q': 41, 'w': 42, 'x': 43, 'y': 44,  # idegen betűk a végére
+}
+
+def magyar_char_ertek(s, pos):
+    """Visszaadja a magyar ABC értékét és a karakter hosszát (digráfok miatt)."""
+    # Kétbetűs digráfok ellenőrzése (cs, dz, gy, ly, ny, sz, ty, zs, dzs)
+    if pos + 2 < len(s) and s[pos:pos+3].lower() == 'dzs':
+        return MAGYAR_ABC.get('dzs', 99), 3
+    if pos + 1 < len(s):
+        ketbetus = s[pos:pos+2].lower()
+        if ketbetus in MAGYAR_ABC:
+            return MAGYAR_ABC[ketbetus], 2
+    egybetus = s[pos].lower()
+    return MAGYAR_ABC.get(egybetus, 50 + ord(s[pos])), 1
+
+def magyar_string_key(s):
+    """Egy stringet alakít át magyar ABC szerinti összehasonlítható tuple-lé."""
+    result = []
+    i = 0
+    while i < len(s):
+        ertek, hossz = magyar_char_ertek(s, i)
+        result.append(ertek)
+        i += hossz
+    return tuple(result)
+
 # --- UTILS ---
 def tiszta_nev(nev):
     return re.sub(r'[\\/*?:"<>|]', "", nev).strip()
@@ -17,7 +66,7 @@ def natural_sort_key(s):
         ertek = float(match.group(1))
         return str(ertek * 0.001)
 
-    s = re.sub(r'NO\.?\s*(\d+)', no_kalkulator, s, flags=re.IGNORECASE)
+    s_mod = re.sub(r'NO\.?\s*(\d+)', no_kalkulator, s, flags=re.IGNORECASE)
     
     def tort_kiszamolo(match):
         szamlalo, nevezo = match.group(1).split('/')
@@ -26,25 +75,26 @@ def natural_sort_key(s):
         except:
             return match.group(0)
 
-    s = re.sub(r'(\d+/\d+)', tort_kiszamolo, s)
-    parts = re.split(r'(\d+\.\d+|\d+)', s)
+    s_mod = re.sub(r'(\d+/\d+)', tort_kiszamolo, s_mod)
+    parts = re.split(r'(\d+\.\d+|\d+)', s_mod)
     
     result = []
     for text in parts:
         try:
-            if '.' in text:
-                result.append(float(text))
-            elif text.isdigit():
-                result.append(int(text))
+            if re.match(r'^\d+\.\d+$', text):
+                result.append((0, float(text)))
+            elif re.match(r'^\d+$', text):
+                result.append((0, int(text)))
             else:
-                result.append(text.lower())
+                # Magyar ABC szerinti rendezés szöveges részekre
+                result.append((1, magyar_string_key(text)))
         except ValueError:
-            result.append(text.lower())
+            result.append((1, magyar_string_key(text)))
     return result
 
 # --- RENDEZŐ LOGIKA ---
 def algoritmus_alapu_rendezes(termek_lista):
-    print(f"   🔢 Matematikai sorrend kalkulálása...")
+    print(f"   🔢 Matematikai sorrend kalkulálása ({len(termek_lista)} termék)...")
     rendezett = sorted(termek_lista, key=lambda x: natural_sort_key(x['nev']))
     
     print("\n   --- A KISZÁMOLT HELYES SORREND ---")
@@ -53,6 +103,19 @@ def algoritmus_alapu_rendezes(termek_lista):
     print("   ----------------------------------\n")
     
     return [t['id'] for t in rendezett]
+
+# --- OLDAL MÉRET BEÁLLÍTÁSA 400-ra ---
+def osszes_termek_egy_oldalra(page, url):
+    if "limit=" in url:
+        url = re.sub(r'limit=\d+', 'limit=400', url)
+    elif "?" in url:
+        url += "&limit=400"
+    else:
+        url += "?limit=400"
+    
+    page.goto(url, timeout=60000)
+    page.wait_for_selector("table#productsList tbody tr", timeout=5000)
+    return url
 
 # --- BOMBABIZTOS ÖNJAVÍTÓ MOZGATÁS ---
 def termekek_helyere_huzasa(page, kivan_sorrend_id):
@@ -95,8 +158,7 @@ def kategoria_rendezes_vegrehajtasa(page, url, kategoria_utvonal):
     print(f"\n⚡ RENDEZÉS INDÍTÁSA: {kat_nev}")
     
     try:
-        page.goto(url, timeout=60000)
-        page.wait_for_selector("table#productsList tbody tr", timeout=5000)
+        url_teljes = osszes_termek_egy_oldalra(page, url)
         
         termek_sorok = page.locator("table#productsList tbody tr").all()
         adatok = []
@@ -114,6 +176,7 @@ def kategoria_rendezes_vegrehajtasa(page, url, kategoria_utvonal):
             print("   ℹ️ Nincs mit rendezni.")
             return
 
+        print(f"   📦 Összesen {len(adatok)} termék található ebben a kategóriában.")
         optimalis_id_sorrend = algoritmus_alapu_rendezes(adatok)
         
         if optimalis_id_sorrend:
@@ -168,7 +231,6 @@ def bejelentkezes(browser: Browser, base_url, username, password):
     return context
 
 if __name__ == "__main__":
-    # --- Webshop választás ---
     print("Melyik webshopot szeretnéd rendezni?")
     print("  1 - SZVG Tools Shop (szvgtoolsshop.hu)")
     print("  2 - PTD Bolt (ptdbolt.hu)")
