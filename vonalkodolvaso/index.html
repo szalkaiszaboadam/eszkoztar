@@ -1377,15 +1377,15 @@
             </div>
         </div>
 
-        <div id="tab-context-menu" style="display:none; position:fixed; z-index:10000; min-width:178px;">
-            <div onclick="renameWorksheet()"><i data-lucide="edit-2"></i> Átnevezés</div>
-            <div onclick="askClearAll()"><i data-lucide="eraser"></i> Tartalom törlése</div>
-            <div onclick="deleteActiveWorksheet()"><i data-lucide="trash-2"></i> Munkalap törlése</div>
-        </div>
+    </div>
+    <div id="tab-context-menu" style="display:none; position:fixed; z-index:10000; min-width:178px;">
+        <div onclick="renameWorksheet()"><i data-lucide="edit-2"></i> Átnevezés</div>
+        <div onclick="askClearAll()"><i data-lucide="eraser"></i> Tartalom törlése</div>
+        <div onclick="deleteActiveWorksheet()"><i data-lucide="trash-2"></i> Munkalap törlése</div>
+    </div>
 
-        <div id="ws-list-dropdown"
-            style="display:none; position:fixed; z-index:10000; min-width:210px; max-height:50vh; overflow-y:auto;">
-        </div>
+    <div id="ws-list-dropdown"
+        style="display:none; position:fixed; z-index:10000; min-width:210px; max-height:50vh; overflow-y:auto;">
     </div>
 
     <!-- ══ SCANNER ══ -->
@@ -1564,24 +1564,39 @@
         const db = firebase.database();
         let currentWorksheetId = null, inventoryData = {};
 
+
         db.ref('worksheets').on('value', (snapshot) => {
             allWorksheetsData = snapshot.val() || {};
             const wsIds = Object.keys(allWorksheetsData).sort((a, b) =>
                 (allWorksheetsData[a].createdAt || 0) - (allWorksheetsData[b].createdAt || 0));
+                
             if (wsIds.length === 0) {
                 document.getElementById('empty-state').style.display = 'flex';
                 document.getElementById('active-ws-view').style.setProperty('display', 'none', 'important');
                 document.getElementById('nav-scan-btn').style.display = 'none';
                 currentWorksheetId = null;
+                
+                // Kapcsolat bontása a törölt listával
+                if (currentItemsRef) {
+                    currentItemsRef.off();
+                    currentItemsRef = null;
+                }
+
+                // KÉNYSZERÍTETT LAPVÁLTÁS: Dobjon vissza a Munkalapok "Üres" nézetére
+                const wsTabBtn = document.querySelector('button[onclick*="worksheets"]');
+                showTab('worksheets', wsTabBtn);
             } else {
                 document.getElementById('empty-state').style.display = 'none';
+                
+                // Fontos: Levesszük a 'none !important' szabályt, ha korábban rákerült
+                document.getElementById('active-ws-view').style.removeProperty('display');
                 document.getElementById('active-ws-view').style.display = 'flex';
                 document.getElementById('nav-scan-btn').style.display = 'flex';
+                
                 if (!currentWorksheetId || !allWorksheetsData[currentWorksheetId]) selectWorksheet(wsIds[0]);
                 else { renderTabs(); document.getElementById('active-ws-title').innerText = allWorksheetsData[currentWorksheetId].name; }
             }
         });
-
 
         function createNewWorksheet() {
             const today = new Date();
