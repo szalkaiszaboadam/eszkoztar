@@ -1569,13 +1569,13 @@
             allWorksheetsData = snapshot.val() || {};
             const wsIds = Object.keys(allWorksheetsData).sort((a, b) =>
                 (allWorksheetsData[a].createdAt || 0) - (allWorksheetsData[b].createdAt || 0));
-                
+
             if (wsIds.length === 0) {
                 document.getElementById('empty-state').style.display = 'flex';
                 document.getElementById('active-ws-view').style.setProperty('display', 'none', 'important');
                 document.getElementById('nav-scan-btn').style.display = 'none';
                 currentWorksheetId = null;
-                
+
                 // Kapcsolat bontása a törölt listával
                 if (currentItemsRef) {
                     currentItemsRef.off();
@@ -1587,12 +1587,12 @@
                 showTab('worksheets', wsTabBtn);
             } else {
                 document.getElementById('empty-state').style.display = 'none';
-                
+
                 // Fontos: Levesszük a 'none !important' szabályt, ha korábban rákerült
                 document.getElementById('active-ws-view').style.removeProperty('display');
                 document.getElementById('active-ws-view').style.display = 'flex';
                 document.getElementById('nav-scan-btn').style.display = 'flex';
-                
+
                 if (!currentWorksheetId || !allWorksheetsData[currentWorksheetId]) selectWorksheet(wsIds[0]);
                 else { renderTabs(); document.getElementById('active-ws-title').innerText = allWorksheetsData[currentWorksheetId].name; }
             }
@@ -1754,10 +1754,25 @@
             applyTheme(getTheme());
             lucide.createIcons();
             loadData(); renderQtyPicker();
+
             if (window.innerWidth >= 768) {
-                document.getElementById('nav-spacer').style.display = 'block';
-                document.getElementById('nav-bottom').style.display = 'flex';
+                // Csak akkor fut le, ha léteznek ezek az elemek
+                const spacer = document.getElementById('nav-spacer');
+                const bottom = document.getElementById('nav-bottom');
+                if (spacer) spacer.style.display = 'block';
+                if (bottom) bottom.style.display = 'flex';
             }
+
+            // --- EZZEL JAVÍTJUK A ZOOMOT ---
+            // Ha nem mobil eszközön vagyunk, teljesen eltüntetjük a zoom beállítást
+            if (!isMobileDevice) {
+                const zoomGroup = document.getElementById('zoom-settings-group');
+                if (zoomGroup) {
+                    zoomGroup.style.setProperty('display', 'none', 'important');
+                }
+            }
+            // --------------------------------
+
             setTimeout(() => lucide.createIcons(), 500);
         };
 
