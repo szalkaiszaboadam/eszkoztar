@@ -2295,6 +2295,13 @@ padding: 10px 0 32px;
             <!-- 3 változat kártyák -->
             <div id="auto-variants-row" style="display:flex;gap:20px;justify-content:center;flex-wrap:wrap;"></div>
 
+            <div id="auto-back-container"
+                style="width: 100%; max-width: 820px; display: flex; justify-content: flex-start; padding: 0 20px; margin-top: 10px;">
+                <button class="secondary-btn" style="width: auto; padding: 10px 20px;" onclick="backToModeSelection()">
+                    <i data-lucide="arrow-left"></i> Vissza a módokhoz
+                </button>
+            </div>
+
             <!-- Kiválasztott nézet -->
             <div id="auto-selected-view"
                 style="display:none;flex-direction:column;align-items:center;gap:20px;width:100%;max-width:560px;">
@@ -3317,9 +3324,26 @@ padding: 10px 0 32px;
         }
 
 
+        const MAX_IMAGES_LIMIT = 30; // Állítsd be a kívánt maximumot (pl. 15-20)
+
         async function handleFiles(fileList) {
-            const files = Array.from(fileList);
+            let files = Array.from(fileList);
             if (files.length === 0) return;
+
+            // --- ÚJ: Képszám biztonsági korlátozása ---
+            if (loadedImages.length + files.length > MAX_IMAGES_LIMIT) {
+                const remainingSpace = MAX_IMAGES_LIMIT - loadedImages.length;
+
+                if (remainingSpace <= 0) {
+                    alert(`Elérted a maximális limitet (${MAX_IMAGES_LIMIT} kép)! Kérlek, törölj párat a vászonról, mielőtt újat töltesz fel.`);
+                    document.getElementById('imageInput').value = '';
+                    return; // Megállítjuk a folyamatot
+                } else {
+                    alert(`Figyelem! A böngésző stabilitása érdekében maximum ${MAX_IMAGES_LIMIT} kép engedélyezett. A kiválasztott képekből csak az első ${remainingSpace} darabot adtuk hozzá.`);
+                    files = files.slice(0, remainingSpace); // Levágjuk a többletet a listáról
+                }
+            }
+            // ------------------------------------------
 
             const overlay = document.getElementById('processingOverlay');
             if (overlay) overlay.style.display = 'flex';
@@ -3359,7 +3383,7 @@ padding: 10px 0 32px;
                     zoomLevels.push(defaultZoom);
                     rotations.push(0);
                     imageOffsets.push({ x: 0, y: 0 });
-                    visibilities.push(true); // <--- ADD HOZZÁ
+                    visibilities.push(true);
                 });
 
                 // Átváltás a módválasztóra
@@ -3367,10 +3391,10 @@ padding: 10px 0 32px;
                 document.getElementById('mode-selection-step').classList.remove('d-none');
                 renderUploadPreview();
 
-                // UI frissítése (Ez már nem fog elszállni)
+                // UI frissítése
                 updateUIControls();
                 renderCollage();
-                markAsUnsaved(); // <--- ÚJ: Új kép feltöltése is változást jelent
+                markAsUnsaved();
 
             } catch (error) {
                 console.error("Részletes hiba:", error);
@@ -5483,6 +5507,7 @@ padding: 10px 0 32px;
 
                     // Nézet visszaállítása a kiválasztós állapotba
                     document.getElementById('auto-variants-row').style.display = 'flex';
+                    document.getElementById('auto-back-container').style.display = 'flex'; // <--- EZT ADD HOZZÁ
                     document.getElementById('auto-controls').style.display = 'flex';
                     document.getElementById('auto-selected-view').style.display = 'none';
                     document.getElementById('auto-title').textContent = 'Válassz egy elrendezést';
@@ -5932,6 +5957,7 @@ padding: 10px 0 32px;
             autoSelectedLayout = layout;
 
             document.getElementById('auto-variants-row').style.display = 'none';
+            document.getElementById('auto-back-container').style.display = 'none'; // <--- EZT ADD
             document.getElementById('auto-controls').style.display = 'none';
             document.getElementById('auto-selected-view').style.display = 'flex';
             document.getElementById('auto-title').textContent = `${index + 1}. változat kiválasztva`;
@@ -5944,9 +5970,26 @@ padding: 10px 0 32px;
             markAutoAsUnsaved();
         }
 
+        // ── VISSZALÉPÉS A MÓDVÁLASZTÓHOZ (Automata módból) ──
+        function backToModeSelection() {
+            // 1. Megnyitjuk a Start képernyőt
+            toggleView('start');
+
+            // 2. A toggleView alapból a feltöltőt mutatná, ezt felülbíráljuk:
+            document.getElementById('upload-step').classList.add('d-none');
+            document.getElementById('mode-selection-step').classList.remove('d-none');
+
+            // 3. Biztonság kedvéért elrejtjük az automata képernyőt
+            document.getElementById('auto-screen').classList.add('d-none');
+
+            // 4. Kinullázzuk az automata állapotokat
+            autoSelectedLayout = null;
+        }
+
         function backToAutoSelect() {
             autoSelectedLayout = null;
             document.getElementById('auto-variants-row').style.display = 'flex';
+            document.getElementById('auto-back-container').style.display = 'flex'; // <--- EZT
             document.getElementById('auto-controls').style.display = 'flex';
             document.getElementById('auto-selected-view').style.display = 'none';
             document.getElementById('auto-title').textContent = 'Válassz egy elrendezést';

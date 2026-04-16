@@ -206,7 +206,14 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
+*.json
+
+.DS_Store
 **/.DS_Store
 **/state.json
 **/state_ptd.json
 **/state_szvg.json
+
+Kollazs_Kepek/*
+Kollazs_Kepek/
+
