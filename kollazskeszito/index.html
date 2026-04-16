@@ -168,7 +168,8 @@
         #app-container {
             display: grid;
             grid-template-columns: 1fr 272px;
-            grid-template-rows: var(--header-h) var(--header-h) 1fr;
+            grid-template-rows: var(--header-h) 1fr;
+            /* <-- ITT VETTÜNK KI EGY SORT */
             height: 100%;
             width: 100%;
         }
@@ -2107,53 +2108,57 @@
    RESPONSIVE TOOLBAR FIX (1024px - 1300px) - JAVÍTOTT
 ============================================================ */
 
-/* 1. Lépcső (1300px alatt): Térközök és belső margók finom csökkentése. 
+        /* 1. Lépcső (1300px alatt): Térközök és belső margók finom csökkentése. 
    MINDEN felirat megmarad, csak kompaktabb lesz az elrendezés. */
-@media (max-width: 1300px) {
-    .secondary-header {
-        padding: 0 8px;
-        gap: 4px;
-    }
-    .toolbar-section {
-        gap: 6px;
-    }
-    /* A Vászon és Elrendezés melletti inline gap (7px) felülbírálása */
-    .toolbar-section > div {
-        gap: 4px !important; 
-    }
-    
-    .btn-compact {
-        padding: 4 7px;
-        font-size: 12px;
-        gap: 4px;
-    }
-    
-    /* A Vászon/Elrendezés gombjainak belső margóját is szűkebbre vesszük */
-    .segmented-label {
-        padding: 3px 6px;
-    }
+        @media (max-width: 1300px) {
+            .secondary-header {
+                padding: 0 8px;
+                gap: 4px;
+            }
 
-    /* A szürke címkéket picit kisebbre vesszük, de LÁTHATÓAK maradnak */
-    .toolbar-label {
-        font-size: 10px;
-        letter-spacing: 0.04em;
-    }
-}
+            .toolbar-section {
+                gap: 6px;
+            }
 
-/* 2. Lépcső (1150px alatt): CSAK a sima gombok (Kép hozzáadása, Mentés, stb.) 
+            /* A Vászon és Elrendezés melletti inline gap (7px) felülbírálása */
+            .toolbar-section>div {
+                gap: 4px !important;
+            }
+
+            .btn-compact {
+                padding: 4 7px;
+                font-size: 12px;
+                gap: 4px;
+            }
+
+            /* A Vászon/Elrendezés gombjainak belső margóját is szűkebbre vesszük */
+            .segmented-label {
+                padding: 3px 6px;
+            }
+
+            /* A szürke címkéket picit kisebbre vesszük, de LÁTHATÓAK maradnak */
+            .toolbar-label {
+                font-size: 10px;
+                letter-spacing: 0.04em;
+            }
+        }
+
+        /* 2. Lépcső (1150px alatt): CSAK a sima gombok (Kép hozzáadása, Mentés, stb.) 
    szövegét rejtjük el. A Vászon és az Elrendezés kapcsolói érintetlenek maradnak! */
-@media (max-width: 1150px) {
-    .secondary-header .btn-compact span {
-        display: none;
-    }
-    /* Kicsit szélesebb gombok, ha már csak az ikon van bennük */
-    .secondary-header .btn-compact {
-        padding: 0 10px;
-    }
-    .toolbar-separator {
-        margin: 0 3px;
-    }
-}
+        @media (max-width: 1150px) {
+            .secondary-header .btn-compact span {
+                display: none;
+            }
+
+            /* Kicsit szélesebb gombok, ha már csak az ikon van bennük */
+            .secondary-header .btn-compact {
+                padding: 0 10px;
+            }
+
+            .toolbar-separator {
+                margin: 0 3px;
+            }
+        }
     </style>
 
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -2187,8 +2192,7 @@
 
     <div id="app-container">
 
-        <!-- ── Top Header ── -->
-        <div></div>
+
 
         <!-- ── Start Screen ── -->
         <div id="start-screen">
@@ -2433,7 +2437,7 @@ padding: 10px 0 32px;
                                 </div>
                             </label>
 
-                            <div class="popover-divider"></div>
+                            <!--<div class="popover-divider"></div>-->
 
                             <label class="popover-item">
                                 <div class="item-info">
@@ -2452,14 +2456,14 @@ padding: 10px 0 32px;
 
                 <div class="toolbar-separator"></div>
 
-<button id="layoutModeBtnHeader" class="btn-compact" onclick="switchLayoutMode()"
-    title="Elrendezési mód váltása">
-    <i data-lucide="layout-template"></i> <span>Mód váltás</span>
-</button>
+                <button id="layoutModeBtnHeader" class="btn-compact" onclick="switchLayoutMode()"
+                    title="Elrendezési mód váltása">
+                    <i data-lucide="layout-template"></i> <span>Mód váltás</span>
+                </button>
 
-<button id="resetBtnHeader" class="btn-compact" onclick="resetCollage()" title="Munkaterület ürítése">
-    <i data-lucide="trash-2"></i> <span>Vászon törlés</span>
-</button>
+                <button id="resetBtnHeader" class="btn-compact" onclick="resetCollage()" title="Munkaterület ürítése">
+                    <i data-lucide="trash-2"></i> <span>Vászon törlés</span>
+                </button>
 
                 <div class="toolbar-separator"></div>
 
@@ -3304,6 +3308,7 @@ padding: 10px 0 32px;
 
             element.addEventListener('drop', (e) => {
                 e.preventDefault();
+                e.stopPropagation();
                 element.classList.remove('drag-over');
                 if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
                     handleFiles(e.dataTransfer.files);
@@ -4148,12 +4153,26 @@ padding: 10px 0 32px;
 
 
 
-
         function getHitFromCoords(mx, my) {
             // Visszafelé haladunk a rétegeken (legfelső kép az első)
             for (let i = renderHitBoxes.length - 1; i >= 0; i--) {
                 const box = renderHitBoxes[i];
-                if (mx >= box.x && mx <= box.x + box.w && my >= box.y && my <= box.y + box.h) {
+
+                // 1. Kiszámoljuk az egér távolságát a kép középpontjától
+                const dx = mx - box.cx;
+                const dy = my - box.cy;
+
+                // 2. Visszaforgatjuk az egér pozícióját a kép dőlésszögével ellentétesen
+                const rad = -box.rotation * Math.PI / 180;
+                const rx = dx * Math.cos(rad) - dy * Math.sin(rad);
+                const ry = dx * Math.sin(rad) + dy * Math.cos(rad);
+
+                // 3. A kép szélességének és magasságának a fele
+                const halfW = box.w / 2;
+                const halfH = box.h / 2;
+
+                // 4. Hit-teszt az "egyenesített" lokális koordinátákon
+                if (rx >= -halfW && rx <= halfW && ry >= -halfH && ry <= halfH) {
                     return { index: box.index };
                 }
             }
@@ -5542,98 +5561,307 @@ padding: 10px 0 32px;
             return result;
         }
 
+
+
         function computeAutoLayouts(images, gap, externalMargin) {
-            const targetW = 1000;
+            const TARGET = 1000;
+            const allCandidates = [];
+
             const perms = getAutoPermutations(images);
             const parts = getAutoPartitions(images.length);
-            const allLayouts = [];
 
-            for (let perm of perms) {
+            // AR szerinti extra permutációk
+            const sortedAsc = [...images].sort((a, b) => a.ar - b.ar);
+            const sortedDesc = [...images].sort((a, b) => b.ar - a.ar);
+            const allPerms = [...perms, sortedAsc, sortedDesc];
+
+            for (let perm of allPerms) {
                 for (let part of parts) {
-                    let totalH = 0, valid = true, imgIdx = 0;
-                    const rowData = [], rowHeights = [];
+                    const rowLayout = tryRowLayout(perm, part, gap, externalMargin, TARGET);
+                    if (rowLayout) allCandidates.push(rowLayout);
 
-                    for (let count of part) {
-                        let sumAR = 0;
-                        for (let i = 0; i < count; i++) sumAR += perm[imgIdx + i].ar;
-                        const availW = targetW - (count - 1) * gap;
-                        if (availW <= 0) { valid = false; break; }
-                        const rowH = availW / sumAR;
-                        rowHeights.push(rowH);
-                        totalH += rowH;
-                        rowData.push({ count, rowH, sumAR, startIndex: imgIdx });
-                        imgIdx += count;
-                    }
-                    if (!valid) continue;
-                    totalH += (part.length - 1) * gap;
-
-                    const maxH = Math.max(...rowHeights), minH = Math.min(...rowHeights);
-                    const heightRatio = maxH / minH;
-                    let score = Math.abs(totalH - targetW);
-                    if (heightRatio > 1.8) score += heightRatio * 5000;
-
-                    allLayouts.push({
-                        score, layout: {
-                            perm, part, rowData, totalH, targetW,
-                            gap, externalMargin,
-                            signature: part.join('-')
-                        }
-                    });
+                    const colLayout = tryColLayout(perm, part, gap, externalMargin, TARGET);
+                    if (colLayout) allCandidates.push(colLayout);
                 }
             }
 
-            allLayouts.sort((a, b) => a.score - b.score);
+            allCandidates.sort((a, b) => a.score - b.score);
 
-            const topLayouts = [];
-            const seenSigs = new Set();
-            for (let item of allLayouts) {
-                if (!seenSigs.has(item.layout.signature)) {
-                    topLayouts.push(item.layout);
-                    seenSigs.add(item.layout.signature);
+            const seen = new Set();
+            const top = [];
+
+            // --- ÚJ MATEMATIKA: Ha csak 1 kép van, maximum 1 változatot adjon, különben 3-at ---
+            const maxVariants = images.length === 1 ? 1 : 3;
+
+            for (const item of allCandidates) {
+                if (!seen.has(item.signature)) {
+                    top.push(item);
+                    seen.add(item.signature);
                 }
-                if (topLayouts.length === 3) break;
+                if (top.length === maxVariants) break; // Itt használjuk a dinamikus limitet
             }
-            if (topLayouts.length < 3) {
-                for (let item of allLayouts) {
-                    if (!topLayouts.includes(item.layout)) topLayouts.push(item.layout);
-                    if (topLayouts.length === 3) break;
-                }
+            return top;
+        }
+
+        function tryRowLayout(perm, part, gap, externalMargin, TARGET) {
+            let totalH = 0, valid = true, imgIdx = 0;
+            const rowData = [], rowHeights = [];
+
+            for (let count of part) {
+                let sumAR = 0;
+                for (let i = 0; i < count; i++) sumAR += perm[imgIdx + i].ar;
+                const availW = TARGET - (count - 1) * gap;
+                if (availW <= 0) { valid = false; break; }
+                const rowH = availW / sumAR;
+                rowHeights.push(rowH);
+                totalH += rowH;
+                rowData.push({ count, rowH, sumAR, startIndex: imgIdx });
+                imgIdx += count;
             }
-            return topLayouts;
+            if (!valid) return null;
+            totalH += (part.length - 1) * gap;
+
+            return {
+                type: 'rows',
+                score: scoreAutoLayout(rowHeights, totalH, TARGET),
+                perm, part, rowData,
+                totalH, totalW: TARGET,
+                gap, externalMargin,
+                signature: 'r:' + part.join('-')
+            };
+        }
+
+
+        function tryColLayout(perm, part, gap, externalMargin, TARGET) {
+            const colInfos = [];
+            let imgIdx = 0;
+
+            for (let count of part) {
+                let sumInvAR = 0;
+                for (let i = 0; i < count; i++) sumInvAR += 1 / perm[imgIdx + i].ar;
+                if (sumInvAR <= 0) return null;
+                colInfos.push({ count, sumInvAR, startIndex: imgIdx });
+                imgIdx += count;
+            }
+
+            const availW = TARGET - (part.length - 1) * gap;
+            if (availW <= 0) return null;
+
+            // --- MATEMATIKAI JAVÍTÁS: Itt számoljuk bele a függőleges réseket is a teljes magasságba! ---
+            let sumInverse = 0;
+            let sumGapTerm = 0;
+            for (let ci of colInfos) {
+                sumInverse += 1 / ci.sumInvAR;
+                sumGapTerm += ((ci.count - 1) * gap) / ci.sumInvAR;
+            }
+
+            const totalH = (availW + sumGapTerm) / sumInverse;
+            if (totalH <= 0 || !isFinite(totalH)) return null;
+
+            const colWidths = colInfos.map(ci => (totalH - (ci.count - 1) * gap) / ci.sumInvAR);
+
+            // Ha valamelyik oszlop szélessége negatív lenne (mert túl nagy a gap csúszka), ez a layout érvénytelen
+            if (colWidths.some(w => w <= 0)) return null;
+
+            const colData = colInfos.map((ci, i) => ({ ...ci, colW: colWidths[i] }));
+
+            return {
+                type: 'cols',
+                score: scoreAutoLayout(colWidths, totalH, TARGET), // JAVÍTVA a sorrend is
+                perm, part, colData,
+                totalH, totalW: TARGET,
+                gap, externalMargin,
+                signature: 'c:' + part.join('-')
+            };
+        }
+
+
+        function scoreAutoLayout(dims, totalH, totalW) {
+            // Elsősorban: mennyire négyzetes a végeredmény
+            const aspectScore = Math.abs(totalH / totalW - 1) * 8000;
+            // Másodsorban: mennyire egyenlők a sorok/oszlopok méretei
+            const maxDim = Math.max(...dims);
+            const minDim = Math.min(...dims);
+            const balanceScore = dims.length > 1 ? (maxDim / minDim - 1) * 1500 : 0;
+            return aspectScore + balanceScore;
         }
 
         // ── CANVAS RAJZOLÁS ──────────────────────────────────────
         function renderAutoCanvas(canvas, layout) {
-            const gap = layout.gap;
-            const externalMargin = layout.externalMargin;
             canvas.width = 1000; canvas.height = 1000;
             const ctx = canvas.getContext('2d');
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, 1000, 1000);
 
+            const { gap, externalMargin, totalH, totalW, perm } = layout;
             const maxDrawArea = 1000 - externalMargin * 2;
-            const finalScale = Math.min(maxDrawArea / layout.targetW, maxDrawArea / layout.totalH);
-            const offsetX = (1000 - layout.targetW * finalScale) / 2;
-            const offsetY = (1000 - layout.totalH * finalScale) / 2;
-            let currentY = offsetY;
+            const finalScale = Math.min(maxDrawArea / totalW, maxDrawArea / totalH);
+            const offsetX = (1000 - totalW * finalScale) / 2;
+            const offsetY = (1000 - totalH * finalScale) / 2;
 
-            for (let row of layout.rowData) {
+            if (layout.type === 'cols') {
                 let currentX = offsetX;
-                const finalRowH = row.rowH * finalScale;
-                const finalGapPx = gap * finalScale;
-                for (let i = 0; i < row.count; i++) {
-                    const imgItem = layout.perm[row.startIndex + i];
-                    const finalImgW = imgItem.ar * row.rowH * finalScale;
-                    ctx.drawImage(imgItem.canvas, currentX, currentY, finalImgW, finalRowH);
-                    currentX += finalImgW + finalGapPx;
+                for (let col of layout.colData) {
+                    const finalColW = col.colW * finalScale;
+                    let currentY = offsetY;
+                    for (let i = 0; i < col.count; i++) {
+                        const imgItem = perm[col.startIndex + i];
+                        const finalImgH = (col.colW / imgItem.ar) * finalScale;
+                        ctx.drawImage(imgItem.canvas, currentX, currentY, finalColW, finalImgH);
+                        currentY += finalImgH + gap * finalScale;
+                    }
+                    currentX += finalColW + gap * finalScale;
                 }
-                currentY += finalRowH + finalGapPx;
+            } else {
+                let currentY = offsetY;
+                for (let row of layout.rowData) {
+                    let currentX = offsetX;
+                    const finalRowH = row.rowH * finalScale;
+                    for (let i = 0; i < row.count; i++) {
+                        const imgItem = perm[row.startIndex + i];
+                        const finalImgW = imgItem.ar * row.rowH * finalScale;
+                        ctx.drawImage(imgItem.canvas, currentX, currentY, finalImgW, finalRowH);
+                        currentX += finalImgW + gap * finalScale;
+                    }
+                    currentY += finalRowH + gap * finalScale;
+                }
             }
         }
 
-        // ── VÁLTOZATOK MEGJELENÍTÉSE ─────────────────────────────
+
+        // ── SZERKESZTÉS MEGNYITÁSA (FREE módban, grid nem rontja el) ──
+        function editAutoCollage() {
+            if (!autoSelectedLayout) return;
+
+            const layout = autoSelectedLayout;
+            const gap = layout.gap;
+            const externalMargin = layout.externalMargin;
+            const AUTO_SIZE = 1000;
+            const EDITOR_SIZE = 800;
+            const scaleFactor = EDITOR_SIZE / AUTO_SIZE;
+
+            // Képek átrendezése a layout perm sorrendje szerint
+            loadedImages = layout.perm.map(item => loadedImages[item.originalIndex]);
+            originalImages = layout.perm.map(item => originalImages[item.originalIndex]);
+
+            const n = loadedImages.length;
+            zoomLevels = new Array(n).fill(1);
+            imageOffsets = Array.from({ length: n }, () => ({ x: 0, y: 0 }));
+            rotations = new Array(n).fill(0);
+            visibilities = new Array(n).fill(true);
+
+            // Auto layout geometria
+            const maxDrawArea = AUTO_SIZE - externalMargin * 2;
+
+            // JAVÍTVA: Itt volt a hiba! layout.targetW helyett layout.totalW kell
+            const finalScale = Math.min(maxDrawArea / layout.totalW, maxDrawArea / layout.totalH);
+            const offsetXBase = (AUTO_SIZE - layout.totalW * finalScale) / 2;
+            const offsetYBase = (AUTO_SIZE - layout.totalH * finalScale) / 2;
+
+            let permIdx = 0;
+
+            if (layout.type === 'cols') {
+                let currentX = offsetXBase;
+                for (let col of layout.colData) {
+                    const finalColW = col.colW * finalScale;
+                    let currentY = offsetYBase;
+                    for (let i = 0; i < col.count; i++) {
+                        const imgItem = layout.perm[col.startIndex + i];
+                        const finalImgH = (col.colW / imgItem.ar) * finalScale;
+
+                        const editorCX = (currentX + finalColW / 2) * scaleFactor;
+                        const editorCY = (currentY + finalImgH / 2) * scaleFactor;
+
+                        const img = loadedImages[permIdx];
+                        const baseScale = Math.min(EDITOR_SIZE / img.width, EDITOR_SIZE / img.height) * 0.5;
+
+                        const finalImgWPx = finalColW * scaleFactor;
+                        const zoom = finalImgWPx / (imgItem.cropW * baseScale);
+                        zoomLevels[permIdx] = Math.max(0.1, Math.min(3.0, Math.round(zoom * 100) / 100));
+
+                        const Z = zoomLevels[permIdx];
+
+                        const prodOffX = (imgItem.cropOffsetX + imgItem.cropW / 2 - img.width / 2) * baseScale * Z;
+                        const prodOffY = (imgItem.cropOffsetY + imgItem.cropH / 2 - img.height / 2) * baseScale * Z;
+
+                        imageOffsets[permIdx] = {
+                            x: Math.round(editorCX - 400 - prodOffX),
+                            y: Math.round(editorCY - 400 - prodOffY)
+                        };
+
+                        currentY += finalImgH + gap * finalScale;
+                        permIdx++;
+                    }
+                    currentX += finalColW + gap * finalScale;
+                }
+            } else {
+                let currentY = offsetYBase;
+                for (let row of layout.rowData) {
+                    let currentX = offsetXBase;
+                    const finalRowH = row.rowH * finalScale;
+                    const finalGapPx = gap * finalScale;
+                    for (let i = 0; i < row.count; i++) {
+                        const imgItem = layout.perm[row.startIndex + i];
+                        const finalImgW = imgItem.ar * row.rowH * finalScale;
+
+                        const editorCX = (currentX + finalImgW / 2) * scaleFactor;
+                        const editorCY = (currentY + finalRowH / 2) * scaleFactor;
+
+                        const img = loadedImages[permIdx];
+                        const baseScale = Math.min(EDITOR_SIZE / img.width, EDITOR_SIZE / img.height) * 0.5;
+
+                        const finalImgWPx = finalImgW * scaleFactor;
+                        const zoom = finalImgWPx / (imgItem.cropW * baseScale);
+                        zoomLevels[permIdx] = Math.max(0.1, Math.min(3.0, Math.round(zoom * 100) / 100));
+
+                        const Z = zoomLevels[permIdx];
+
+                        const prodOffX = (imgItem.cropOffsetX + imgItem.cropW / 2 - img.width / 2) * baseScale * Z;
+                        const prodOffY = (imgItem.cropOffsetY + imgItem.cropH / 2 - img.height / 2) * baseScale * Z;
+
+                        imageOffsets[permIdx] = {
+                            x: Math.round(editorCX - 400 - prodOffX),
+                            y: Math.round(editorCY - 400 - prodOffY)
+                        };
+
+                        currentX += finalImgW + finalGapPx;
+                        permIdx++;
+                    }
+                    currentY += finalRowH + finalGapPx;
+                }
+            }
+
+            // FREE mód megnyitása
+            currentMode = 'free';
+            isSessionActive = true;
+            historyStack = [];
+            redoStack = [];
+            selectedIndices.clear();
+            activeImageIndex = -1;
+
+            toggleView('editor');
+            setupCanvasInteractions();
+            updateUIControls();
+            renderCollage();
+            saveToPersistentStorage();
+            updateHistoryButtonsUI();
+            updateCanvasHUD();
+        }
+
+
         function regenerateAutoLayouts() {
             autoCurrentLayouts = computeAutoLayouts(autoCroppedImages, autoGap, autoMargin);
+
+            // --- ÚJ RÉSZ: Dinamikus szöveg beállítása ---
+            const subtitle = document.getElementById('auto-subtitle');
+            if (subtitle) {
+                if (autoCurrentLayouts.length === 1) {
+                    subtitle.textContent = 'Az algoritmus elkészítette az elrendezést';
+                } else {
+                    subtitle.textContent = `Az algoritmus megtalálta a legjobb ${autoCurrentLayouts.length} elrendezést`;
+                }
+            }
+
             renderAutoVariants();
         }
 
@@ -5722,7 +5950,16 @@ padding: 10px 0 32px;
             document.getElementById('auto-controls').style.display = 'flex';
             document.getElementById('auto-selected-view').style.display = 'none';
             document.getElementById('auto-title').textContent = 'Válassz egy elrendezést';
-            document.getElementById('auto-subtitle').textContent = 'Az algoritmus megtalálta a legjobb 3 elrendezést';
+
+            // --- ÚJ RÉSZ: Visszaálláskor is dinamikus a szöveg ---
+            const subtitle = document.getElementById('auto-subtitle');
+            if (subtitle) {
+                if (autoCurrentLayouts.length === 1) {
+                    subtitle.textContent = 'Az algoritmus elkészítette az elrendezést';
+                } else {
+                    subtitle.textContent = `Az algoritmus megtalálta a legjobb ${autoCurrentLayouts.length} elrendezést`;
+                }
+            }
         }
 
         // ── LETÖLTÉS ─────────────────────────────────────────────
@@ -5740,99 +5977,6 @@ padding: 10px 0 32px;
             markAutoAsSaved();
         }
 
-        // ── SZERKESZTÉS MEGNYITÁSA (FREE módban, grid nem rontja el) ──
-        function editAutoCollage() {
-            if (!autoSelectedLayout) return;
-
-            const layout = autoSelectedLayout;
-            const gap = layout.gap;
-            const externalMargin = layout.externalMargin;
-            const AUTO_SIZE = 1000;
-            const EDITOR_SIZE = 800;
-            const scaleFactor = EDITOR_SIZE / AUTO_SIZE;
-
-            // Képek átrendezése a layout perm sorrendje szerint
-            loadedImages = layout.perm.map(item => loadedImages[item.originalIndex]);
-            originalImages = layout.perm.map(item => originalImages[item.originalIndex]);
-
-            const n = loadedImages.length;
-            zoomLevels = new Array(n).fill(1);
-            imageOffsets = Array.from({ length: n }, () => ({ x: 0, y: 0 }));
-            rotations = new Array(n).fill(0);
-            visibilities = new Array(n).fill(true);
-
-            // Auto layout geometria
-            const maxDrawArea = AUTO_SIZE - externalMargin * 2;
-            const finalScale = Math.min(maxDrawArea / layout.targetW, maxDrawArea / layout.totalH);
-            const offsetXBase = (AUTO_SIZE - layout.targetW * finalScale) / 2;
-            const offsetYBase = (AUTO_SIZE - layout.totalH * finalScale) / 2;
-
-            let currentY = offsetYBase;
-            let permIdx = 0;
-
-            for (let row of layout.rowData) {
-                let currentX = offsetXBase;
-                const finalRowH = row.rowH * finalScale;
-                const finalGapPx = gap * finalScale;
-
-                for (let i = 0; i < row.count; i++) {
-                    const imgItem = layout.perm[row.startIndex + i];
-                    const finalImgW = imgItem.ar * row.rowH * finalScale;
-
-                    // A termék közepe az auto 1000×1000 térben
-                    const autoCX = currentX + finalImgW / 2;
-                    const autoCY = currentY + finalRowH / 2;
-
-                    // Átváltás editor 800×800 térbe
-                    const editorProductCX = autoCX * scaleFactor;
-                    const editorProductCY = autoCY * scaleFactor;
-
-                    const img = loadedImages[permIdx];
-                    const baseScale = Math.min(EDITOR_SIZE / img.width, EDITOR_SIZE / img.height) * 0.5;
-
-                    // HELYES ZOOM: a kivágott termék mérete = finalImgW * 0.8 a szerkesztőben
-                    // cropW * baseScale * zoom = finalImgW * 0.8
-                    const zoom = (finalImgW * scaleFactor) / (imgItem.cropW * baseScale);
-                    zoomLevels[permIdx] = Math.max(0.1, Math.min(3.0, Math.round(zoom * 100) / 100));
-
-                    const Z = zoomLevels[permIdx];
-
-                    // A termék (kivágott terület) középpontja a teljes kép középjához képest,
-                    // a szerkesztő koordináta-rendszerében:
-                    const prodOffX = (imgItem.cropOffsetX + imgItem.cropW / 2 - img.width / 2) * baseScale * Z;
-                    const prodOffY = (imgItem.cropOffsetY + imgItem.cropH / 2 - img.height / 2) * baseScale * Z;
-
-                    // offset: a teljes kép középpontja hova kerüljön a vásznon (400,400 a centrum)
-                    // termékközép = 400 + offset + prodOff  →  offset = termékközép - 400 - prodOff
-                    imageOffsets[permIdx] = {
-                        x: Math.round(editorProductCX - 400 - prodOffX),
-                        y: Math.round(editorProductCY - 400 - prodOffY)
-                    };
-
-                    currentX += finalImgW + finalGapPx;
-                    permIdx++;
-                }
-                currentY += finalRowH + finalGapPx;
-            }
-
-            // FREE mód megnyitása
-            currentMode = 'free';
-            isSessionActive = true;
-            historyStack = [];
-            redoStack = [];
-            selectedIndices.clear();
-            activeImageIndex = -1;
-
-            toggleView('editor');
-            setupCanvasInteractions();
-            updateUIControls();
-            renderCollage();
-            saveToPersistentStorage();
-            updateHistoryButtonsUI();
-            updateCanvasHUD();
-
-            //showToast('Megnyitva szerkesztésre', 'pencil', 'var(--accent-color)');
-        }
 
 
 
