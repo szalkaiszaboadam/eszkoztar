@@ -1,0 +1,75 @@
+Van egy Excel fájlom, amely egy adott márka termékeit tartalmazza (pl. INGCO, Knipex, Cerva).
+
+A fájl tartalmazza a termékek cikkszámát és nevét.
+
+1. Feladat
+
+Határozd meg minden termékhez a kapcsolódó termékeket, és add vissza egy új oszlopban.
+
+Kapcsolódó termék = olyan termék, amely:
+
+kiegészíti a használatot
+szükséges a működéshez
+gyakran együtt vásárolják
+ugyanahhoz a feladathoz tartozik
+2. Kapcsolódási típusok (EZ A LÉNYEG)
+
+Csak az alábbi logikák alapján párosíts:
+
+1. Tartozék kapcsolat
+pl. fúrógép → fúrószár
+csiszoló → csiszolópapír
+2. Kompatibilis kapcsolat
+pl. akkus gép → akkumulátor / töltő
+3. Kiegészítő kapcsolat
+pl. kompresszor → tömlő / csatlakozó
+festékszóró → festék tartozék
+4. Használati kapcsolat
+pl. védőeszköz → kesztyű, szemüveg
+hegesztő → hegesztési tartozék
+3. SZIGORÚ SZABÁLYOK
+Csak az adott Excelen belüli termékek közül választhatsz
+Ne találj ki nem létező terméket
+Maximum 3–5 kapcsolódó terméket adj meg soronként
+Ha nincs egyértelmű kapcsolat → hagyd üresen és írd a megjegyzésbe
+4. Output (KÖTELEZŐ FORMÁTUM)
+
+Adj vissza egy Excel fájlt.
+
+Worksheet 1:
+
+Oszlopok:
+
+Cikkszám
+Név
+Kapcsolódó termékek
+Márka
+Megjegyzés
+
+Formátum:
+
+A „Kapcsolódó termékek” oszlopban a cikkszámokat add meg
+Több érték esetén „;” karakterrel elválasztva
+Példa:
+ING123;ING456;ING789
+Megjegyzés
+5. Megjegyzés oszlop szabály
+
+Ide írd:
+
+„Nem egyértelmű”, ha nem biztos a kapcsolat
+„Nincs releváns kapcsolódó termék”, ha nincs
+rövid indoklás, ha szükséges
+6. Fontos döntési elv
+Ne általánosíts túl
+❌ „minden géphez minden tartozék”
+Inkább kevesebb, de releváns kapcsolat
+✅ pontos, használható cross-sell
+7. Minőségi szabály (kritikus)
+
+Úgy válassz kapcsolódó termékeket, hogy:
+
+könnyen érthetők laikus (B2C) vásárlónak is
+logikusak szakmai (B2B) vásárlónak is
+segítse a rendelési érték növelését
+logikus csomagként is működjenek
