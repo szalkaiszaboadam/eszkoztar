@@ -159,22 +159,37 @@ def termek_letolto_fázis1(page, url, kategoria_utvonal, letoltendo_db, eloszlas
 
     print(f"   ⚙️ Képek letöltése ide: {kat_azonosito}")
     cel_indexek = indexek_kiszamitasa(osszes_termek, letoltendo_db, eloszlas_mod)
-    termek_linkek = [osszes_termek_link[idx] for idx in cel_indexek]
 
+    # --- ÚJ LOGIKA: Dinamikus pótlás (Nincs retry_list spam) ---
+    # Létrehozunk egy listát a még ki nem próbált termékek indexeiből
+    kiprobalatlan_indexek = [i for i in range(osszes_termek) if i not in cel_indexek]
+    if eloszlas_mod == "random":
+        random.shuffle(kiprobalatlan_indexek)
+
+    vonal = [osszes_termek_link[idx] for idx in cel_indexek]
     lokalis_fajlok = []
+    szukseges_db = min(letoltendo_db, osszes_termek)
+    probalkozas_szam = 0
 
-    for i, p_url in enumerate(termek_linkek):
+    while len(lokalis_fajlok) < szukseges_db and vonal:
+        p_url = vonal.pop(0)
+        probalkozas_szam += 1
         try:
-            fajl_ut = letoltes_vegrehajtasa_fajl_visszaadas(page, p_url, mappa_path, i + 1, base_url)
+            fajl_ut = letoltes_vegrehajtasa_fajl_visszaadas(page, p_url, mappa_path, probalkozas_szam, base_url)
             if fajl_ut:
                 lokalis_fajlok.append(fajl_ut)
+            else:
+                # Nincs kép: Azonnal pótoljuk egy másikkal a maradékból!
+                print("      🔄 Nincs kép, pótlás egy másik termékkel...")
+                if kiprobalatlan_indexek:
+                    uj_idx = kiprobalatlan_indexek.pop(0)
+                    vonal.append(osszes_termek_link[uj_idx])
         except Exception as e:
-            print(f"      ❌ Hiba (1. FÁZIS): {e}")
-            retry_list.append({
-                "url": p_url,
-                "kategoria_utvonal": kategoria_utvonal,
-                "fallback_idx": i + 1
-            })
+            # Hiba volt (pl. timeout): Azonnal pótoljuk egy másikkal!
+            print(f"      ❌ Hiba (1. FÁZIS): {e} -> Termék kihagyása, keresünk másikat...")
+            if kiprobalatlan_indexek:
+                uj_idx = kiprobalatlan_indexek.pop(0)
+                vonal.append(osszes_termek_link[uj_idx])
 
     befejezett_kategoriak.append(kat_azonosito)
     allapot_mentese_scraper(progress_file, befejezett_kategoriak, retry_list)
@@ -277,31 +292,37 @@ def kategoria_bejaro_fázis1(page, url, kategoria_utvonal, alap_letoltendo_db, e
 
             if kat_azonosito_full not in befejezett_kategoriak:
                 print(f"\n   📦 [Összesítő szint] Gyűjtemény letöltése ide: {' > '.join(kategoria_utvonal)}")
-
-                cel_linkek = []
-                if len(egyedi_linkek) <= aktualis_db:
-                    cel_linkek = egyedi_linkek
-                else:
-                    if eloszlas_mod == "random":
-                        cel_linkek = random.sample(egyedi_linkek, aktualis_db)
-                    else:
-                        lepes = (len(egyedi_linkek) - 1) / (aktualis_db - 1)
-                        cel_linkek = [egyedi_linkek[round(lepes * i)] for i in range(aktualis_db)]
-
                 os.makedirs(mappa_path, exist_ok=True)
-                lokalis_osszesito_fajlok = []
 
-                for i, p_url in enumerate(cel_linkek):
+                # --- ÚJ LOGIKA: Dinamikus pótlás az összesítőnél is ---
+                cel_indexek = indexek_kiszamitasa(len(egyedi_linkek), aktualis_db, eloszlas_mod)
+                kiprobalatlan_indexek = [i for i in range(len(egyedi_linkek)) if i not in cel_indexek]
+                if eloszlas_mod == "random":
+                    random.shuffle(kiprobalatlan_indexek)
+
+                vonal = [egyedi_linkek[idx] for idx in cel_indexek]
+                szukseges_db = min(aktualis_db, len(egyedi_linkek))
+                lokalis_osszesito_fajlok = []
+                prob_idx = 0
+
+                while len(lokalis_osszesito_fajlok) < szukseges_db and vonal:
+                    p_url = vonal.pop(0)
+                    prob_idx += 1
                     try:
-                        fajl_ut = letoltes_vegrehajtasa_fajl_visszaadas(page, p_url, mappa_path, 2000 + i, base_url)
-                        if fajl_ut: lokalis_osszesito_fajlok.append(fajl_ut)
+                        fajl_ut = letoltes_vegrehajtasa_fajl_visszaadas(page, p_url, mappa_path, 2000 + prob_idx,
+                                                                        base_url)
+                        if fajl_ut:
+                            lokalis_osszesito_fajlok.append(fajl_ut)
+                        else:
+                            print("      🔄 [Összesítő] Nincs kép, pótlás...")
+                            if kiprobalatlan_indexek:
+                                uj_idx = kiprobalatlan_indexek.pop(0)
+                                vonal.append(egyedi_linkek[uj_idx])
                     except Exception as e:
-                        print(f"      ❌ Hiba (Összesítő kör): {e}")
-                        retry_list.append({
-                            "url": p_url,
-                            "kategoria_utvonal": kategoria_utvonal,
-                            "fallback_idx": 2000 + i
-                        })
+                        print(f"      ❌ Hiba (Összesítő kör): {e} -> Kihagyás, keresünk másikat...")
+                        if kiprobalatlan_indexek:
+                            uj_idx = kiprobalatlan_indexek.pop(0)
+                            vonal.append(egyedi_linkek[uj_idx])
 
                 if lokalis_osszesito_fajlok: image_map[kat_azonosito_full] = lokalis_osszesito_fajlok
                 befejezett_kategoriak.append(kat_azonosito_full)

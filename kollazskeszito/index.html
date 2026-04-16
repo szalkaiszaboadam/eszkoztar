@@ -3688,7 +3688,7 @@ padding: 10px 0 32px;
 
             if (shuffleBtn) {
                 // Csak akkor jelenik meg, ha NEM szabad (manuális) módban vagyunk, és van min. 2 látható kép
-                shuffleBtn.style.display = (currentMode !== 'free' && visibleCount >= 2) ? 'inline-flex' : 'none';
+                shuffleBtn.style.display = (currentMode !== 'free' && visibleCount > 1) ? 'inline-flex' : 'none';
             }
 
             if (selectAllBtn) {
@@ -3699,7 +3699,7 @@ padding: 10px 0 32px;
             const flipBtn = document.getElementById('flipLayoutBtn');
             if (flipBtn) {
                 // A fordítógomb csak Rács módban, min. 3 látható képnél, ha a számuk páratlan
-                flipBtn.style.display = (currentMode === 'grid' && visibleCount > 1 && visibleCount % 2 !== 0) ? 'inline-flex' : 'none';
+               flipBtn.style.display = (currentMode === 'grid' && visibleCount > 2 && visibleCount % 2 !== 0) ? 'inline-flex' : 'none';
             }
 
             sliderContainer.innerHTML = '';
