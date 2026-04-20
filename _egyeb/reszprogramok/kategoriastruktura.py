@@ -8,7 +8,6 @@ from datetime import datetime
 
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '..', '.env'))
 
-
 # --- BEJELENTKEZÉS ---
 def bejelentkezes(browser: Browser, base_url, username, password):
     context = browser.new_context(no_viewport=True)
@@ -20,12 +19,60 @@ def bejelentkezes(browser: Browser, base_url, username, password):
     page.wait_for_selector("#searchField_all", timeout=20000)
     return context
 
+# --- TERMÉKEK KIOLVASÁSA AZ AKTUÁLIS OLDALRÓL ---
+def termekek_kiolvasasa(page, url, melyseg=0):
+    """
+    Elmegy a kategória URL-jére és kinyeri a termékek nevét + cikkszámát
+    közvetlenül a table#productsList táblából.
+    """
+    termekek = []
+    try:
+        # 800-as limit hogy minden termék egy oldalon legyen
+        if "limit=" in url:
+            lim_url = re.sub(r'limit=\d+', 'limit=800', url)
+        elif "?" in url:
+            lim_url = url + "&limit=800"
+        else:
+            lim_url = url + "?limit=800"
+
+        page.goto(lim_url, timeout=60000)
+        time.sleep(0.8)
+
+        if page.locator("table#productsList tbody tr").count() == 0:
+            return termekek
+
+        sorok = page.locator("table#productsList tbody tr").all()
+        for sor in sorok:
+            try:
+                t_id = sor.get_attribute("id")
+                if not t_id or t_id == "p0":
+                    continue
+
+                # Név: td[2] > b
+                nev_el = sor.locator("td").nth(2).locator("b")
+                nev = nev_el.inner_text().strip() if nev_el.count() else ""
+
+                # Cikkszám: a HTML alapján a 6. cellában van, ami a 5-ös index
+                cikkszam = sor.locator("td").nth(5).inner_text().strip()
+
+                if nev:
+                    termekek.append({'nev': nev, 'cikkszam': cikkszam})
+                    # A konzolba is pontosvesszővel írjuk ki
+                    print(f"{'  ' * (melyseg+1)}🏷️  {nev}; {cikkszam}")
+            except Exception as e:
+                print(f"{'  ' * melyseg}⚠️ Termék sor kihagyva: {e}")
+                continue
+
+    except Exception as e:
+        print(f"{'  ' * melyseg}❌ Termék kiolvasás sikertelen: {e}")
+
+    return termekek
 
 # --- ALKATEGÓRIÁK BEJÁRÁSA (rekurzív) ---
 def kategoria_bejaro(page, url, admin_url, melyseg=0):
     """
     Rekurzívan bejárja a kategóriákat és visszaadja a struktúrát listaként.
-    Minden elem: { 'nev': str, 'melyseg': int, 'termek_szam': int, 'alkategoria_szam': int, 'gyerekek': [...] }
+    Minden elem: { 'nev', 'melyseg', 'termek_szam', 'alkategoria_szam', 'gyerekek', 'termekek' }
     """
     eredmeny = []
 
@@ -36,24 +83,18 @@ def kategoria_bejaro(page, url, admin_url, melyseg=0):
         print(f"{'  ' * melyseg}❌ Nem sikerült megnyitni: {url} ({e})")
         return eredmeny
 
-    # Alkategóriák adatait először mind kinyerjük (URL + metaadatok),
-    # MIELŐTT bármilyen navigáció történne
     alkategoriak = []
     if page.locator("table#categoriesList tbody tr").count() > 0:
         rows = page.locator("table#categoriesList tbody tr").all()
-
         for row in rows:
             try:
                 nev_cella = row.locator("td").nth(2)
                 nev = nev_cella.inner_text().strip()
                 href = nev_cella.locator("a").get_attribute("href")
-
                 alkat_szam_str = row.locator("td").nth(7).inner_text() or "0"
                 termek_szam_str = row.locator("td").nth(8).inner_text() or "0"
-
                 alkat_szam = int(re.sub(r'\D', '', alkat_szam_str) or "0")
                 termek_szam = int(re.sub(r'\D', '', termek_szam_str) or "0")
-
                 alkategoriak.append({
                     'nev': nev,
                     'url': admin_url + "/" + href,
@@ -64,55 +105,60 @@ def kategoria_bejaro(page, url, admin_url, melyseg=0):
                 print(f"{'  ' * melyseg}⚠️ Sor kihagyva: {e}")
                 continue
 
-    # Most navigálunk rekurzívan, minden alkategória saját goto()-val
     for alk in alkategoriak:
         print(f"{'  ' * melyseg}📂 {alk['nev']} (alkategóriák: {alk['alkat_szam']}, termékek: {alk['termek_szam']})")
 
         gyerekek = []
+        termekek = []
+
+        # Először rekurzívan bejárjuk az alkategóriákat
         if alk['alkat_szam'] > 0 or alk['termek_szam'] > 0:
-            gyerekek = kategoria_bejaro(
-                page,
-                alk['url'],
-                admin_url,
-                melyseg + 1
-            )
+            gyerekek = kategoria_bejaro(page, alk['url'], admin_url, melyseg + 1)
+
+        # Majd visszajövünk és kiolvasszuk a termékeket
+        if alk['termek_szam'] > 0:
+            print(f"{'  ' * (melyseg+1)}🔍 Termékek kiolvasása...")
+            termekek = termekek_kiolvasasa(page, alk['url'], melyseg)
 
         eredmeny.append({
             'nev': alk['nev'],
             'melyseg': melyseg,
             'termek_szam': alk['termek_szam'],
             'alkategoria_szam': alk['alkat_szam'],
-            'gyerekek': gyerekek
+            'gyerekek': gyerekek,
+            'termekek': termekek,
         })
 
     return eredmeny
 
-
 # --- TXT GENERÁLÁS ---
 def struktura_txt(csomopont_lista, kimeneti_sorok, melyseg=0):
     for csomopont in csomopont_lista:
-        behuzas = "    " * melyseg
         nev = csomopont['nev']
         termek = csomopont['termek_szam']
         alkat = csomopont['alkategoria_szam']
 
-        if melyseg == 0:
-            prefix = "├── "
-        else:
-            prefix = "│   " * melyseg + "├── "
+        prefix = ("├── " if melyseg == 0 else "│   " * melyseg + "├── ")
 
         info_reszek = []
         if alkat > 0:
             info_reszek.append(f"{alkat} alkategória")
         if termek > 0:
             info_reszek.append(f"{termek} termék")
-
         info = f"  [{', '.join(info_reszek)}]" if info_reszek else ""
+
         kimeneti_sorok.append(f"{prefix}{nev}{info}")
+
+        # Termékek kiírása a kategória alá
+        if csomopont.get('termekek'):
+            termek_prefix = "│   " * (melyseg + 1)
+            for t in csomopont['termekek']:
+                # Itt fűzzük hozzá pontosvesszővel a cikkszámot
+                cikkszam_resz = f"; {t['cikkszam']}" if t['cikkszam'] else ""
+                kimeneti_sorok.append(f"{termek_prefix}🏷️  {t['nev']}{cikkszam_resz}")
 
         if csomopont['gyerekek']:
             struktura_txt(csomopont['gyerekek'], kimeneti_sorok, melyseg + 1)
-
 
 def exportalas_txtbe(fokategoria_nev, struktura, domain):
     sorok = []
@@ -124,13 +170,10 @@ def exportalas_txtbe(fokategoria_nev, struktura, domain):
     sorok.append("=" * 70)
     sorok.append("")
     sorok.append(f"📁 {fokategoria_nev}")
-
     struktura_txt(struktura, sorok, melyseg=0)
-
     sorok.append("")
     sorok.append("=" * 70)
 
-    # Összesítés
     def osszeszamol(lista):
         kat = len(lista)
         ter = sum(c['termek_szam'] for c in lista)
@@ -152,7 +195,6 @@ def exportalas_txtbe(fokategoria_nev, struktura, domain):
 
     print(f"\n✅ Exportálva: {fajlnev}")
     return fajlnev
-
 
 # --- FŐPROGRAM ---
 if __name__ == "__main__":
@@ -182,10 +224,8 @@ if __name__ == "__main__":
         browser = p.chromium.launch(headless=False, args=['--start-maximized'])
         ctx = bejelentkezes(browser, BASE_URL, F_NEV, J_SZO)
         page = ctx.new_page()
-
         try:
             page.goto(f"{ADMIN_URL}/index.php?view=store")
-
             cel = page.locator(
                 f"table#categoriesList tbody tr td a b:has-text('{fokategoria}')"
             ).first
@@ -196,12 +236,9 @@ if __name__ == "__main__":
 
             href = cel.locator("..").get_attribute("href")
             kat_url = ADMIN_URL + "/" + href
-
             print(f"\n🚀 Bejárás indul: {fokategoria}\n")
             struktura = kategoria_bejaro(page, kat_url, ADMIN_URL, melyseg=0)
-
             fajl = exportalas_txtbe(fokategoria, struktura, DOMAIN)
             print(f"\n🎉 KÉSZ! Fájl: {fajl}")
-
         finally:
             browser.close()
