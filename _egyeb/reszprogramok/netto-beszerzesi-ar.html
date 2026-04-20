@@ -34,6 +34,16 @@
         .file-upload { margin-bottom: 20px; padding: 15px; background: #e9ecef; border-radius: 6px; }
         label { font-weight: bold; display: block; margin-bottom: 5px; }
         
+        /* Új stílus a státusz üzenetnek */
+        .status-info {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #fff;
+            border-left: 4px solid #008CBA;
+            font-size: 14px;
+            display: none;
+        }
+
         button {
             color: white; padding: 12px 20px; border: none;
             border-radius: 5px; cursor: pointer; font-size: 16px; width: 100%; transition: 0.3s;
@@ -61,7 +71,7 @@
     
     <div class="tool-card tool-brand">
         <h2>1. Eszköz: Márka Kigyűjtő</h2>
-        <p>Tölts fel egy Excel fájlt, amely tartalmaz egy <strong>"Márka"</strong> nevű oszlopot. A program kigyűjti a benne lévő egyedi márkákat.</p>
+        <p>Tölts fel egy Excel fájlt ("Márka" oszloppal).</p>
         
         <div class="file-upload">
             <label for="brandFile">Excel fájl feltöltése:</label>
@@ -78,15 +88,16 @@
 
     <div class="tool-card tool-price">
         <h2>2. Eszköz: Árfrissítő</h2>
-        <p>A hiányos árak pótlása a <strong>"Cikkszám"</strong> alapján a <strong>"Nettó beszerzési ár"</strong> oszlopba.</p>
+        <p>Azonosítás: <strong>"Cikkszám"</strong> | Frissítés: <strong>"Nettó beszerzési ár"</strong></p>
         
         <div class="file-upload">
-            <label for="baseFile">Alap Excel fájl (amelyikben hiányoznak az árak):</label>
-            <input type="file" id="baseFile" accept=".xlsx, .xls">
+            <label for="baseFile">Alap Excel fájl (hiányos árak):</label>
+            <input type="file" id="baseFile" accept=".xlsx, .xls" onchange="analyzeBaseFile(this)">
+            <div id="baseFileStatus" class="status-info"></div>
         </div>
 
         <div class="file-upload">
-            <label for="refFile">Referencia Excel fájl (amelyikben benne vannak az árak):</label>
+            <label for="refFile">Referencia Excel fájl (árakkal):</label>
             <input type="file" id="refFile" accept=".xlsx, .xls">
         </div>
 
@@ -97,7 +108,6 @@
 </div>
 
 <script>
-    // Fájl beolvasó segédfüggvény
     function readFile(file) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
@@ -111,136 +121,131 @@
         });
     }
 
-    // --- 1. ESZKÖZ LOGIKÁJA: MÁRKA KIGYŰJTŐ ---
-    async function extractBrands() {
-        const fileInput = document.getElementById('brandFile').files[0];
-        if (!fileInput) {
-            alert("Kérlek, töltsd fel az Excel fájlt a márkák kigyűjtéséhez!");
+    // --- ÚJ FUNKCIÓ: ALAP FÁJL ELEMZÉSE ---
+    async function analyzeBaseFile(input) {
+        const file = input.files[0];
+        const statusDiv = document.getElementById('baseFileStatus');
+        
+        if (!file) {
+            statusDiv.style.display = "none";
             return;
         }
 
-        const processBtn = document.getElementById('brandProcessBtn');
-        const downloadBtn = document.getElementById('brandDownloadBtn');
-        const brandsList = document.getElementById('brandsList');
-        
+        statusDiv.style.display = "block";
+        statusDiv.innerHTML = "<i>Fájl elemzése...</i>";
+
         try {
-            processBtn.disabled = true;
-            processBtn.innerText = "Feldolgozás...";
-
-            const wb = await readFile(fileInput);
+            const wb = await readFile(file);
             const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: "" });
+            
+            const totalRows = data.length;
+            let missingPrices = 0;
 
-            const brands = new Set();
             data.forEach(row => {
-                const marka = row["Márka"];
-                if (marka && marka.toString().trim() !== "") {
-                    brands.add(marka.toString().trim());
+                const ar = row["Nettó beszerzési ár"];
+                // Ellenőrizzük, hogy üres-e (üres string, null vagy undefined)
+                if (ar === "" || ar === null || ar === undefined) {
+                    missingPrices++;
                 }
             });
 
-            const sortedBrands = [...brands].sort();
-
-            // Képernyő frissítése
-            brandsList.innerHTML = "";
-            if(sortedBrands.length === 0) {
-                brandsList.innerHTML = "<li><i>Nem található 'Márka' nevű oszlop, vagy üres.</i></li>";
-                downloadBtn.style.display = "none";
-            } else {
-                sortedBrands.forEach(brand => {
-                    const li = document.createElement('li');
-                    li.textContent = brand;
-                    brandsList.appendChild(li);
-                });
-
-                // Excel fájl előkészítése letöltésre
-                const brandExcelData = sortedBrands.map(b => ({"Kigyűjtött Márkák": b}));
-                const brandSheet = XLSX.utils.json_to_sheet(brandExcelData);
-                const brandWb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(brandWb, brandSheet, "Márkák");
-
-                downloadBtn.style.display = "block";
-                downloadBtn.onclick = () => {
-                    XLSX.writeFile(brandWb, "Kigyujtott_Markak.xlsx");
-                };
-                
-                alert(`Sikeresen kigyűjtve ${sortedBrands.length} db márka!`);
-            }
+            statusDiv.innerHTML = `
+                <strong>Elemzés kész:</strong><br>
+                Összes termék a fájlban: <strong>${totalRows} db</strong><br>
+                Ebből hiányzó beszerzési ár: <strong style="color: #e74c3c;">${missingPrices} db</strong>
+            `;
         } catch (error) {
-            console.error(error);
-            alert("Hiba történt. Kérlek ellenőrizd a fájlt és a 'Márka' oszlopnevet.");
-        } finally {
-            processBtn.disabled = false;
-            processBtn.innerText = "Márkák kigyűjtése";
+            statusDiv.innerHTML = "<span style='color: red;'>Hiba: Nem sikerült beolvasni az oszlopokat (Nettó beszerzési ár hiányzik?)</span>";
         }
     }
 
-    // --- 2. ESZKÖZ LOGIKÁJA: ÁRFRISSÍTŐ ---
+    // --- 1. ESZKÖZ: MÁRKA KIGYŰJTŐ ---
+    async function extractBrands() {
+        const fileInput = document.getElementById('brandFile').files[0];
+        if (!fileInput) return alert("Válassz fájlt!");
+
+        const btn = document.getElementById('brandProcessBtn');
+        btn.disabled = true;
+
+        try {
+            const wb = await readFile(fileInput);
+            const data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: "" });
+            const brands = new Set();
+            data.forEach(row => {
+                if (row["Márka"]) brands.add(row["Márka"].toString().trim());
+            });
+
+            const sortedBrands = [...brands].sort();
+            const brandsList = document.getElementById('brandsList');
+            brandsList.innerHTML = "";
+            
+            sortedBrands.forEach(brand => {
+                const li = document.createElement('li');
+                li.textContent = brand;
+                brandsList.appendChild(li);
+            });
+
+            const brandSheet = XLSX.utils.json_to_sheet(sortedBrands.map(b => ({"Kigyűjtött Márkák": b})));
+            const brandWb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(brandWb, brandSheet, "Márkák");
+
+            const dlBtn = document.getElementById('brandDownloadBtn');
+            dlBtn.style.display = "block";
+            dlBtn.onclick = () => XLSX.writeFile(brandWb, "Kigyujtott_Markak.xlsx");
+            
+            alert("Márkák kigyűjtve!");
+        } catch (e) { alert("Hiba történt!"); }
+        finally { btn.disabled = false; }
+    }
+
+    // --- 2. ESZKÖZ: ÁRFRISSÍTŐ ---
     async function updatePrices() {
         const baseFileInput = document.getElementById('baseFile').files[0];
         const refFileInput = document.getElementById('refFile').files[0];
 
-        if (!baseFileInput || !refFileInput) {
-            alert("Kérlek, töltsd fel mindkét Excel fájlt az árak frissítéséhez!");
-            return;
-        }
+        if (!baseFileInput || !refFileInput) return alert("Mindkét fájl kell!");
 
         const processBtn = document.getElementById('priceProcessBtn');
-        const downloadBtn = document.getElementById('priceDownloadBtn');
+        processBtn.disabled = true;
 
         try {
-            processBtn.disabled = true;
-            processBtn.innerText = "Feldolgozás...";
-
             const baseWb = await readFile(baseFileInput);
             const refWb = await readFile(refFileInput);
 
             const baseData = XLSX.utils.sheet_to_json(baseWb.Sheets[baseWb.SheetNames[0]], { defval: "" });
             const refData = XLSX.utils.sheet_to_json(refWb.Sheets[refWb.SheetNames[0]], { defval: "" });
 
-            // Referencia szótár (Cikkszám -> Ár)
             const priceDict = {};
             refData.forEach(row => {
-                const cikkszam = row["Cikkszám"];
-                const ar = row["Nettó beszerzési ár"];
-                if (cikkszam && ar !== "" && ar !== undefined) {
-                    priceDict[cikkszam.toString().trim()] = ar;
+                if (row["Cikkszám"] && row["Nettó beszerzési ár"]) {
+                    priceDict[row["Cikkszám"].toString().trim()] = row["Nettó beszerzési ár"];
                 }
             });
 
-            // Alap tábla frissítése
             let updatedCount = 0;
             baseData.forEach(row => {
-                const jelenlegiAr = row["Nettó beszerzési ár"];
-                const cikkszam = row["Cikkszám"];
-                
-                if ((jelenlegiAr === "" || jelenlegiAr === null || jelenlegiAr === undefined) && cikkszam) {
-                    const tisztitottCikkszam = cikkszam.toString().trim();
-                    if (priceDict[tisztitottCikkszam] !== undefined) {
-                        row["Nettó beszerzési ár"] = priceDict[tisztitottCikkszam];
+                const ar = row["Nettó beszerzési ár"];
+                const id = row["Cikkszám"];
+                if ((ar === "" || ar === null || ar === undefined) && id) {
+                    const cleanId = id.toString().trim();
+                    if (priceDict[cleanId] !== undefined) {
+                        row["Nettó beszerzési ár"] = priceDict[cleanId];
                         updatedCount++;
                     }
                 }
             });
 
-            // Új Excel fájl előkészítése
             const newSheet = XLSX.utils.json_to_sheet(baseData);
             const newWb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(newWb, newSheet, "Frissített_Árak");
+            XLSX.utils.book_append_sheet(newWb, newSheet, "Frissített");
 
-            downloadBtn.style.display = "block";
-            downloadBtn.onclick = () => {
-                XLSX.writeFile(newWb, "Frissitett_Keszlet_Lista.xlsx");
-            };
+            const dlBtn = document.getElementById('priceDownloadBtn');
+            dlBtn.style.display = "block";
+            dlBtn.onclick = () => XLSX.writeFile(newWb, "Frissitett_Lista.xlsx");
 
-            alert(`Kész! ${updatedCount} tétel ára lett frissítve. Kattints a letöltés gombra!`);
-
-        } catch (error) {
-            console.error(error);
-            alert("Hiba történt. Ellenőrizd a fájlokat és az oszlopneveket (Cikkszám, Nettó beszerzési ár).");
-        } finally {
-            processBtn.disabled = false;
-            processBtn.innerText = "Árak frissítése";
-        }
+            alert(`Kész! ${updatedCount} tétel pótolva.`);
+        } catch (e) { alert("Hiba történt a feldolgozáskor!"); }
+        finally { processBtn.disabled = false; }
     }
 </script>
 
