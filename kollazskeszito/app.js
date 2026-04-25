@@ -940,10 +940,10 @@ function waitForImgly(timeout = 15000) {
     });
 }
 
+
+
 async function processImagesBackground(images) {
     const results = [];
-
-    // Megvárjuk hogy az AI betöltsön (max 15 másodpercig)
     const aiAvailable = await waitForImgly();
 
     for (const img of images) {
@@ -952,16 +952,39 @@ async function processImagesBackground(images) {
                 const response = await fetch(img.src);
                 const blob = await response.blob();
 
-                const resultBlob = await window.imglyRemoveBackground(blob, {
+                const result = await window.imglyRemoveBackground(blob, {
                     output: { format: 'image/png', quality: 1 },
                     progress: () => {}
                 });
 
-                const tempImg = await new Promise((resolve) => {
-                    const url = URL.createObjectURL(resultBlob);
+                // Kezeljük le mindkét lehetséges visszatérési típust
+                const tempImg = await new Promise((resolve, reject) => {
                     const i = new Image();
-                    i.onload = () => { URL.revokeObjectURL(url); resolve(i); };
-                    i.src = url;
+                    i.onload = () => resolve(i);
+                    i.onerror = reject;
+
+                    if (result instanceof Blob) {
+                        const url = URL.createObjectURL(result);
+                        i.onload = () => { URL.revokeObjectURL(url); resolve(i); };
+                        i.src = url;
+                    } else if (result instanceof ImageData) {
+                        const c = document.createElement('canvas');
+                        c.width = result.width;
+                        c.height = result.height;
+                        c.getContext('2d').putImageData(result, 0, 0);
+                        i.src = c.toDataURL('image/png');
+                    } else if (typeof result === 'string') {
+                        i.src = result;
+                    } else {
+                        // Ismeretlen típus — canvas-ra konvertálás
+                        const c = document.createElement('canvas');
+                        c.width = img.width;
+                        c.height = img.height;
+                        const ctx = c.getContext('2d');
+                        ctx.drawImage(img, 0, 0);
+                        i.src = c.toDataURL('image/png');
+                        console.warn('Ismeretlen visszatérési típus:', typeof result, result);
+                    }
                 });
 
                 const croppedImg = await cropToVisible(tempImg);
@@ -986,6 +1009,8 @@ async function processImagesBackground(images) {
 
     return results;
 }
+
+
 
 
 // Régi módszer fallbackként megmarad
