@@ -123,7 +123,8 @@ let imageOffsets = [];
 let rotations = [];
 let visibilities = [];
 let renderHitBoxes = [];
-
+let exportFormat = 'image/png';
+let exportQuality = 0.9;
 let isGridVisible = false;
 let isSnapEnabled = true; // Alapértelmezés szerint bekapcsolva
 
@@ -619,6 +620,27 @@ function loadSavedSettings() {
         updatePreviewBg();
     }
 
+    // --- ÚJ RÉSZ: Export beállítások betöltése ---
+    const savedFormat = localStorage.getItem('collage_export_format');
+    if (savedFormat) exportFormat = savedFormat;
+    
+    const savedQuality = localStorage.getItem('collage_export_quality');
+    if (savedQuality) exportQuality = parseFloat(savedQuality);
+
+    const formatSelect = document.getElementById('exportFormatSelect');
+    const qualitySlider = document.getElementById('exportQualitySlider');
+    const qualityContainer = document.getElementById('exportQualityContainer');
+    const qualityVal = document.getElementById('exportQualityVal');
+
+    if (formatSelect) formatSelect.value = exportFormat;
+    if (qualitySlider) qualitySlider.value = exportQuality;
+    if (qualityVal) qualityVal.innerText = Math.round(exportQuality * 100) + '%';
+    
+    // A PNG nem támogat minőség-állítást, így eltüntetjük a csúszkát, ha az van kiválasztva
+    if (qualityContainer) {
+        qualityContainer.style.display = (exportFormat === 'image/png') ? 'none' : 'flex';
+    }
+
     // 4. Rács tényleges kirajzolása a beállítások alapján
     updateGridSettings();
 }
@@ -908,8 +930,67 @@ async function toggleBackgroundRemoval() {
     }
 }
 
+
+function waitForImgly(timeout = 15000) {
+    return new Promise((resolve) => {
+        if (window.imglyReady) return resolve(true);
+        const handler = () => { resolve(true); };
+        document.addEventListener('imgly-ready', handler, { once: true });
+        setTimeout(() => resolve(false), timeout);
+    });
+}
+
 async function processImagesBackground(images) {
-    return Promise.all(images.map(img => new Promise(resolve => {
+    const results = [];
+
+    // Megvárjuk hogy az AI betöltsön (max 15 másodpercig)
+    const aiAvailable = await waitForImgly();
+
+    for (const img of images) {
+        try {
+            if (aiAvailable && typeof window.imglyRemoveBackground === 'function') {
+                const response = await fetch(img.src);
+                const blob = await response.blob();
+
+                const resultBlob = await window.imglyRemoveBackground(blob, {
+                    output: { format: 'image/png', quality: 1 },
+                    progress: () => {}
+                });
+
+                const tempImg = await new Promise((resolve) => {
+                    const url = URL.createObjectURL(resultBlob);
+                    const i = new Image();
+                    i.onload = () => { URL.revokeObjectURL(url); resolve(i); };
+                    i.src = url;
+                });
+
+                const croppedImg = await cropToVisible(tempImg);
+                croppedImg.dataset.uId = img.dataset.uId;
+                results.push(croppedImg);
+
+            } else {
+                console.warn('AI library nem elérhető, fallback módszer fut');
+                const tempImgFallback = await removeBgFallback(img);
+                const croppedFallback = await cropToVisible(tempImgFallback);
+                croppedFallback.dataset.uId = img.dataset.uId;
+                results.push(croppedFallback);
+            }
+        } catch (err) {
+            console.warn('AI háttérvágás sikertelen:', err);
+            const tempImgFallback = await removeBgFallback(img);
+            const croppedFallback = await cropToVisible(tempImgFallback);
+            croppedFallback.dataset.uId = img.dataset.uId;
+            results.push(croppedFallback);
+        }
+    }
+
+    return results;
+}
+
+
+// Régi módszer fallbackként megmarad
+async function removeBgFallback(img) {
+    return new Promise(resolve => {
         const canvas = document.createElement('canvas');
         canvas.width = img.width;
         canvas.height = img.height;
@@ -920,15 +1001,76 @@ async function processImagesBackground(images) {
         const data = imageData.data;
 
         for (let i = 0; i < data.length; i += 4) {
-            const r = data[i]; const g = data[i + 1]; const b = data[i + 2];
-            if (r > 250 && g > 250 && b > 250) { data[i + 3] = 0; }
+            const r = data[i], g = data[i + 1], b = data[i + 2];
+            if (r > 250 && g > 250 && b > 250) data[i + 3] = 0;
         }
         ctx.putImageData(imageData, 0, 0);
+
         const newImg = new Image();
-        newImg.src = canvas.toDataURL();
+        newImg.dataset.uId = img.dataset.uId;
         newImg.onload = () => resolve(newImg);
-    })));
+        newImg.src = canvas.toDataURL();
+    });
 }
+
+// --- ÚJ SEGÉDFÜGGVÉNY: Körülvágja a képet a látható pixelek mentén ---
+function cropToVisible(imageOrCanvas) {
+    return new Promise((resolve) => {
+        const canvas = document.createElement('canvas');
+        canvas.width = imageOrCanvas.width;
+        canvas.height = imageOrCanvas.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(imageOrCanvas, 0, 0);
+
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        
+        let minX = canvas.width, minY = canvas.height, maxX = 0, maxY = 0;
+        let hasVisiblePixels = false;
+
+        // Végigmegyünk az összes pixelen, és keressük azokat, amik nem átlátszóak
+        for (let y = 0; y < canvas.height; y++) {
+            for (let x = 0; x < canvas.width; x++) {
+                const alpha = data[(y * canvas.width + x) * 4 + 3];
+                if (alpha > 10) { // 10 a tolerancia az átlátszóságra
+                    if (x < minX) minX = x;
+                    if (x > maxX) maxX = x;
+                    if (y < minY) minY = y;
+                    if (y > maxY) maxY = y;
+                    hasVisiblePixels = true;
+                }
+            }
+        }
+
+        // Ha a kép teljesen átlátszó lenne valami hiba miatt, adjuk vissza az eredetit
+        if (!hasVisiblePixels) {
+            resolve(imageOrCanvas);
+            return;
+        }
+
+        // Kiszámoljuk az új szélességet és magasságot (hagyunk 2 pixel "biztonsági ráhagyást")
+        const padding = 0;
+        minX = Math.max(0, minX - padding);
+        minY = Math.max(0, minY - padding);
+        maxX = Math.min(canvas.width - 1, maxX + padding);
+        maxY = Math.min(canvas.height - 1, maxY + padding);
+
+        const cropW = maxX - minX + 1;
+        const cropH = maxY - minY + 1;
+
+        // Létrehozunk egy új, már kisebb vásznat a kivágott tartalomnak
+        const croppedCanvas = document.createElement('canvas');
+        croppedCanvas.width = cropW;
+        croppedCanvas.height = cropH;
+        croppedCanvas.getContext('2d').drawImage(canvas, minX, minY, cropW, cropH, 0, 0, cropW, cropH);
+
+        // Visszaalakítjuk Image objektummá
+        const newImg = new Image();
+        newImg.onload = () => resolve(newImg);
+        newImg.src = croppedCanvas.toDataURL();
+    });
+}
+
 
 // --- BEÁLLÍTÁSOK MENÜ KEZELÉSE ---
 function toggleSettingsMenu(event) {
@@ -2691,24 +2833,26 @@ function downloadImage(event) {
     renderCollage(false, true);
 
     const canvas = document.getElementById('collageCanvas');
-    const dataURL = canvas.toDataURL("image/png");
+    
+    // Itt használjuk a beállított formátumot és minőséget!
+    const dataURL = canvas.toDataURL(exportFormat, exportQuality);
 
     const now = new Date();
     const dateStr = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
     const timeStr = String(now.getHours()).padStart(2, '0') + '-' + String(now.getMinutes()).padStart(2, '0');
 
+    // Fájlkiterjesztés meghatározása
+    const ext = exportFormat === 'image/jpeg' ? 'jpg' : (exportFormat === 'image/webp' ? 'webp' : 'png');
+
     const tempLink = document.createElement('a');
-    tempLink.download = `termek_kollazs_${dateStr}_${timeStr}.png`;
+    tempLink.download = `termek_kollazs_${dateStr}_${timeStr}.${ext}`;
     tempLink.href = dataURL;
     document.body.appendChild(tempLink);
     tempLink.click();
     document.body.removeChild(tempLink);
 
     renderCollage(true, false);
-
-    // --- ÚJ: Visszajelzés küldése a felhasználónak ---
-    //showToast("Kép sikeresen mentve a számítógépre!");
-    markAsSaved(); // <--- ÚJ: Ezt a sort add a legvégére
+    markAsSaved(); 
 }
 
 // Csoportos alaphelyzetbe állítás
@@ -3158,7 +3302,6 @@ function renderAutoCanvas(canvas, layout) {
 }
 
 
-// ── SZERKESZTÉS MEGNYITÁSA (FREE módban, grid nem rontja el) ──
 function editAutoCollage() {
     if (!autoSelectedLayout) return;
 
@@ -3179,15 +3322,44 @@ function editAutoCollage() {
     rotations = new Array(n).fill(0);
     visibilities = new Array(n).fill(true);
 
-    // Auto layout geometria
     const maxDrawArea = AUTO_SIZE - externalMargin * 2;
-
-    // JAVÍTVA: Itt volt a hiba! layout.targetW helyett layout.totalW kell
     const finalScale = Math.min(maxDrawArea / layout.totalW, maxDrawArea / layout.totalH);
     const offsetXBase = (AUTO_SIZE - layout.totalW * finalScale) / 2;
     const offsetYBase = (AUTO_SIZE - layout.totalH * finalScale) / 2;
 
     let permIdx = 0;
+
+    const processItem = (imgItem, currentX, currentY, itemW, itemH) => {
+        const editorCX = (currentX + itemW / 2) * scaleFactor;
+        const editorCY = (currentY + itemH / 2) * scaleFactor;
+
+        const img = loadedImages[permIdx];
+        const baseScale = Math.min(EDITOR_SIZE / img.width, EDITOR_SIZE / img.height) * 0.5;
+
+        const finalImgWPx = itemW * scaleFactor;
+        const zoom = finalImgWPx / (imgItem.cropW * baseScale);
+        zoomLevels[permIdx] = Math.max(0.1, Math.min(3.0, Math.round(zoom * 100) / 100));
+
+        const Z = zoomLevels[permIdx];
+
+        // --- KRITIKUS JAVÍTÁS ---
+        // Ha a kép már vágott (loadedImages-ben), akkor nincs szükség a cropOffsetX eltolásra
+        // mert a kép koordináta-rendszere már a vágott szélnél kezdődik.
+        let prodOffX = 0;
+        let prodOffY = 0;
+
+        // Csak akkor kell eltolás, ha a kép mérete nagyobb, mint amit az automata számolt (tehát nincs vágva)
+        if (img.width > imgItem.cropW + 5) { 
+            prodOffX = (imgItem.cropOffsetX + imgItem.cropW / 2 - img.width / 2) * baseScale * Z;
+            prodOffY = (imgItem.cropOffsetY + imgItem.cropH / 2 - img.height / 2) * baseScale * Z;
+        }
+
+        imageOffsets[permIdx] = {
+            x: Math.round(editorCX - 400 - prodOffX),
+            y: Math.round(editorCY - 400 - prodOffY)
+        };
+        permIdx++;
+    };
 
     if (layout.type === 'cols') {
         let currentX = offsetXBase;
@@ -3197,29 +3369,8 @@ function editAutoCollage() {
             for (let i = 0; i < col.count; i++) {
                 const imgItem = layout.perm[col.startIndex + i];
                 const finalImgH = (col.colW / imgItem.ar) * finalScale;
-
-                const editorCX = (currentX + finalColW / 2) * scaleFactor;
-                const editorCY = (currentY + finalImgH / 2) * scaleFactor;
-
-                const img = loadedImages[permIdx];
-                const baseScale = Math.min(EDITOR_SIZE / img.width, EDITOR_SIZE / img.height) * 0.5;
-
-                const finalImgWPx = finalColW * scaleFactor;
-                const zoom = finalImgWPx / (imgItem.cropW * baseScale);
-                zoomLevels[permIdx] = Math.max(0.1, Math.min(3.0, Math.round(zoom * 100) / 100));
-
-                const Z = zoomLevels[permIdx];
-
-                const prodOffX = (imgItem.cropOffsetX + imgItem.cropW / 2 - img.width / 2) * baseScale * Z;
-                const prodOffY = (imgItem.cropOffsetY + imgItem.cropH / 2 - img.height / 2) * baseScale * Z;
-
-                imageOffsets[permIdx] = {
-                    x: Math.round(editorCX - 400 - prodOffX),
-                    y: Math.round(editorCY - 400 - prodOffY)
-                };
-
+                processItem(imgItem, currentX, currentY, finalColW, finalImgH);
                 currentY += finalImgH + gap * finalScale;
-                permIdx++;
             }
             currentX += finalColW + gap * finalScale;
         }
@@ -3228,39 +3379,16 @@ function editAutoCollage() {
         for (let row of layout.rowData) {
             let currentX = offsetXBase;
             const finalRowH = row.rowH * finalScale;
-            const finalGapPx = gap * finalScale;
             for (let i = 0; i < row.count; i++) {
                 const imgItem = layout.perm[row.startIndex + i];
                 const finalImgW = imgItem.ar * row.rowH * finalScale;
-
-                const editorCX = (currentX + finalImgW / 2) * scaleFactor;
-                const editorCY = (currentY + finalRowH / 2) * scaleFactor;
-
-                const img = loadedImages[permIdx];
-                const baseScale = Math.min(EDITOR_SIZE / img.width, EDITOR_SIZE / img.height) * 0.5;
-
-                const finalImgWPx = finalImgW * scaleFactor;
-                const zoom = finalImgWPx / (imgItem.cropW * baseScale);
-                zoomLevels[permIdx] = Math.max(0.1, Math.min(3.0, Math.round(zoom * 100) / 100));
-
-                const Z = zoomLevels[permIdx];
-
-                const prodOffX = (imgItem.cropOffsetX + imgItem.cropW / 2 - img.width / 2) * baseScale * Z;
-                const prodOffY = (imgItem.cropOffsetY + imgItem.cropH / 2 - img.height / 2) * baseScale * Z;
-
-                imageOffsets[permIdx] = {
-                    x: Math.round(editorCX - 400 - prodOffX),
-                    y: Math.round(editorCY - 400 - prodOffY)
-                };
-
-                currentX += finalImgW + finalGapPx;
-                permIdx++;
+                processItem(imgItem, currentX, currentY, finalImgW, finalRowH);
+                currentX += finalImgW + gap * finalScale;
             }
-            currentY += finalRowH + finalGapPx;
+            currentY += finalRowH + gap * finalScale;
         }
     }
 
-    // FREE mód megnyitása
     currentMode = 'free';
     isSessionActive = true;
     historyStack = [];
@@ -3276,6 +3404,7 @@ function editAutoCollage() {
     updateHistoryButtonsUI();
     updateCanvasHUD();
 }
+
 
 
 function regenerateAutoLayouts() {
@@ -3409,22 +3538,47 @@ function backToAutoSelect() {
     }
 }
 
-// ── LETÖLTÉS ─────────────────────────────────────────────
 function downloadAutoCollage() {
     if (!autoSelectedLayout) return;
     const canvas = document.getElementById('auto-selected-canvas');
     const now = new Date();
     const ds = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
     const ts = String(now.getHours()).padStart(2, '0') + '-' + String(now.getMinutes()).padStart(2, '0');
+    
+    // Fájlkiterjesztés meghatározása itt is
+    const ext = exportFormat === 'image/jpeg' ? 'jpg' : (exportFormat === 'image/webp' ? 'webp' : 'png');
+    
     const link = document.createElement('a');
-    link.download = `auto_kollazs_${ds}_${ts}.png`;
-    link.href = canvas.toDataURL('image/png');
+    link.download = `auto_kollazs_${ds}_${ts}.${ext}`;
+    // Itt is alkalmazzuk a minőségi beállításokat
+    link.href = canvas.toDataURL(exportFormat, exportQuality);
     link.click();
-    //showToast('Kollázs letöltve!', 'download', 'var(--success)');
     markAutoAsSaved();
 }
 
 
+// --- EXPORT BEÁLLÍTÁSOK KEZELÉSE ---
+function updateExportSettings() {
+    const formatSelect = document.getElementById('exportFormatSelect');
+    const qualitySlider = document.getElementById('exportQualitySlider');
+    const qualityContainer = document.getElementById('exportQualityContainer');
+    const qualityVal = document.getElementById('exportQualityVal');
+
+    exportFormat = formatSelect.value;
+    exportQuality = parseFloat(qualitySlider.value);
+
+    // Mentés a böngészőbe
+    localStorage.setItem('collage_export_format', exportFormat);
+    localStorage.setItem('collage_export_quality', exportQuality);
+
+    // Csúszka megjelenítése/elrejtése formátumtól függően
+    if (exportFormat === 'image/png') {
+        qualityContainer.style.display = 'none';
+    } else {
+        qualityContainer.style.display = 'flex';
+        qualityVal.innerText = Math.round(exportQuality * 100) + '%';
+    }
+}
 
 
 
