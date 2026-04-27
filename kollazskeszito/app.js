@@ -623,7 +623,7 @@ function loadSavedSettings() {
     // --- ÚJ RÉSZ: Export beállítások betöltése ---
     const savedFormat = localStorage.getItem('collage_export_format');
     if (savedFormat) exportFormat = savedFormat;
-    
+
     const savedQuality = localStorage.getItem('collage_export_quality');
     if (savedQuality) exportQuality = parseFloat(savedQuality);
 
@@ -635,7 +635,7 @@ function loadSavedSettings() {
     if (formatSelect) formatSelect.value = exportFormat;
     if (qualitySlider) qualitySlider.value = exportQuality;
     if (qualityVal) qualityVal.innerText = Math.round(exportQuality * 100) + '%';
-    
+
     // A PNG nem támogat minőség-állítást, így eltüntetjük a csúszkát, ha az van kiválasztva
     if (qualityContainer) {
         qualityContainer.style.display = (exportFormat === 'image/png') ? 'none' : 'flex';
@@ -931,89 +931,34 @@ async function toggleBackgroundRemoval() {
 }
 
 
-function waitForImgly(timeout = 15000) {
-    return new Promise((resolve) => {
-        if (window.imglyReady) return resolve(true);
-        const handler = () => { resolve(true); };
-        document.addEventListener('imgly-ready', handler, { once: true });
-        setTimeout(() => resolve(false), timeout);
-    });
-}
-
-
-
 async function processImagesBackground(images) {
     const results = [];
-    const aiAvailable = await waitForImgly();
+    const statusEl = document.getElementById('loader-status');
 
     for (const img of images) {
         try {
-            if (aiAvailable && typeof window.imglyRemoveBackground === 'function') {
-                const response = await fetch(img.src);
-                const blob = await response.blob();
-
-                const result = await window.imglyRemoveBackground(blob, {
-                    output: { format: 'image/png', quality: 1 },
-                    progress: () => {}
-                });
-
-                // Kezeljük le mindkét lehetséges visszatérési típust
-                const tempImg = await new Promise((resolve, reject) => {
-                    const i = new Image();
-                    i.onload = () => resolve(i);
-                    i.onerror = reject;
-
-                    if (result instanceof Blob) {
-                        const url = URL.createObjectURL(result);
-                        i.onload = () => { URL.revokeObjectURL(url); resolve(i); };
-                        i.src = url;
-                    } else if (result instanceof ImageData) {
-                        const c = document.createElement('canvas');
-                        c.width = result.width;
-                        c.height = result.height;
-                        c.getContext('2d').putImageData(result, 0, 0);
-                        i.src = c.toDataURL('image/png');
-                    } else if (typeof result === 'string') {
-                        i.src = result;
-                    } else {
-                        // Ismeretlen típus — canvas-ra konvertálás
-                        const c = document.createElement('canvas');
-                        c.width = img.width;
-                        c.height = img.height;
-                        const ctx = c.getContext('2d');
-                        ctx.drawImage(img, 0, 0);
-                        i.src = c.toDataURL('image/png');
-                        console.warn('Ismeretlen visszatérési típus:', typeof result, result);
-                    }
-                });
-
-                const croppedImg = await cropToVisible(tempImg);
-                croppedImg.dataset.uId = img.dataset.uId;
-                results.push(croppedImg);
-
-            } else {
-                console.warn('AI library nem elérhető, fallback módszer fut');
-                const tempImgFallback = await removeBgFallback(img);
-                const croppedFallback = await cropToVisible(tempImgFallback);
-                croppedFallback.dataset.uId = img.dataset.uId;
-                results.push(croppedFallback);
-            }
-        } catch (err) {
-            console.warn('AI háttérvágás sikertelen:', err);
+            if (statusEl) statusEl.innerText = "Háttér eltávolítása...";
+            
+            // 1. Lefuttatjuk a te saját pixel-alapú háttérvágódat
             const tempImgFallback = await removeBgFallback(img);
+            
+            // 2. Szorosan körbevágjuk a tárgyat (hogy a hitbox tökéletes legyen)
             const croppedFallback = await cropToVisible(tempImgFallback);
+            
             croppedFallback.dataset.uId = img.dataset.uId;
             results.push(croppedFallback);
+
+        } catch (err) {
+            console.error('Hiba a háttérvágásnál:', err);
+            // Ha valami nagyon félremegy, inkább adjuk vissza az eredeti képet, minthogy lefagyjon
+            results.push(img); 
         }
     }
 
+    if (statusEl) statusEl.innerText = ""; // Szöveg eltüntetése a végén
     return results;
 }
 
-
-
-
-// Régi módszer fallbackként megmarad
 async function removeBgFallback(img) {
     return new Promise(resolve => {
         const canvas = document.createElement('canvas');
@@ -1024,11 +969,58 @@ async function removeBgFallback(img) {
 
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const data = imageData.data;
+        const width = canvas.width;
+        const height = canvas.height;
 
-        for (let i = 0; i < data.length; i += 4) {
-            const r = data[i], g = data[i + 1], b = data[i + 2];
-            if (r > 250 && g > 250 && b > 250) data[i + 3] = 0;
+        // Látogatottsági térkép a Varázspálcához (Flood Fill algoritmus)
+        const visited = new Uint8Array(width * height);
+        const stack = [];
+
+        // A kép 4 szélét betesszük kezdőpontoknak (feltételezve, hogy a széleken biztosan háttér van)
+        for (let x = 0; x < width; x++) { 
+            stack.push(x, 0); 
+            stack.push(x, height - 1); 
         }
+        for (let y = 0; y < height; y++) { 
+            stack.push(0, y); 
+            stack.push(width - 1, y); 
+        }
+
+        while (stack.length > 0) {
+            const y = stack.pop();
+            const x = stack.pop();
+            const idx = y * width + x;
+
+            if (visited[idx]) continue;
+            visited[idx] = 1;
+
+            const pIdx = idx * 4;
+            const r = data[pIdx];
+            const g = data[pIdx + 1];
+            const b = data[pIdx + 2];
+
+            // Küszöbérték: mennyire lehet sötét a háttér? (A 200 már a világosszürkét is megfogja)
+            if (r > 200 && g > 200 && b > 200) {
+                
+                // Élsimítás (Soft edge): hogy ne legyen recés a széle
+                // Ha nagyon világos (> 230), teljesen átlátszó. Ha picit sötétebb (200-230 között), akkor enyhén áttetsző, ami szép átmenetet ad.
+                const avgLight = (r + g + b) / 3;
+                let alpha = 0;
+                
+                if (avgLight <= 230) {
+                    alpha = Math.floor(((230 - avgLight) / 30) * 255);
+                }
+                
+                data[pIdx + 3] = alpha;
+
+                // Ha ez egy háttér pixel volt, nézzük meg a közvetlen szomszédait is!
+                if (x > 0) stack.push(x - 1, y);
+                if (x < width - 1) stack.push(x + 1, y);
+                if (y > 0) stack.push(x, y - 1);
+                if (y < height - 1) stack.push(x, y + 1);
+            }
+        }
+
         ctx.putImageData(imageData, 0, 0);
 
         const newImg = new Image();
@@ -1049,7 +1041,7 @@ function cropToVisible(imageOrCanvas) {
 
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const data = imageData.data;
-        
+
         let minX = canvas.width, minY = canvas.height, maxX = 0, maxY = 0;
         let hasVisiblePixels = false;
 
@@ -2858,7 +2850,7 @@ function downloadImage(event) {
     renderCollage(false, true);
 
     const canvas = document.getElementById('collageCanvas');
-    
+
     // Itt használjuk a beállított formátumot és minőséget!
     const dataURL = canvas.toDataURL(exportFormat, exportQuality);
 
@@ -2877,7 +2869,7 @@ function downloadImage(event) {
     document.body.removeChild(tempLink);
 
     renderCollage(true, false);
-    markAsSaved(); 
+    markAsSaved();
 }
 
 // Csoportos alaphelyzetbe állítás
@@ -3061,7 +3053,7 @@ let autoCroppedImages = [];
 
 // ── INDÍTÁS ─────────────────────────────────────────────
 function launchAutoCollage() {
-    clearPersistentStorage(); // ← EZT ADD HOZZÁ
+    clearPersistentStorage();
     const overlay = document.getElementById('processingOverlay');
     if (overlay) overlay.style.display = 'flex';
 
@@ -3070,17 +3062,16 @@ function launchAutoCollage() {
             autoGap = 15;
             autoMargin = 50;
 
-            // Csúszkák visszaállítása
             const ms = document.getElementById('auto-margin-slider');
             const gs = document.getElementById('auto-gap-slider');
             if (ms) { ms.value = 50; document.getElementById('auto-margin-val').textContent = '50px'; }
             if (gs) { gs.value = 15; document.getElementById('auto-gap-val').textContent = '15px'; }
 
-            autoCroppedImages = originalImages.map((img, i) => processAndCropForAuto(img, i));
+            // --- JAVÍTOTT SOR: originalImages helyett loadedImages ---
+            autoCroppedImages = loadedImages.map((img, i) => processAndCropForAuto(img, i));
 
-            // Nézet visszaállítása a kiválasztós állapotba
             document.getElementById('auto-variants-row').style.display = 'flex';
-            document.getElementById('auto-back-container').style.display = 'flex'; // <--- EZT ADD HOZZÁ
+            document.getElementById('auto-back-container').style.display = 'flex';
             document.getElementById('auto-controls').style.display = 'flex';
             document.getElementById('auto-selected-view').style.display = 'none';
             document.getElementById('auto-title').textContent = 'Válassz egy elrendezést';
@@ -3106,14 +3097,29 @@ function processAndCropForAuto(img, originalIndex) {
     const imageData = tCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
     const data = imageData.data;
     let minX = tempCanvas.width, minY = tempCanvas.height, maxX = 0, maxY = 0;
+
+    const isBgRemoved = document.getElementById('removeBgToggle')?.checked;
+
     for (let y = 0; y < tempCanvas.height; y++) {
         for (let x = 0; x < tempCanvas.width; x++) {
             const idx = (y * tempCanvas.width + x) * 4;
             const r = data[idx], g = data[idx + 1], b = data[idx + 2], a = data[idx + 3];
-            if (a > 20 && !(r > 235 && g > 235 && b > 235)) {
+
+            let isVisible = false;
+            // Ha a háttér átlátszó, akkor CSAK azt nézzük, hogy a pixel látható-e
+            if (isBgRemoved) {
+                isVisible = (a > 10);
+            } else {
+                // Ha kikapcsolta a vágást, akkor ignoráljuk a fehér(es) színeket
+                isVisible = (a > 20 && !(r > 235 && g > 235 && b > 235));
+            }
+
+            if (isVisible) {
                 if (x < minX) minX = x; if (x > maxX) maxX = x;
                 if (y < minY) minY = y; if (y > maxY) maxY = y;
-            } else { data[idx + 3] = 0; }
+            } else {
+                data[idx + 3] = 0;
+            }
         }
     }
     tCtx.putImageData(imageData, 0, 0);
@@ -3367,17 +3373,9 @@ function editAutoCollage() {
 
         const Z = zoomLevels[permIdx];
 
-        // --- KRITIKUS JAVÍTÁS ---
-        // Ha a kép már vágott (loadedImages-ben), akkor nincs szükség a cropOffsetX eltolásra
-        // mert a kép koordináta-rendszere már a vágott szélnél kezdődik.
-        let prodOffX = 0;
-        let prodOffY = 0;
-
-        // Csak akkor kell eltolás, ha a kép mérete nagyobb, mint amit az automata számolt (tehát nincs vágva)
-        if (img.width > imgItem.cropW + 5) { 
-            prodOffX = (imgItem.cropOffsetX + imgItem.cropW / 2 - img.width / 2) * baseScale * Z;
-            prodOffY = (imgItem.cropOffsetY + imgItem.cropH / 2 - img.height / 2) * baseScale * Z;
-        }
+        // --- Visszaállítottuk a tiszta, tökéletes matematikát ---
+        const prodOffX = (imgItem.cropOffsetX + imgItem.cropW / 2 - img.width / 2) * baseScale * Z;
+        const prodOffY = (imgItem.cropOffsetY + imgItem.cropH / 2 - img.height / 2) * baseScale * Z;
 
         imageOffsets[permIdx] = {
             x: Math.round(editorCX - 400 - prodOffX),
@@ -3569,10 +3567,10 @@ function downloadAutoCollage() {
     const now = new Date();
     const ds = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
     const ts = String(now.getHours()).padStart(2, '0') + '-' + String(now.getMinutes()).padStart(2, '0');
-    
+
     // Fájlkiterjesztés meghatározása itt is
     const ext = exportFormat === 'image/jpeg' ? 'jpg' : (exportFormat === 'image/webp' ? 'webp' : 'png');
-    
+
     const link = document.createElement('a');
     link.download = `auto_kollazs_${ds}_${ts}.${ext}`;
     // Itt is alkalmazzuk a minőségi beállításokat

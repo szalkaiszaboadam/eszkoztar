@@ -12,23 +12,6 @@
         rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" href="style.css">
-<script type="module">
-    import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js';
-    
-    window.imglyReady = false;
-    
-    const segmenter = await pipeline('image-segmentation', 'Xenova/segformer-b0-finetuned-ade-512-512');
-    
-    window.imglyRemoveBackground = async (blob) => {
-        const url = URL.createObjectURL(blob);
-        const result = await segmenter(url);
-        URL.revokeObjectURL(url);
-        return result;
-    };
-    
-    window.imglyReady = true;
-    document.dispatchEvent(new Event('imgly-ready'));
-</script>
     <script src="app.js" defer></script>
 </head>
 
@@ -327,34 +310,40 @@ padding: 10px 0 32px;
                             </label>
 
                             <div class="popover-divider"></div>
-<div class="popover-header" style="padding: 4px 12px 6px;">
-    <span class="toolbar-label">Letöltés</span>
-</div>
+                            <div class="popover-header" style="padding: 4px 12px 6px;">
+                                <span class="toolbar-label">Letöltés</span>
+                            </div>
 
-<label class="popover-item" style="flex-direction: column; align-items: flex-start; gap: 8px;">
-    <div class="item-info" style="width: 100%; justify-content: space-between;">
-        <div style="display: flex; align-items: center; gap: 9px;">
-            <i data-lucide="file-image"></i>
-            <span>Formátum</span>
-        </div>
-        <select id="exportFormatSelect" onchange="updateExportSettings()" style="background: var(--bg-sunken); color: var(--text-main); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 2px 5px; font-size: 11px; font-weight: 600; outline: none; cursor: pointer;">
-            <option value="image/png">PNG</option>
-            <option value="image/jpeg">JPG</option>
-            <option value="image/webp">WebP</option>
-        </select>
-    </div>
-</label>
+                            <label class="popover-item"
+                                style="flex-direction: column; align-items: flex-start; gap: 8px;">
+                                <div class="item-info" style="width: 100%; justify-content: space-between;">
+                                    <div style="display: flex; align-items: center; gap: 9px;">
+                                        <i data-lucide="file-image"></i>
+                                        <span>Formátum</span>
+                                    </div>
+                                    <select id="exportFormatSelect" onchange="updateExportSettings()"
+                                        style="background: var(--bg-sunken); color: var(--text-main); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 2px 5px; font-size: 11px; font-weight: 600; outline: none; cursor: pointer;">
+                                        <option value="image/png">PNG</option>
+                                        <option value="image/jpeg">JPG</option>
+                                        <option value="image/webp">WebP</option>
+                                    </select>
+                                </div>
+                            </label>
 
-<label class="popover-item" id="exportQualityContainer" style="flex-direction: column; align-items: flex-start; gap: 8px; display: none;">
-    <div class="item-info" style="width: 100%; justify-content: space-between;">
-        <div style="display: flex; align-items: center; gap: 9px;">
-            <i data-lucide="sliders-horizontal"></i>
-            <span>Minőség</span>
-        </div>
-        <span id="exportQualityVal" style="font-size: 11px; font-weight: 700; color: var(--accent-color);">90%</span>
-    </div>
-    <input type="range" id="exportQualitySlider" min="0.1" max="1.0" step="0.05" value="0.9" style="width: 100%; accent-color: var(--accent-color); cursor: pointer;" oninput="updateExportSettings()">
-</label>
+                            <label class="popover-item" id="exportQualityContainer"
+                                style="flex-direction: column; align-items: flex-start; gap: 8px; display: none;">
+                                <div class="item-info" style="width: 100%; justify-content: space-between;">
+                                    <div style="display: flex; align-items: center; gap: 9px;">
+                                        <i data-lucide="sliders-horizontal"></i>
+                                        <span>Minőség</span>
+                                    </div>
+                                    <span id="exportQualityVal"
+                                        style="font-size: 11px; font-weight: 700; color: var(--accent-color);">90%</span>
+                                </div>
+                                <input type="range" id="exportQualitySlider" min="0.1" max="1.0" step="0.05" value="0.9"
+                                    style="width: 100%; accent-color: var(--accent-color); cursor: pointer;"
+                                    oninput="updateExportSettings()">
+                            </label>
 
                         </div>
                     </div>
