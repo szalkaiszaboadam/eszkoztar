@@ -959,6 +959,7 @@ async function processImagesBackground(images) {
     return results;
 }
 
+
 async function removeBgFallback(img) {
     return new Promise(resolve => {
         const canvas = document.createElement('canvas');
@@ -969,58 +970,18 @@ async function removeBgFallback(img) {
 
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const data = imageData.data;
-        const width = canvas.width;
-        const height = canvas.height;
 
-        // Látogatottsági térkép a Varázspálcához (Flood Fill algoritmus)
-        const visited = new Uint8Array(width * height);
-        const stack = [];
-
-        // A kép 4 szélét betesszük kezdőpontoknak (feltételezve, hogy a széleken biztosan háttér van)
-        for (let x = 0; x < width; x++) { 
-            stack.push(x, 0); 
-            stack.push(x, height - 1); 
-        }
-        for (let y = 0; y < height; y++) { 
-            stack.push(0, y); 
-            stack.push(width - 1, y); 
-        }
-
-        while (stack.length > 0) {
-            const y = stack.pop();
-            const x = stack.pop();
-            const idx = y * width + x;
-
-            if (visited[idx]) continue;
-            visited[idx] = 1;
-
-            const pIdx = idx * 4;
-            const r = data[pIdx];
-            const g = data[pIdx + 1];
-            const b = data[pIdx + 2];
-
-            // Küszöbérték: mennyire lehet sötét a háttér? (A 200 már a világosszürkét is megfogja)
-            if (r > 200 && g > 200 && b > 200) {
-                
-                // Élsimítás (Soft edge): hogy ne legyen recés a széle
-                // Ha nagyon világos (> 230), teljesen átlátszó. Ha picit sötétebb (200-230 között), akkor enyhén áttetsző, ami szép átmenetet ad.
-                const avgLight = (r + g + b) / 3;
-                let alpha = 0;
-                
-                if (avgLight <= 230) {
-                    alpha = Math.floor(((230 - avgLight) / 30) * 255);
-                }
-                
-                data[pIdx + 3] = alpha;
-
-                // Ha ez egy háttér pixel volt, nézzük meg a közvetlen szomszédait is!
-                if (x > 0) stack.push(x - 1, y);
-                if (x < width - 1) stack.push(x + 1, y);
-                if (y > 0) stack.push(x, y - 1);
-                if (y < height - 1) stack.push(x, y + 1);
+        // Kíméletlen, "baltával faragott" módszer: ami fehér, az kuka.
+        // Nincs élsimítás, így nincsenek láthatatlan szellem-pixelek sem!
+        for (let i = 0; i < data.length; i += 4) {
+            const r = data[i], g = data[i + 1], b = data[i + 2];
+            
+            // Ha a pixel majdnem teljesen fehér (240 felett), akkor 100%-ig átlátszó lesz (alpha = 0)
+            if (r > 240 && g > 240 && b > 240) {
+                data[i + 3] = 0;
             }
         }
-
+        
         ctx.putImageData(imageData, 0, 0);
 
         const newImg = new Image();
