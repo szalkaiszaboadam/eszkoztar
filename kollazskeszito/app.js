@@ -123,6 +123,7 @@ let imageOffsets = [];
 let rotations = [];
 let visibilities = [];
 let renderHitBoxes = [];
+let deletedImagesTrash = []; // <--- ÚJ: Kuka memóriája
 let exportFormat = 'image/png';
 let exportQuality = 0.9;
 let isGridVisible = false;
@@ -255,6 +256,20 @@ async function saveToPersistentStorage() {
         visibilities: [...visibilities], // <--- ÚJ
         historyStack: [...historyStack],
         redoStack: [...redoStack],
+        // ...
+        visibilities: [...visibilities],
+        historyStack: [...historyStack],
+        redoStack: [...redoStack],
+        // --- ÚJ RÉSZ ---
+        trash: deletedImagesTrash.map(item => ({
+            src: item.loaded.src,
+            uId: item.loaded.dataset.uId,
+            zoom: item.zoom,
+            rotation: item.rotation,
+            offset: { x: item.offset.x, y: item.offset.y },
+            visible: item.visible
+        })),
+        // ---------------
         timestamp: Date.now()
     };
 
@@ -286,6 +301,15 @@ function getCurrentState() {
             rotation: rotations[i],
             offset: { x: imageOffsets[i].x, y: imageOffsets[i].y },
             visible: visibilities[i] // ÚJ: elmentjük, hogy látható-e
+        })),
+        // --- ÚJ: Kuka állapotának mentése ---
+        trash: deletedImagesTrash.map(item => ({
+            src: item.loaded.src,
+            uId: item.loaded.dataset.uId,
+            zoom: item.zoom,
+            rotation: item.rotation,
+            offset: { x: item.offset.x, y: item.offset.y },
+            visible: item.visible
         })),
         currentMode: currentMode,
         isGridFlipped: isGridFlipped, // ÚJ: elmentjük a rács irányát
@@ -355,6 +379,34 @@ async function applyState(stateJson) {
         const newRotations = [];
         const newImageOffsets = [];
         const newVisibilities = []; // ÚJ
+
+        // ... itt van a régi for ciklus a normál képekre ...
+
+        // --- ÚJ RÉSZ AZ APPLYSTATE FÜGGVÉNYBEN: Kuka visszatöltése ---
+        const newTrash = [];
+        if (state.trash) {
+            for (const item of state.trash) {
+                const img = await new Promise((resolve, reject) => {
+                    const iObj = new Image();
+                    iObj.onload = () => resolve(iObj);
+                    iObj.onerror = reject;
+                    iObj.src = item.src;
+                });
+                img.dataset.uId = item.uId;
+                newTrash.push({
+                    original: img,
+                    loaded: img,
+                    zoom: item.zoom,
+                    offset: item.offset,
+                    rotation: item.rotation,
+                    visible: item.visible
+                });
+            }
+        }
+        deletedImagesTrash = newTrash;
+        // --------------------------------------------------------------
+
+        loadedImages = newLoadedImages;    
 
         for (const item of state.images) {
             const img = await new Promise((resolve, reject) => {
@@ -476,6 +528,26 @@ window.onload = async function () {
                         visibilities.push(savedVis[i] !== undefined ? savedVis[i] : true); // <--- ÚJ
                     } catch (e) { console.error("Hiba egy képnél"); }
                 }
+
+                // --- ÚJ RÉSZ: KUKA ADATBÁZIS VISSZATÖLTÉSE ---
+                const savedTrash = data.trash || [];
+                deletedImagesTrash = [];
+                for (let i = 0; i < savedTrash.length; i++) {
+                    const item = savedTrash[i];
+                    try {
+                        const img = await new Promise((resolve, reject) => {
+                            const iObj = new Image();
+                            iObj.onload = () => resolve(iObj);
+                            iObj.onerror = reject;
+                            iObj.src = item.src;
+                        });
+                        img.dataset.uId = item.uId;
+                        deletedImagesTrash.push({
+                            original: img, loaded: img, zoom: item.zoom, offset: item.offset, rotation: item.rotation, visible: item.visible
+                        });
+                    } catch (e) { console.error("Hiba kuka képnél"); }
+                }
+                // ---------------------------------------------
 
                 // 3. Felület frissítése
                 toggleView('editor');
@@ -938,20 +1010,20 @@ async function processImagesBackground(images) {
     for (const img of images) {
         try {
             if (statusEl) statusEl.innerText = "Háttér eltávolítása...";
-            
+
             // 1. Lefuttatjuk a te saját pixel-alapú háttérvágódat
             const tempImgFallback = await removeBgFallback(img);
-            
+
             // 2. Szorosan körbevágjuk a tárgyat (hogy a hitbox tökéletes legyen)
             const croppedFallback = await cropToVisible(tempImgFallback);
-            
+
             croppedFallback.dataset.uId = img.dataset.uId;
             results.push(croppedFallback);
 
         } catch (err) {
             console.error('Hiba a háttérvágásnál:', err);
             // Ha valami nagyon félremegy, inkább adjuk vissza az eredeti képet, minthogy lefagyjon
-            results.push(img); 
+            results.push(img);
         }
     }
 
@@ -975,13 +1047,13 @@ async function removeBgFallback(img) {
         // Nincs élsimítás, így nincsenek láthatatlan szellem-pixelek sem!
         for (let i = 0; i < data.length; i += 4) {
             const r = data[i], g = data[i + 1], b = data[i + 2];
-            
+
             // Ha a pixel majdnem teljesen fehér (240 felett), akkor 100%-ig átlátszó lesz (alpha = 0)
             if (r > 240 && g > 240 && b > 240) {
                 data[i + 3] = 0;
             }
         }
-        
+
         ctx.putImageData(imageData, 0, 0);
 
         const newImg = new Image();
@@ -1074,6 +1146,7 @@ async function resetCollage() {
     if (!confirm("Biztosan törölni szeretnéd a teljes munkaterületet és az összes előzményt?")) return;
 
     // 1. Minden aktív változó azonnali ürítése
+    deletedImagesTrash = [];
     originalImages = [];
     loadedImages = [];
     zoomLevels = [];
@@ -1121,6 +1194,76 @@ async function resetCollage() {
 
 
 
+// 1. KÉP TÖRLÉSE KUKÁVAL
+function removeImage(index) {
+    pushState();
+
+    // Mentés a kukába
+    deletedImagesTrash.push({
+        original: originalImages[index],
+        loaded: loadedImages[index],
+        zoom: zoomLevels[index],
+        offset: { x: imageOffsets[index].x, y: imageOffsets[index].y },
+        rotation: rotations[index],
+        visible: visibilities[index]
+    });
+
+    loadedImages.splice(index, 1);
+    originalImages.splice(index, 1);
+    zoomLevels.splice(index, 1);
+    imageOffsets.splice(index, 1);
+    rotations.splice(index, 1);
+    visibilities.splice(index, 1); 
+
+    const newSelected = new Set();
+    selectedIndices.forEach(idx => {
+        if (idx < index) newSelected.add(idx);
+        else if (idx > index) newSelected.add(idx - 1);
+    });
+
+    if (activeImageIndex === index) {
+        if (newSelected.size > 0) activeImageIndex = newSelected.values().next().value;
+        else activeImageIndex = -1;
+    } else if (activeImageIndex > index) {
+        activeImageIndex--;
+    }
+
+    selectedIndices = newSelected;
+
+    updateUIControls();
+    renderCollage();
+}
+
+// 2. CSOPORTOS TÖRLÉS KUKÁVAL
+function deleteSelectedImages() {
+    const indicesToDelete = Array.from(selectedIndices).sort((a, b) => b - a);
+
+    indicesToDelete.forEach(index => {
+        // Mentés a kukába
+        deletedImagesTrash.push({
+            original: originalImages[index],
+            loaded: loadedImages[index],
+            zoom: zoomLevels[index],
+            offset: { x: imageOffsets[index].x, y: imageOffsets[index].y },
+            rotation: rotations[index],
+            visible: visibilities[index]
+        });
+
+        loadedImages.splice(index, 1);
+        originalImages.splice(index, 1);
+        zoomLevels.splice(index, 1);
+        imageOffsets.splice(index, 1);
+        rotations.splice(index, 1);
+        visibilities.splice(index, 1);
+    });
+
+    selectedIndices.clear();
+    activeImageIndex = -1;
+    updateUIControls();
+    renderCollage();
+}
+
+// 3. UI FRISSÍTÉSE (Ez rajzolja ki a kukát is a legvégén!)
 function updateUIControls(fullRefresh = true) {
     if (!fullRefresh) return;
 
@@ -1131,129 +1274,73 @@ function updateUIControls(fullRefresh = true) {
     const downloadBtn = document.getElementById('downloadBtn');
     const shuffleBtn = document.getElementById('shuffleBtn');
     const selectAllBtn = document.getElementById('selectAllBtn');
-    const addBtnHeader = document.getElementById('addImagesHeaderBtn'); // A fejléc gombja
+    const addBtnHeader = document.getElementById('addImagesHeaderBtn');
 
     if (!sliderContainer || !slidersArea) return;
 
-    // A vászon és a mentés gomb maradjon látható az editorban
     if (canvasWrapper) canvasWrapper.style.display = 'block';
     if (downloadBtn) downloadBtn.style.display = 'inline-flex';
 
-    // --- ÜRES ÁLLAPOT KEZELÉSE ---
     if (loadedImages.length === 0) {
         slidersArea.style.display = 'flex';
         if (shuffleBtn) shuffleBtn.style.display = 'none';
         if (layoutControls) layoutControls.style.display = 'none';
-        if (selectAllBtn) selectAllBtn.style.display = 'none'; // <--- EZT ADD HOZZÁ
-
+        if (selectAllBtn) selectAllBtn.style.display = 'none';
         if (addBtnHeader) addBtnHeader.classList.add('pulse-button');
 
         sliderContainer.innerHTML = `
-            <div class="pulse-border" onclick="document.getElementById('imageInput').click()" style="
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-                align-items: center;
-                flex: 1;
-                min-height: 200px;
-                padding: 20px; 
-                text-align: center; 
-                color: var(--ui-accent); 
-                font-size: 11px; 
-                font-weight: 800; 
-                text-transform: uppercase; 
-                letter-spacing: 1px;
-                border: 2px dashed var(--ui-accent);
-                border-radius: 8px;
-                margin: 0 5px 10px 5px;
-                cursor: pointer;
-                transition: all 0.3s ease;
-            ">
+            <div class="pulse-border" onclick="document.getElementById('imageInput').click()" style="display: flex; flex-direction: column; justify-content: center; align-items: center; flex: 1; min-height: 200px; padding: 20px; text-align: center; color: var(--ui-accent); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; border: 2px dashed var(--ui-accent); border-radius: 8px; margin: 0 5px 10px 5px; cursor: pointer; transition: all 0.3s ease;">
                 <i data-lucide="image-plus" style="width: 32px; height: 32px; margin-bottom: 15px;"></i>
                 Kattintson ide vagy a fenti gombra<br>új képek betöltéséhez
             </div>
         `;
-
         if (window.lucide) refreshIcons();
         updateScrollFades();
+        renderTrashUI(); // Kuka rajzolása üres állapotnál is
         return;
     }
 
-    // --- HA VANNAK KÉPEK (Normál működés) ---
-
-    // Villogás kikapcsolása
     if (addBtnHeader) addBtnHeader.classList.remove('pulse-button');
     slidersArea.style.display = 'flex';
 
-
-    // --- GOMBOK LÁTHATÓSÁGÁNAK OKOS KEZELÉSE ---
-
-    // 1. Kiszámoljuk, hány kép látható ténylegesen
     const visibleCount = visibilities.filter(v => v !== false).length;
 
     if (layoutControls) {
         layoutControls.style.display = (currentMode === 'grid' && visibleCount > 1) ? 'flex' : 'none';
-
         const gridOption = document.querySelector('input[name="layout"][value="grid"]');
         const gridLabel = gridOption?.closest('label');
-        if (gridLabel) {
-            gridLabel.style.display = visibleCount === 2 ? 'none' : '';
-        }
+        if (gridLabel) gridLabel.style.display = visibleCount === 2 ? 'none' : '';
 
-        // Ha 2 képnél a "Rács" volt kijelölve, váltsunk "Mellé"-re
         if (visibleCount === 2 && gridOption?.checked) {
             const horizontal = document.querySelector('input[name="layout"][value="horizontal"]');
-            if (horizontal) {
-                horizontal.checked = true;
-                renderCollage();
-            }
+            if (horizontal) { horizontal.checked = true; renderCollage(); }
         }
     }
 
-    if (shuffleBtn) {
-        // Csak akkor jelenik meg, ha NEM szabad (manuális) módban vagyunk, és van min. 2 látható kép
-        shuffleBtn.style.display = (currentMode !== 'free' && visibleCount > 1) ? 'inline-flex' : 'none';
-    }
-
-    if (selectAllBtn) {
-        // Az 'Összes' gomb maradhat a feltöltött képek alapján
-        selectAllBtn.style.display = (loadedImages.length >= 2) ? 'inline-flex' : 'none';
-    }
+    if (shuffleBtn) shuffleBtn.style.display = (currentMode !== 'free' && visibleCount > 1) ? 'inline-flex' : 'none';
+    if (selectAllBtn) selectAllBtn.style.display = (loadedImages.length >= 2) ? 'inline-flex' : 'none';
 
     const flipBtn = document.getElementById('flipLayoutBtn');
-    if (flipBtn) {
-        // A fordítógomb csak Rács módban, min. 3 látható képnél, ha a számuk páratlan
-        flipBtn.style.display = (currentMode === 'grid' && visibleCount > 2 && visibleCount % 2 !== 0) ? 'inline-flex' : 'none';
-    }
+    if (flipBtn) flipBtn.style.display = (currentMode === 'grid' && visibleCount > 2 && visibleCount % 2 !== 0) ? 'inline-flex' : 'none';
 
     sliderContainer.innerHTML = '';
 
-    // Batch (csoportos) gombok, ha több kép van kijelölve
-    // Batch (csoportos) gombok, ha több kép van kijelölve
     if (selectedIndices.size > 1) {
         const batchHeader = document.createElement('div');
         batchHeader.className = 'batch-header';
-        // CSS a tökéletes egymás mellé rendezéshez
-        batchHeader.style.display = 'flex';
-        batchHeader.style.gap = '6px';
-        batchHeader.style.marginBottom = '8px';
+        batchHeader.style.cssText = 'display: flex; gap: 6px; margin-bottom: 8px;';
         batchHeader.innerHTML = `
-                    <button class="btn-batch" style="flex:1; justify-content:center;" onclick="batchToggleVisibilitySelected()" title="Kijelöltek elrejtése/megjelenítése">
-                        <i data-lucide="eye"></i>
-                    </button>
-                    <button class="btn-batch" style="flex:1; justify-content:center;" onclick="batchResetSelected()">
-                        <i data-lucide="rotate-ccw"></i>
-                    </button>
-                    <button class="btn-batch del" style="flex:1; justify-content:center;" onclick="batchDeleteSelected()">
-                        <i data-lucide="trash-2"></i>
-                    </button>
-                `;
+            <button class="btn-batch" style="flex:1; justify-content:center;" onclick="batchToggleVisibilitySelected()" title="Kijelöltek elrejtése/megjelenítése"><i data-lucide="eye"></i></button>
+            <button class="btn-batch" style="flex:1; justify-content:center;" onclick="batchResetSelected()"><i data-lucide="rotate-ccw"></i></button>
+            <button class="btn-batch del" style="flex:1; justify-content:center;" onclick="batchDeleteSelected()"><i data-lucide="trash-2"></i></button>
+        `;
         sliderContainer.appendChild(batchHeader);
     }
 
     loadedImages.forEach((img, index) => {
         const isPrimary = (index === activeImageIndex);
         const isSelected = selectedIndices.has(index);
+        const isHidden = visibilities[index] === false;
 
         const card = document.createElement('div');
         card.className = `edit-card ${isPrimary ? 'active' : (isSelected ? 'selected' : '')}`;
@@ -1266,25 +1353,17 @@ function updateUIControls(fullRefresh = true) {
         card.addEventListener('drop', handleDrop);
         card.addEventListener('click', (e) => selectImageFromSidebar(index, e));
 
-        const isHidden = visibilities[index] === false;
-
         card.innerHTML = `
             <div class="edit-card-header">
                 <div class="edit-thumb-container" style="opacity: ${isHidden ? '0.3' : '1'};">
                     <img src="${img.src}" class="edit-thumb" draggable="false">
                 </div>
                 <span class="edit-card-title" style="text-decoration: ${isHidden ? 'line-through' : 'none'}; color: ${isHidden ? 'var(--text-muted)' : 'var(--text-main)'}">${index + 1}. kép</span>
-<div style="display: flex; gap: 4px;">
-    <button class="btn-reset-icon" ${selectedIndices.size > 1 && isSelected ? 'disabled' : `onclick="event.stopPropagation(); toggleVisibility(${index})"`} title="${isHidden ? 'Megjelenítés' : 'Elrejtés'}">
-        <i data-lucide="${isHidden ? 'eye-off' : 'eye'}"></i>
-    </button>
-    <button class="btn-reset-icon" ${selectedIndices.size > 1 && isSelected ? 'disabled' : `onclick="event.stopPropagation(); resetImageParams(${index})"`} title="Alaphelyzet">
-        <i data-lucide="undo-2"></i>
-    </button>
-    <button class="btn-delete-icon" ${selectedIndices.size > 1 && isSelected ? 'disabled' : `onclick="event.stopPropagation(); removeImage(${index})"`} title="Törlés">
-        <i data-lucide="trash-2"></i>
-    </button>
-</div>
+                <div style="display: flex; gap: 4px;">
+                    <button class="btn-reset-icon" ${selectedIndices.size > 1 && isSelected ? 'disabled' : `onclick="event.stopPropagation(); toggleVisibility(${index})"`} title="${isHidden ? 'Megjelenítés' : 'Elrejtés'}"><i data-lucide="${isHidden ? 'eye-off' : 'eye'}"></i></button>
+                    <button class="btn-reset-icon" ${selectedIndices.size > 1 && isSelected ? 'disabled' : `onclick="event.stopPropagation(); resetImageParams(${index})"`} title="Alaphelyzet"><i data-lucide="undo-2"></i></button>
+                    <button class="btn-delete-icon" ${selectedIndices.size > 1 && isSelected ? 'disabled' : `onclick="event.stopPropagation(); removeImage(${index})"`} title="Törlés"><i data-lucide="trash-2"></i></button>
+                </div>
             </div>
         `;
         sliderContainer.appendChild(card);
@@ -1292,8 +1371,8 @@ function updateUIControls(fullRefresh = true) {
 
     if (window.lucide) refreshIcons();
     updateScrollFades();
+    renderTrashUI(); // <--- EZ A KULCS! Itt hívjuk meg a kukát kirajzoló függvényt.
 }
-
 
 
 
@@ -2331,49 +2410,7 @@ function selectImageFromSidebar(index, event) {
 }
 
 
-function removeImage(index) {
-    pushState();
 
-    // 1. Adatok törlése a tömbökből
-    loadedImages.splice(index, 1);
-    originalImages.splice(index, 1);
-    zoomLevels.splice(index, 1);
-    imageOffsets.splice(index, 1);
-    rotations.splice(index, 1);
-    visibilities.splice(index, 1); // <--- ADD HOZZÁ
-
-    // 2. Új kijelölési lista építése az index-eltolódásokkal
-    const newSelected = new Set();
-    selectedIndices.forEach(idx => {
-        if (idx < index) {
-            newSelected.add(idx);
-        } else if (idx > index) {
-            newSelected.add(idx - 1);
-        }
-    });
-
-    // 3. AZ UGRÓ LOGIKA:
-    if (activeImageIndex === index) {
-        // Ha az elsődlegest töröltük, válasszuk ki az új listából az első elérhetőt
-        if (newSelected.size > 0) {
-            // A Set-ből kinyerjük az első elemet
-            activeImageIndex = newSelected.values().next().value;
-        } else {
-            activeImageIndex = -1;
-        }
-    } else if (activeImageIndex > index) {
-        // Ha nem az elsődlegest töröltük, de utána volt a sorban, korrigáljuk az indexét
-        activeImageIndex--;
-    }
-
-    // Frissítjük a globális listát
-    selectedIndices = newSelected;
-
-
-    updateUIControls();
-    renderCollage();
-    //showToast("Kép eltávolítva", "trash-2", "#ff9f43");
-}
 
 // Toolbar törlés gombja
 function removeActiveImageFromToolbar() {
@@ -2387,31 +2424,6 @@ function deselectImage() {
     updateUIControls();
 }
 
-// Csoportos törlés (FONTOS: hátulról előre kell törölni az indexek elcsúszása miatt!)
-function deleteSelectedImages() {
-    const count = selectedIndices.size;
-    // Átalakítjuk tömbbé, és csökkenő sorrendbe rendezzük
-    const indicesToDelete = Array.from(selectedIndices).sort((a, b) => b - a);
-
-    indicesToDelete.forEach(index => {
-        loadedImages.splice(index, 1);
-        originalImages.splice(index, 1);
-        zoomLevels.splice(index, 1);
-        imageOffsets.splice(index, 1);
-        rotations.splice(index, 1);
-        visibilities.splice(index, 1);
-    });
-
-    selectedIndices.clear();
-    activeImageIndex = -1;
-
-    // ÚJ LOGIKA:
-    selectedIndices.clear();
-    activeImageIndex = -1;
-    updateUIControls();
-    renderCollage();
-    //showToast(`${count} kép eltávolítva`, "trash-2", "#ff9f43");
-}
 
 
 function shuffleImages() {
@@ -2983,6 +2995,7 @@ function finalizeModeSelection(selectedMode) {
 function backToUpload() {
     isSessionActive = false; // --- ÚJ: Kikapcsoljuk a mentési lehetőséget ---
     // 1. Kitakarítjuk a memóriát, hogy ne maradjanak ott a képek
+    deletedImagesTrash = [];
     loadedImages = [];
     originalImages = [];
     zoomLevels = [];
@@ -3031,6 +3044,12 @@ function launchAutoCollage() {
             // --- JAVÍTOTT SOR: originalImages helyett loadedImages ---
             autoCroppedImages = loadedImages.map((img, i) => processAndCropForAuto(img, i));
 
+            // --- ÚJ RÉSZ A MEGJELENÍTÉSNÉL ---
+            const keepOrderCb = document.getElementById('auto-keep-order');
+            if (keepOrderCb) keepOrderCb.checked = false; // Alapból hagyjuk az automatát mixelni
+
+            document.getElementById('auto-mini-gallery-container').style.display = 'flex'; // ÚJ
+            document.getElementById('auto-variants-row').style.display = 'flex';
             document.getElementById('auto-variants-row').style.display = 'flex';
             document.getElementById('auto-back-container').style.display = 'flex';
             document.getElementById('auto-controls').style.display = 'flex';
@@ -3039,6 +3058,7 @@ function launchAutoCollage() {
             document.getElementById('auto-subtitle').textContent = 'Az algoritmus megtalálta a legjobb 3 elrendezést';
 
             toggleView('auto');
+            renderAutoMiniGallery(); // ÚJ: Kirajzoljuk a minigalériát
             regenerateAutoLayouts();
         } catch (err) {
             console.error(err);
@@ -3132,13 +3152,22 @@ function computeAutoLayouts(images, gap, externalMargin) {
     const TARGET = 1000;
     const allCandidates = [];
 
-    const perms = getAutoPermutations(images);
+const keepOrder = document.getElementById('auto-keep-order')?.checked;
+    let allPerms;
+
+    if (keepOrder) {
+        // Csak a jelenlegi, kézzel beállított sorrendet engedjük
+        allPerms = [images];
+    } else {
+        // Hagyjuk, hogy az algoritmus kipróbálja az összes variációt
+        const perms = getAutoPermutations(images);
+        const sortedAsc = [...images].sort((a, b) => a.ar - b.ar);
+        const sortedDesc = [...images].sort((a, b) => b.ar - a.ar);
+        allPerms = [...perms, sortedAsc, sortedDesc];
+    }
+
     const parts = getAutoPartitions(images.length);
 
-    // AR szerinti extra permutációk
-    const sortedAsc = [...images].sort((a, b) => a.ar - b.ar);
-    const sortedDesc = [...images].sort((a, b) => b.ar - a.ar);
-    const allPerms = [...perms, sortedAsc, sortedDesc];
 
     for (let perm of allPerms) {
         for (let part of parts) {
@@ -3479,6 +3508,7 @@ function selectAutoLayout(layout, index) {
     document.getElementById('auto-selected-view').style.display = 'flex';
     document.getElementById('auto-title').textContent = `${index + 1}. változat kiválasztva`;
     document.getElementById('auto-subtitle').textContent = 'Letöltheted, vagy megnyithatod szerkesztésre';
+    document.getElementById('auto-mini-gallery-container').style.display = 'none'; // ÚJ: Elrejtjük
 
     const canvas = document.getElementById('auto-selected-canvas');
     renderAutoCanvas(canvas, layout);
@@ -3510,6 +3540,7 @@ function backToAutoSelect() {
     document.getElementById('auto-controls').style.display = 'flex';
     document.getElementById('auto-selected-view').style.display = 'none';
     document.getElementById('auto-title').textContent = 'Válassz egy elrendezést';
+    document.getElementById('auto-mini-gallery-container').style.display = 'flex'; // ÚJ: Visszahozzuk
 
     // --- ÚJ RÉSZ: Visszaálláskor is dinamikus a szöveg ---
     const subtitle = document.getElementById('auto-subtitle');
@@ -3565,6 +3596,194 @@ function updateExportSettings() {
 }
 
 
+// --- ÚJ: Minigaléria kirajzolása és Drag&Drop kezelése ---
+function renderAutoMiniGallery() {
+    const gallery = document.getElementById('auto-mini-gallery');
+    if (!gallery) return;
+    gallery.innerHTML = '';
+
+    loadedImages.forEach((img, i) => {
+        const wrapper = document.createElement('div');
+        wrapper.style.cssText = 'position: relative; width: 64px; height: 64px; border-radius: 6px; border: 1.5px solid var(--border-subtle); background: var(--bg-sunken); flex-shrink: 0; cursor: grab; overflow: hidden; transition: border-color 0.2s;';
+        wrapper.draggable = true;
+        
+        // Drag események az átrendezéshez
+        wrapper.ondragstart = (e) => {
+            e.dataTransfer.setData('text/plain', i);
+            wrapper.style.opacity = '0.4';
+        };
+        wrapper.ondragend = () => { wrapper.style.opacity = '1'; };
+        wrapper.ondragover = (e) => { e.preventDefault(); wrapper.style.borderColor = 'var(--accent-color)'; };
+        wrapper.ondragleave = () => { wrapper.style.borderColor = 'var(--border-subtle)'; };
+        
+        wrapper.ondrop = (e) => {
+            e.preventDefault();
+            wrapper.style.borderColor = 'var(--border-subtle)';
+            const fromIdx = parseInt(e.dataTransfer.getData('text/plain'));
+            const toIdx = i;
+            if (fromIdx !== toIdx && !isNaN(fromIdx)) {
+                // 1. Átrendezzük a globális tömböket (ezzel a meglévő függvényeddel)
+                reorderArrayItems(fromIdx, toIdx);
+                
+                // 2. Átrendezzük az autoCroppedImages tömböt is
+                const item = autoCroppedImages[fromIdx];
+                autoCroppedImages.splice(fromIdx, 1);
+                autoCroppedImages.splice(toIdx, 0, item);
+                
+                // 3. Frissítjük az eredeti indexeket, nehogy elcsússzon
+                autoCroppedImages.forEach((ac, idx) => ac.originalIndex = idx);
+
+                // 4. Okos UX: Ha a felhasználó kézzel átrendezi, biztos ragaszkodik hozzá. Bekapcsoljuk a pipát.
+                const keepOrderCb = document.getElementById('auto-keep-order');
+                if(keepOrderCb && !keepOrderCb.checked) keepOrderCb.checked = true;
+
+                renderAutoMiniGallery();
+                regenerateAutoLayouts();
+            }
+        };
+
+        const thumb = document.createElement('img');
+        thumb.src = img.src;
+        thumb.style.cssText = 'width: 100%; height: 100%; object-fit: contain; pointer-events: none;';
+
+        // Forgatás gomb
+        const rotBtn = document.createElement('button');
+        rotBtn.innerHTML = '<i data-lucide="rotate-cw"></i>';
+        rotBtn.style.cssText = 'position: absolute; bottom: 3px; right: 3px; width: 22px; height: 22px; border-radius: 4px; background: var(--bg-overlay); border: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text-main); padding: 0; box-shadow: var(--shadow-sm);';
+        
+        rotBtn.onclick = (e) => {
+            e.stopPropagation();
+            physicallyRotateImageForAuto(i);
+        };
+
+        wrapper.appendChild(thumb);
+        wrapper.appendChild(rotBtn);
+        gallery.appendChild(wrapper);
+    });
+
+    if (window.lucide) lucide.createIcons();
+}
+
+// --- ÚJ: Kép fizikai elforgatása (hogy tökéletes maradjon a vágás és a hitbox is) ---
+function physicallyRotateImageForAuto(index) {
+    const overlay = document.getElementById('processingOverlay');
+    if(overlay) overlay.style.display = 'flex';
+
+    setTimeout(() => {
+        // Létrehozunk egy segédfüggvényt, ami forgat egy képet 90 fokkal
+        const rotateCanvas = (img) => {
+            return new Promise(resolve => {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.height; // Felcseréljük a méreteket
+                canvas.height = img.width;
+                const ctx = canvas.getContext('2d');
+                ctx.translate(canvas.width / 2, canvas.height / 2);
+                ctx.rotate(90 * Math.PI / 180);
+                ctx.drawImage(img, -img.width / 2, -img.height / 2);
+                
+                const newImg = new Image();
+                newImg.dataset.uId = img.dataset.uId;
+                newImg.onload = () => resolve(newImg);
+                newImg.src = canvas.toDataURL();
+            });
+        };
+
+        // Forgatjuk a látható és az eredeti képet is egyszerre
+        Promise.all([
+            rotateCanvas(loadedImages[index]),
+            rotateCanvas(originalImages[index])
+        ]).then(([newLoaded, newOriginal]) => {
+            loadedImages[index] = newLoaded;
+            originalImages[index] = newOriginal;
+            
+            // Frissítjük a vágott auto-verziót is, hiszen megváltoztak az arányai!
+            autoCroppedImages[index] = processAndCropForAuto(newLoaded, index);
+            
+            renderAutoMiniGallery();
+            regenerateAutoLayouts();
+            if(overlay) overlay.style.display = 'none';
+        });
+    }, 50);
+}
+
+
+
+// ==========================================
+// ── KUKA (TRASH) LOGIKA ──
+// ==========================================
+
+function renderTrashUI() {
+    const trashSection = document.getElementById('trash-section');
+    const trashContainer = document.getElementById('trash-items-container');
+    if (!trashSection || !trashContainer) return;
+
+    if (deletedImagesTrash.length === 0) {
+        trashSection.style.display = 'none';
+        return;
+    }
+
+    trashSection.style.display = 'flex';
+    trashContainer.innerHTML = '';
+
+    deletedImagesTrash.forEach((item, idx) => {
+        const wrap = document.createElement('div');
+        wrap.style.cssText = 'position: relative; width: 44px; height: 44px; border-radius: 6px; border: 1px solid var(--border-subtle); background: var(--bg-elevated); flex-shrink: 0; cursor: pointer; overflow: hidden;';
+        wrap.title = 'Kattints a visszaállításhoz';
+        wrap.onclick = () => restoreFromTrash(idx);
+
+        const img = document.createElement('img');
+        img.src = item.loaded.src;
+        img.style.cssText = 'width: 100%; height: 100%; object-fit: contain; opacity: 0.7; transition: all 0.2s ease;';
+        
+        const restoreIcon = document.createElement('div');
+        restoreIcon.innerHTML = '<i data-lucide="undo"></i>';
+        restoreIcon.style.cssText = 'position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.5); color: white; opacity: 0; transition: all 0.2s ease;';
+        
+        wrap.onmouseenter = () => { img.style.opacity = '1'; img.style.transform = 'scale(1.1)'; restoreIcon.style.opacity = '1'; };
+        wrap.onmouseleave = () => { img.style.opacity = '0.7'; img.style.transform = 'scale(1)'; restoreIcon.style.opacity = '0'; };
+
+        wrap.appendChild(img);
+        wrap.appendChild(restoreIcon);
+        trashContainer.appendChild(wrap);
+    });
+
+    if (window.lucide) lucide.createIcons();
+}
+
+function restoreFromTrash(trashIdx) {
+    pushState(); // Visszavonható lépés
+    
+    const item = deletedImagesTrash[trashIdx];
+    
+    // Visszatöltés a munkaterületre
+    originalImages.push(item.original);
+    loadedImages.push(item.loaded);
+    zoomLevels.push(item.zoom);
+    imageOffsets.push({ x: item.offset.x, y: item.offset.y });
+    rotations.push(item.rotation);
+    visibilities.push(item.visible);
+
+    // Kiveszük a kukából
+    deletedImagesTrash.splice(trashIdx, 1);
+
+    // Automatikus kijelölés a visszaállított képen
+    selectedIndices.clear();
+    const newIndex = loadedImages.length - 1;
+    selectedIndices.add(newIndex);
+    activeImageIndex = newIndex;
+
+    updateUIControls(true);
+    renderCollage();
+    saveToPersistentStorage();
+}
+
+function emptyTrash() {
+    if (!confirm('Biztosan véglegesen törlöd a kuka tartalmát?')) return;
+    pushState(); // Az ürítés is visszavonható!
+    deletedImagesTrash = [];
+    updateUIControls(true);
+    saveToPersistentStorage();
+}
 
 function switchLayoutMode() {
     clearPersistentStorage();
