@@ -4,17 +4,21 @@
 import { useState } from "react";
 import { useSheetStore } from "@/lib/sheetStore";
 import { Plus, Check, X } from "lucide-react";
+import { useEffect } from "react";
+
 
 export default function SheetTabs() {
   const { tabs, activeTab, setActiveTab, setTabs } = useSheetStore();
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [editVal, setEditVal] = useState("");
 
-  const addTab = () => {
-    const newTabs = [...tabs, `Sheet${tabs.length + 1}`];
-    setTabs(newTabs);
-    setActiveTab(newTabs.length - 1);
-  };
+const addTab = () => {
+  const newTabs = [...tabs, `Sheet${tabs.length + 1}`];
+  setTabs(newTabs);
+  setActiveTab(newTabs.length - 1);
+  // Azonnal mentsük el az új tab-ot
+  setTimeout(() => window.dispatchEvent(new CustomEvent("sheet-save")), 100);
+};
 
   const renameTab = (idx: number) => {
     if (!editVal.trim()) return;
@@ -24,15 +28,17 @@ export default function SheetTabs() {
     setEditingIdx(null);
   };
 
-  const removeTab = (idx: number) => {
-    if (tabs.length === 1) return;
-    const newTabs = tabs.filter((_, i) => i !== idx);
-    setTabs(newTabs);
-    setActiveTab(Math.min(activeTab, newTabs.length - 1));
-  };
+// A removeTab függvényt cseréld:
+const removeTab = (idx: number) => {
+  if (tabs.length === 1) return;
+  const newTabs = tabs.filter((_, i) => i !== idx);
+  setTabs(newTabs);
+  setActiveTab(Math.min(activeTab, newTabs.length - 1));
+  setTimeout(() => window.dispatchEvent(new CustomEvent("sheet-save")), 100);
+};
 
   return (
-    <div className="flex items-center border-t border-gray-200 bg-gray-50 px-2 overflow-x-auto">
+    <div className="flex items-center border-t border-gray-200 bg-gray-50 px-2 overflow-x-auto shrink-0">
       {tabs.map((tab, idx) => (
         <div
           key={idx}
@@ -50,7 +56,10 @@ export default function SheetTabs() {
                 autoFocus
                 value={editVal}
                 onChange={(e) => setEditVal(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") renameTab(idx); if (e.key === "Escape") setEditingIdx(null); }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") renameTab(idx);
+                  if (e.key === "Escape") setEditingIdx(null);
+                }}
                 className="w-20 border border-blue-400 rounded px-1 text-xs focus:outline-none"
               />
               <button onClick={() => renameTab(idx)}><Check className="w-3 h-3 text-green-600" /></button>
@@ -71,11 +80,7 @@ export default function SheetTabs() {
           )}
         </div>
       ))}
-      <button
-        onClick={addTab}
-        className="px-3 py-2 text-gray-400 hover:text-green-600 hover:bg-gray-100 transition"
-        title="Új fül"
-      >
+      <button onClick={addTab} className="px-3 py-2 text-gray-400 hover:text-green-600 hover:bg-gray-100 transition" title="Új fül">
         <Plus className="w-4 h-4" />
       </button>
     </div>

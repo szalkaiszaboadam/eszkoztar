@@ -5,13 +5,13 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuthStore } from "@/lib/store";
 import { useSheetStore } from "@/lib/sheetStore";
-import { saveCells, loadCells, renameSheet, getSheets } from "@/lib/sheetsService";
+import { saveCells, loadSheetData, renameSheet, getSheets } from "@/lib/sheetsService";
 import Grid from "@/components/sheet/Grid";
 import FormulaBar from "@/components/sheet/FormulaBar";
 import Toolbar from "@/components/sheet/Toolbar";
 import SheetTabs from "@/components/sheet/SheetTabs";
 import toast from "react-hot-toast";
-import { Save, ArrowLeft, FileSpreadsheet } from "lucide-react";
+import { Save, ArrowLeft, FileSpreadsheet, Loader2 } from "lucide-react";
 import ImportButton from "@/components/sheet/ImportButton";
 import ExportButton from "@/components/sheet/ExportButton";
 
@@ -20,42 +20,72 @@ export default function SheetPage() {
     const { user } = useAuthStore();
     const router = useRouter();
 
-    const { cells, setCells, title, setTitle, isDirty, setDirty, rowCount } = useSheetStore();
+    const {
+        title, setTitle, isDirty, setDirty, setAllTabData
+    } = useSheetStore();
+
     const [saving, setSaving] = useState(false);
     const [editingTitle, setEditingTitle] = useState(false);
+    const [isInitialLoading, setIsInitialLoading] = useState(true);
 
     useEffect(() => {
         if (!user || !id) return;
-        // Cím betöltése
-        getSheets(user.uid).then((sheets) => {
-            const current = sheets.find((s) => s.id === id);
-            if (current) setTitle(current.title);
-        });
-        // Cellák betöltése
-        loadCells(user.uid, id).then((data) => {
-            setCells(data);
-            setDirty(false);
-        });
-    }, [user, id]);
 
+        const fetchData = async () => {
+            try {
+                const [sheets, data] = await Promise.all([
+                    getSheets(user.uid),
+                    loadSheetData(user.uid, id)
+                ]);
+
+                const current = sheets.find((s) => s.id === id);
+                if (current) setTitle(current.title);
+
+                setAllTabData(data);
+            } catch (error) {
+                console.error("Hiba az adatok lekérésekor:", error);
+                toast.error("Nem sikerült betölteni a táblázatot.");
+            } finally {
+                setIsInitialLoading(false);
+            }
+        };
+
+        fetchData();
+    }, [user, id]);
+    
     // Auto-save
     useEffect(() => {
         if (!isDirty) return;
         const timer = setTimeout(() => handleSave(true), 3000);
         return () => clearTimeout(timer);
-    }, [cells, isDirty]);
+    }, [isDirty]);
 
     // Ctrl+S
     useEffect(() => {
-        const handler = () => handleSave(false);
+        const handler = (e: Event) => {
+            e.preventDefault();
+            handleSave(false);
+        };
         window.addEventListener("sheet-save", handler);
         return () => window.removeEventListener("sheet-save", handler);
-    }, [cells]);
+    }, []);
 
     const handleSave = async (silent = false) => {
         if (!user || !id) return;
         setSaving(true);
-        await saveCells(user.uid, id, cells, rowCount); // ← rowCount hozzáadva
+        
+        const state = useSheetStore.getState();
+        
+        await saveCells(
+            user.uid, 
+            id, 
+            state.cellsByTab, 
+            state.rowCountByTab, 
+            state.tabs, 
+            state.colWidthsByTab, 
+            state.rowHeightsByTab
+        );
+        
         setDirty(false);
         setSaving(false);
         if (!silent) toast.success("Mentve!");
@@ -82,7 +112,8 @@ export default function SheetPage() {
                     <FileSpreadsheet className="w-4 h-4 text-white" />
                 </div>
 
-                {editingTitle ? (
+                {/* Cím vagy betöltés jelző */}
+                {editingTitle && !isInitialLoading ? (
                     <input
                         autoFocus
                         value={title}
@@ -93,10 +124,10 @@ export default function SheetPage() {
                     />
                 ) : (
                     <span
-                        className="font-semibold text-gray-800 text-sm cursor-pointer hover:text-blue-600"
-                        onClick={() => setEditingTitle(true)}
+                        className={`font-semibold text-sm transition ${isInitialLoading ? "text-gray-400" : "text-gray-800 cursor-pointer hover:text-blue-600"}`}
+                        onClick={() => !isInitialLoading && setEditingTitle(true)}
                     >
-                        {title || "Névtelen táblázat"}
+                        {isInitialLoading ? "Betöltés..." : (title || "Névtelen táblázat")}
                     </span>
                 )}
 
@@ -104,38 +135,53 @@ export default function SheetPage() {
 
                 {/* Státusz szöveg */}
                 <span className="text-xs text-gray-400 hidden sm:block">
-                    {saving ? "Mentés..." : isDirty ? "● Nem mentett" : "✓ Mentve"}
+                    {isInitialLoading ? "Kapcsolódás..." : saving ? "Mentés..." : isDirty ? "● Nem mentett" : "✓ Mentve"}
                 </span>
 
                 <div className="w-px h-5 bg-gray-200" />
 
-                {/* Import / Export */}
-                <ImportButton />
-                <ExportButton />
+                <div className={isInitialLoading ? "opacity-50 pointer-events-none flex items-center" : "flex items-center"}>
+                    <ImportButton />
+                    <ExportButton />
+                </div>
 
                 <div className="w-px h-5 bg-gray-200" />
 
-                {/* Mentés – csak ikon */}
                 <button
-                    onClick={() => handleSave(false)}
+                    onClick={() => !isInitialLoading && handleSave(false)}
+                    disabled={isInitialLoading}
                     title="Mentés (Ctrl+S)"
-                    className="p-1.5 hover:bg-green-50 hover:text-green-600 text-gray-600 rounded-lg transition"
+                    className={`p-1.5 rounded-lg transition ${isInitialLoading ? "text-gray-300" : "hover:bg-green-50 hover:text-green-600 text-gray-600"}`}
                 >
                     <Save className="w-4 h-4" />
                 </button>
             </header>
 
-            {/* Toolbar */}
-            <Toolbar />
+            {/* Toolbar - Fixen látszik */}
+            <div className={isInitialLoading ? "opacity-50 pointer-events-none" : ""}>
+                <Toolbar />
+            </div>
 
-            {/* Formula bar */}
-            <FormulaBar />
+            {/* Formula bar - Fixen látszik */}
+            <div className={isInitialLoading ? "opacity-50 pointer-events-none" : ""}>
+                <FormulaBar />
+            </div>
 
-            {/* Grid */}
-            <Grid />
+            {/* Dinamikus tartalom (Vagy Grid vagy Töltőképernyő) */}
+            {isInitialLoading ? (
+                <div className="flex-1 flex flex-col items-center justify-center bg-gray-50/50">
+                    <Loader2 className="w-8 h-8 text-green-500 animate-spin mb-3" />
+                    <p className="text-sm font-medium text-gray-500">Adatok szinkronizálása...</p>
+                </div>
+            ) : (
+                <>
+                    {/* Grid */}
+                    <Grid />
 
-            {/* Sheet fülek */}
-            <SheetTabs />
+                    {/* Sheet fülek */}
+                    <SheetTabs />
+                </>
+            )}
         </div>
     );
 }
