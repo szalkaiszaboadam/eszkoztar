@@ -4,8 +4,8 @@
 import { useSheetStore } from "@/lib/sheetStore";
 
 export default function FormulaBar() {
-  const { selectedCell, cells } = useSheetStore();
-  const cellData = selectedCell ? cells[selectedCell] : null;
+  const selectedCell = useSheetStore(s => s.selectedCell);
+  const cellData = useSheetStore(s => selectedCell ? s.cells[selectedCell] : null);
   const content = cellData?.formula || cellData?.value || "";
 
   return (

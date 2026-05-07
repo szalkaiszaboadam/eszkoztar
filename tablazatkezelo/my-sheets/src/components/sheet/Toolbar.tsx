@@ -9,9 +9,14 @@ import {
 } from "lucide-react";
 
 export default function Toolbar() {
-  const { selectedCell, cells, formatCells } = useSheetStore();
-
-  const fmt = selectedCell ? cells[selectedCell]?.format ?? {} : {};
+  const selectedCell = useSheetStore(s => s.selectedCell);
+  const formatCells = useSheetStore(s => s.formatCells);
+  
+  // A Zustand csak magát a format objektumot (vagy undefined-ot) adja vissza (stabil referencia)
+  const rawFormat = useSheetStore(s => selectedCell ? s.cells[selectedCell]?.format : undefined);
+  
+  // A fallback üres objektumot már a hook-on kívül adjuk hozzá
+  const fmt = rawFormat ?? {};
 
   const apply = (format: object) => {
     if (!selectedCell) return;

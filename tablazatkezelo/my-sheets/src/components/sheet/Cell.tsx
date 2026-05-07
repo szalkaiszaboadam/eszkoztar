@@ -1,7 +1,7 @@
 // src/components/sheet/Cell.tsx
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, memo } from "react";
 import { useSheetStore } from "@/lib/sheetStore";
 import { evaluateCell } from "@/lib/formulaEngine";
 
@@ -10,29 +10,37 @@ interface CellProps {
   isHeader?: boolean;
   label?: string;
   height?: number;
-  isRowSelected?: boolean;
-  isColSelected?: boolean;
-  isInDragSelection?: boolean;
   onNavigate?: (from: string, dir: "up" | "down" | "left" | "right" | "tab") => void;
-  onDragStart?: (cellId: string) => void;
-  onDragEnter?: (cellId: string) => void;
 }
 
-export default function Cell({
-  id, isHeader, label, height = 28,
-  onNavigate, isRowSelected, isColSelected,
-  isInDragSelection, onDragStart, onDragEnter,
-}: CellProps) {
-  const { cells, selectedCell, setCell, setSelectedCell, isDragging } = useSheetStore();
+const Cell = memo(function Cell({ id, isHeader, label, height = 28, onNavigate }: CellProps) {
+  // 1. Célzott adatlekérés: csak a saját adatát kéri le
+  const cellData = useSheetStore((s) => s.cells[id]);
+  const formulaStr = cellData?.formula || cellData?.value || "";
+  const isFormula = formulaStr.startsWith("=");
+  
+  // Csak akkor iratkozik fel a TÖBBI cella változására, ha képletet (pl. =SUM) tartalmaz
+  const allCells = useSheetStore((s) => isFormula ? s.cells : null);
+  
+  const isSelected = useSheetStore((s) => s.selectedCell === id);
+  const isMultiSelected = useSheetStore((s) => s.dragSelection.includes(id) && s.selectedCell !== id);
+  
+  const col = id.match(/[A-Z]+/)?.[0] ?? "A";
+  const row = parseInt(id.match(/\d+/)?.[0] ?? "1");
+  
+  const isRowSelected = useSheetStore((s) => s.selectedRows.includes(row));
+  const isColSelected = useSheetStore((s) => s.selectedCols.includes(col));
+  
+  const setCell = useSheetStore((s) => s.setCell);
+  const setSelectedCell = useSheetStore((s) => s.setSelectedCell);
+
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const divRef = useRef<HTMLDivElement>(null);
 
-  const isSelected = selectedCell === id;
-  const cellData = cells[id] ?? { value: "", formula: "" };
-  const displayValue = evaluateCell(cellData.formula || cellData.value, cells);
-  const fmt = cellData.format ?? {};
+  const displayValue = isFormula ? evaluateCell(formulaStr, allCells!) : formulaStr;
+  const fmt = cellData?.format ?? {};
 
   useEffect(() => { if (editing) inputRef.current?.focus(); }, [editing]);
   useEffect(() => { if (isSelected && !editing) divRef.current?.focus({ preventScroll: false }); }, [isSelected, editing]);
@@ -45,15 +53,15 @@ export default function Cell({
     );
   }
 
-  const handleDoubleClick = () => { setDraft(cellData.formula || cellData.value); setEditing(true); };
+  const handleDoubleClick = () => { setDraft(formulaStr); setEditing(true); };
   const handleClick = () => setSelectedCell(id);
 
   const commitEdit = () => {
-    const isFormula = draft.startsWith("=");
+    const isF = draft.startsWith("=");
     setCell(id, {
       ...cellData,
-      formula: isFormula ? draft.toUpperCase() : "",
-      value: isFormula ? evaluateCell(draft.toUpperCase(), cells) : draft,
+      formula: isF ? draft.toUpperCase() : "",
+      value: isF ? evaluateCell(draft.toUpperCase(), useSheetStore.getState().cells) : draft,
     });
     setEditing(false);
   };
@@ -70,8 +78,12 @@ export default function Cell({
     else if (e.key === "ArrowDown") { e.preventDefault(); onNavigate?.(id, "down"); }
     else if (e.key === "ArrowLeft") { e.preventDefault(); onNavigate?.(id, "left"); }
     else if (e.key === "ArrowRight") { e.preventDefault(); onNavigate?.(id, "right"); }
-    else if (e.key === "Enter" || e.key === "F2") { setDraft(cellData.formula || cellData.value); setEditing(true); }
-    else if (e.key === "Delete" || e.key === "Backspace") setCell(id, { ...cellData, value: "", formula: "" });
+else if (e.key === "Enter" || e.key === "F2") { setDraft(formulaStr); setEditing(true); }
+    // --- EZT A SORT CSERÉLD LE: ---
+    else if (e.key === "Delete" || e.key === "Backspace") {
+      useSheetStore.getState().clearSelectionContent();
+    }
+    // ------------------------------
     else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
       e.preventDefault();
       setDraft(e.key);
@@ -80,11 +92,7 @@ export default function Cell({
   };
 
   const isHighlighted = isRowSelected || isColSelected;
-  const isMultiSelected = isInDragSelection && !isSelected;
-
-  const alignClass =
-    fmt.align === "center" ? "text-center" :
-    fmt.align === "right" ? "text-right" : "text-left";
+  const alignClass = fmt.align === "center" ? "text-center" : fmt.align === "right" ? "text-right" : "text-left";
 
   let bgClass = "";
   if (isSelected) bgClass = "";
@@ -101,21 +109,20 @@ export default function Cell({
       } ${bgClass}`}
       style={{
         height,
-        backgroundColor: (!isSelected && !isMultiSelected && !isHighlighted)
-          ? (fmt.bgColor ?? "transparent")
-          : undefined,
+        backgroundColor: (!isSelected && !isMultiSelected && !isHighlighted) ? (fmt.bgColor ?? "transparent") : undefined,
       }}
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
       onKeyDown={handleCellKeyDown}
-      onMouseDown={(e) => {
+onMouseDown={(e) => {
         if (e.button === 0) {
           e.preventDefault();
-          onDragStart?.(id);
+          useSheetStore.getState().clearHeaderSelection(); // <-- EZT A SORT ADD HOZZÁ!
+          useSheetStore.getState().startDrag(id);
         }
       }}
       onMouseEnter={() => {
-        if (isDragging) onDragEnter?.(id);
+        if (useSheetStore.getState().isDragging) useSheetStore.getState().updateDrag(id);
       }}
     >
       {editing ? (
@@ -143,4 +150,6 @@ export default function Cell({
       )}
     </div>
   );
-}
+});
+
+export default Cell;

@@ -1,7 +1,5 @@
 // src/components/sheet/Grid.tsx
-"use client";
-
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import Cell from "./Cell";
 import ContextMenu, { MenuItem } from "./ContextMenu";
 import { useSheetStore } from "@/lib/sheetStore";
@@ -17,26 +15,72 @@ function parseCell(id: string): [string, number] {
 }
 
 export default function Grid() {
-  const {
-    selectedCell, setSelectedCell,
-    selectedRows, selectedCols,
-    selectRow, selectCol, clearHeaderSelection,
-    insertRowAt, deleteSelectedRows,
-    insertColAt, deleteSelectedCols,
-    rowCount, colWidths, rowHeights,
-    setColWidth, setRowHeight,
-    startDrag, updateDrag, endDrag,
-    dragSelection, isDragging,
-  } = useSheetStore();
+  const rowCount = useSheetStore(s => s.rowCount);
+  const colWidths = useSheetStore(s => s.colWidths);
+  const rowHeights = useSheetStore(s => s.rowHeights);
+  const selectedRows = useSheetStore(s => s.selectedRows);
+  const selectedCols = useSheetStore(s => s.selectedCols);
+  
+  const selectRow = useSheetStore(s => s.selectRow);
+  const selectCol = useSheetStore(s => s.selectCol);
+  const selectRowRange = useSheetStore(s => s.selectRowRange);
+  const selectColRange = useSheetStore(s => s.selectColRange);
+  const clearHeaderSelection = useSheetStore(s => s.clearHeaderSelection);
+  const insertRowAt = useSheetStore(s => s.insertRowAt);
+  const deleteSelectedRows = useSheetStore(s => s.deleteSelectedRows);
+  const insertColAt = useSheetStore(s => s.insertColAt);
+  const deleteSelectedCols = useSheetStore(s => s.deleteSelectedCols);
+  const setColWidth = useSheetStore(s => s.setColWidth);
+  const setRowHeight = useSheetStore(s => s.setRowHeight);
 
-  const ROWS = Array.from({ length: rowCount }, (_, i) => i + 1);
   const gridRef = useRef<HTMLDivElement>(null);
   const [ctxMenu, setCtxMenu] = useState<CtxMenu | null>(null);
-
-  // Resize state (lokális, nem store)
   const resizingCol = useRef<{ col: string; startX: number; startW: number } | null>(null);
   const resizingRow = useRef<{ row: number; startY: number; startH: number } | null>(null);
+  const headerDrag = useRef<{ type: 'col' | 'row' | null; start: any }>({ type: null, start: null });
+  
+  // ── VIRTUALIZÁCIÓS LOGIKA ──────────────────────────────
+  const [scrollTop, setScrollTop] = useState(0);
+  const [clientHeight, setClientHeight] = useState(800);
 
+  useEffect(() => {
+    if (gridRef.current) setClientHeight(gridRef.current.clientHeight);
+    const onResize = () => { if (gridRef.current) setClientHeight(gridRef.current.clientHeight); };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  // Kiszámítjuk, hogy a custom sormagasságok alapján melyik sor milyen pixel-y pozícióban van
+  const { positions, totalHeight } = useMemo(() => {
+    const pos = [0];
+    let y = 0;
+    for (let r = 1; r <= rowCount; r++) {
+      y += rowHeights[r] ?? DEFAULT_ROW_HEIGHT;
+      pos.push(y);
+    }
+    return { positions: pos, totalHeight: y };
+  }, [rowCount, rowHeights]);
+
+  // Csak a képernyőn látható sorok indexeit számoljuk ki (+/- egy kis ráhagyás a sima görgetésért)
+  const { startIndex, endIndex } = useMemo(() => {
+    let start = 1;
+    while (start <= rowCount && positions[start] < scrollTop - 400) start++;
+    let end = start;
+    while (end <= rowCount && positions[end] < scrollTop + clientHeight + 400) end++;
+    return { startIndex: Math.max(1, start), endIndex: Math.min(rowCount, end) };
+  }, [scrollTop, clientHeight, positions, rowCount]);
+
+  const VISIBLE_ROWS = useMemo(() => {
+    const r = [];
+    for (let i = startIndex; i <= endIndex; i++) r.push(i);
+    return r;
+  }, [startIndex, endIndex]);
+
+  const topSpacerHeight = positions[startIndex - 1] || 0;
+  const bottomSpacerHeight = totalHeight - (positions[endIndex] || 0);
+  // ────────────────────────────────────────────────────────
+  
+  
   // ── Resize event listenrek ─────────────────────────────
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
@@ -52,6 +96,7 @@ export default function Grid() {
     const onUp = () => {
       resizingCol.current = null;
       resizingRow.current = null;
+      headerDrag.current = { type: null, start: null };
     };
     window.addEventListener("mousemove", onMove);
     window.addEventListener("mouseup", onUp);
@@ -61,12 +106,18 @@ export default function Grid() {
     };
   }, [setColWidth, setRowHeight]);
 
+
   // ── Drag kijelölés vége ────────────────────────────────
   useEffect(() => {
-    const onUp = () => { if (isDragging) endDrag(); };
+    const onUp = () => { 
+        if (useSheetStore.getState().isDragging) useSheetStore.getState().endDrag(); 
+        resizingCol.current = null;
+        resizingRow.current = null;
+        headerDrag.current = { type: null, start: null };
+    };
     window.addEventListener("mouseup", onUp);
     return () => window.removeEventListener("mouseup", onUp);
-  }, [isDragging, endDrag]);
+  }, []);
 
   // ── Ctrl+S + Delete ────────────────────────────────────
   useEffect(() => {
@@ -75,44 +126,54 @@ export default function Grid() {
         e.preventDefault();
         window.dispatchEvent(new CustomEvent("sheet-save"));
       }
-      if (e.key === "Delete" && !selectedCell) {
-        if (selectedRows.length > 0) deleteSelectedRows();
-        if (selectedCols.length > 0) deleteSelectedCols();
+      if (e.key === "Delete" && !useSheetStore.getState().selectedCell) {
+        if (useSheetStore.getState().selectedRows.length > 0) deleteSelectedRows();
+        if (useSheetStore.getState().selectedCols.length > 0) deleteSelectedCols();
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [selectedRows, selectedCols, selectedCell, deleteSelectedRows, deleteSelectedCols]);
+  }, [deleteSelectedRows, deleteSelectedCols]);
 
   // ── Navigáció ──────────────────────────────────────────
   const navigate = useCallback((from: string, dir: "up" | "down" | "left" | "right" | "tab") => {
     const [col, row] = parseCell(from);
     const colIdx = COLS.indexOf(col);
     let newCol = col, newRow = row;
+    const maxRow = useSheetStore.getState().rowCount;
     if (dir === "up") newRow = Math.max(1, row - 1);
-    else if (dir === "down") newRow = Math.min(ROWS.length, row + 1);
+    else if (dir === "down") newRow = Math.min(maxRow, row + 1);
     else if (dir === "left") newCol = COLS[Math.max(0, colIdx - 1)];
     else if (dir === "right" || dir === "tab") newCol = COLS[Math.min(COLS.length - 1, colIdx + 1)];
     const newId = `${newCol}${newRow}`;
-    setSelectedCell(newId);
+    
+    useSheetStore.getState().setSelectedCell(newId);
+    
     setTimeout(() => {
       (gridRef.current?.querySelector(`[data-cell="${newId}"]`) as HTMLElement)?.focus();
     }, 0);
-  }, [setSelectedCell, ROWS.length]);
+  }, []);
 
   // ── Context menük ──────────────────────────────────────
-  const onColContextMenu = (e: React.MouseEvent, col: string) => {
+const onColContextMenu = (e: React.MouseEvent, col: string) => {
     e.preventDefault();
-    if (!selectedCols.includes(col)) selectCol(col, false);
+    const state = useSheetStore.getState();
+    const isSelected = state.selectedCols.includes(col);
+    const label = isSelected && state.selectedCols.length > 1 ? `${state.selectedCols.length} oszlop törlése` : "Oszlop törlése";
+
     setCtxMenu({
-      x: e.clientX, y: e.clientY,
+      x: e.clientX,
+      y: e.clientY,
       items: [
-        { label: "Oszlop beszúrása elé", icon: "insert-before", onClick: () => insertColAt(col, true) },
-        { label: "Oszlop beszúrása mögé", icon: "insert-after", onClick: () => insertColAt(col, false) },
-        {
-          label: selectedCols.length > 1 ? `${selectedCols.length} oszlop törlése` : "Oszlop törlése",
-          icon: "delete", danger: true,
-          onClick: () => { if (!selectedCols.includes(col)) selectCol(col, false); deleteSelectedCols(); },
+        { label: "Oszlop beszúrása balra", icon: "insert-before", onClick: () => insertColAt(col, true) },
+        { label: "Oszlop beszúrása jobbra", icon: "insert-after", onClick: () => insertColAt(col, false) },
+        { 
+          label, 
+          icon: "delete",
+          onClick: () => {
+            if (!isSelected) useSheetStore.getState().selectCol(col, false);
+            setTimeout(() => useSheetStore.getState().deleteSelectedCols(), 0);
+          } 
         },
       ],
     });
@@ -120,16 +181,23 @@ export default function Grid() {
 
   const onRowContextMenu = (e: React.MouseEvent, row: number) => {
     e.preventDefault();
-    if (!selectedRows.includes(row)) selectRow(row, false);
+    const state = useSheetStore.getState();
+    const isSelected = state.selectedRows.includes(row);
+    const label = isSelected && state.selectedRows.length > 1 ? `${state.selectedRows.length} sor törlése` : "Sor törlése";
+
     setCtxMenu({
-      x: e.clientX, y: e.clientY,
+      x: e.clientX,
+      y: e.clientY,
       items: [
         { label: "Sor beszúrása fölé", icon: "insert-before", onClick: () => insertRowAt(row, true) },
         { label: "Sor beszúrása alá", icon: "insert-after", onClick: () => insertRowAt(row, false) },
-        {
-          label: selectedRows.length > 1 ? `${selectedRows.length} sor törlése` : "Sor törlése",
-          icon: "delete", danger: true,
-          onClick: () => { if (!selectedRows.includes(row)) selectRow(row, false); deleteSelectedRows(); },
+        { 
+          label, 
+          icon: "delete",
+          onClick: () => {
+            if (!isSelected) useSheetStore.getState().selectRow(row, false);
+            setTimeout(() => useSheetStore.getState().deleteSelectedRows(), 0);
+          } 
         },
       ],
     });
@@ -142,10 +210,7 @@ export default function Grid() {
       <div
         ref={gridRef}
         className="overflow-auto flex-1 select-none"
-        onClick={(e) => {
-          const target = e.target as HTMLElement;
-          if (!target.closest("[data-header]")) clearHeaderSelection();
-        }}
+        onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)} // <-- ÚJ GÖRGETÉS FIGYELŐ
       >
         <div className="grid" style={{ gridTemplateColumns, minWidth: "fit-content" }}>
 
@@ -164,7 +229,16 @@ export default function Grid() {
                   isSelected ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-500 hover:bg-gray-200"
                 }`}
                 style={{ height: 28 }}
-                onClick={(e) => selectCol(col, e.shiftKey)}
+                onMouseDown={(e) => {
+                  if (e.button !== 0) return;
+                  headerDrag.current = { type: 'col', start: col };
+                  selectCol(col, e.shiftKey);
+                }}
+                onMouseEnter={() => {
+                  if (headerDrag.current.type === 'col') {
+                    selectColRange(headerDrag.current.start, col);
+                  }
+                }}
                 onContextMenu={(e) => onColContextMenu(e, col)}
               >
                 {col}
@@ -181,8 +255,13 @@ export default function Grid() {
             );
           })}
 
-          {/* Sorok */}
-          {ROWS.map((row) => {
+          {/* VIRTUALIZÁCIÓ: Térkitöltő FENT */}
+          {topSpacerHeight > 0 && (
+            <div style={{ gridColumn: "1 / -1", height: topSpacerHeight }} />
+          )}
+
+          {/* Sorok (MOST MÁR CSAK A LÁTHATÓ SOROKAT RENDERELJÜK!) */}
+          {VISIBLE_ROWS.map((row) => {
             const isRowSelected = selectedRows.includes(row);
             const height = rowHeights[row] ?? DEFAULT_ROW_HEIGHT;
             return (
@@ -194,7 +273,16 @@ export default function Grid() {
                     isRowSelected ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-500 hover:bg-gray-200"
                   }`}
                   style={{ height }}
-                  onClick={(e) => selectRow(row, e.shiftKey)}
+                  onMouseDown={(e) => {
+                    if (e.button !== 0) return;
+                    headerDrag.current = { type: 'row', start: row };
+                    selectRow(row, e.shiftKey);
+                  }}
+                  onMouseEnter={() => {
+                    if (headerDrag.current.type === 'row') {
+                      selectRowRange(headerDrag.current.start, row);
+                    }
+                  }}
                   onContextMenu={(e) => onRowContextMenu(e, row)}
                 >
                   {row}
@@ -216,16 +304,17 @@ export default function Grid() {
                     id={`${col}${row}`}
                     height={height}
                     onNavigate={navigate}
-                    isRowSelected={isRowSelected}
-                    isColSelected={selectedCols.includes(col)}
-                    isInDragSelection={dragSelection.includes(`${col}${row}`)}
-                    onDragStart={startDrag}
-                    onDragEnter={updateDrag}
                   />
                 ))}
               </React.Fragment>
             );
           })}
+
+          {/* VIRTUALIZÁCIÓ: Térkitöltő LENT */}
+          {bottomSpacerHeight > 0 && (
+            <div style={{ gridColumn: "1 / -1", height: bottomSpacerHeight }} />
+          )}
+
         </div>
       </div>
 
