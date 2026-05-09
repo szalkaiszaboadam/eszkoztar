@@ -1,151 +1,50 @@
-Van egy Excel fájlom, amely egy adott márka termékeit tartalmazza (pl. INGCO, Knipex, Cerva).
-
-A webshop struktúra márka alapú:
-
-Minden márka egy külön fő-fő kategória
-
-Ezen belül kell kialakítani a főkategóriákat azokon belül pedig az alkategóriákat
-
-1. Feladat
-
-Hozz létre egy logikus, webshopra optimalizált kategória rendszert az adott márkán belül, majd kategorizáld a termékeket.
-
-2. Főkategóriák (márkán belül)
-
-Hozz létre néhány főkategóriát, lehetőleg ne legyen több 15-nél
-
-Legyenek:
-
-általánosak (pl. „Kéziszerszámok”, „Szerszámgépek”)
-
-nem túl specifikusak
-
-más márkákkal kompatibilisek elnevezésben
-
-add a kategória nevek elé a márkanevet
-
-
-
-Használd EZEKET (nem módosíthatod):
-
-Szerszámgépek
-
-Autószerelő szerszámok
-
-Tartozékok
-
-Építőipari szerszámok
-
-Kerti eszközök
-
-Mérő- és jelzőeszközök
-
-Munkavédelmi termékek
-
-Kéziszerszámok
-
-Szerszámtárolás
-
-3. Alkategóriák
-
-Minden főkategórián belül hozz létre alkategóriákat
-
-Szabályok:
-
-1–4 szavas nevek
-
-webshop-barát (pl. „Csavarkulcsok”, „Fúrógépek”)
-
-ne legyen átfedés
-
-ne legyen duplikáció
-
-add a kategória nevek elé a márkanevet
-
-4. Kategorizálás
-
-Minden termékhez rendeld hozzá:
-
-1 főkategória
-
-1 alkategória
-
-5. Döntési logika
-
-Elsődleges felhasználás alapján dönts
-
-Elektromos → „Szerszámgépek”
-
-Kézi → „Kéziszerszámok”
-
-Tartozék → külön kategória
-
-Munkavédelem → külön kategória
-
-Ha nem egyértelmű → „Egyéb” + jelöld
-
-6. Normalizálás (kritikus)
-
-Azonos jelentésű kategóriákat vond össze
-
-Kerüld a túl specifikus kategóriákat
-
-Ne hozz létre márkafüggő elnevezéseket
-
-7. Output 1: (KÖTELEZŐ FORMÁTUM)
-
-Adj vissza egy Excel fájlt
-
-Add vissza az első Worksheet-en az alábbi oszlopokkal a termékeket bekategorizálva:
-
-Cikkszám
-
-Név
-
-Főkategória
-
-Alkategória
-
-Márka
-
-Megjegyzés
-
-Szabályok:
-
-A „Márka” oszlop minden sorban legyen kitöltve ugyanazzal a márkanévvel
-
-Ne hagyj ki egyetlen terméket sem
-
-Ne módosítsd a termék nevét
-
-Ha bizonytalan → „Megjegyzés” oszlopba írd
-
-A második Worksheet-en add vissza:
-
-[Márka neve]
-
-Főkategória 1
-
-Alkategória A
-
-Alkategória B
-
-…
-
-Főkategória 2
-
-Alkategória A
-
-Alkategória B
-
-…
-
-…
-
-8. Konzisztencia szabály (EZ A LÉNYEG)
-
-Úgy nevezd el a kategóriákat, hogy:
-
-más márkáknál is újrahasználhatók legyenek
-
-ne kelljen új kategóriákat létrehozni minden márkánál
+Van egy Excel fájlom, amely a [MÁRKANÉV] márka termékeit tartalmazza (kb ~[DARABSZÁM] db).
+
+A webshop struktúra márka alapú: Minden márka egy külön fő-fő kategória, ezen belül kell kialakítani a főkategóriákat azokon belül pedig az alkategóriákat.
+Feladat: - Hozz létre egy logikus, webshopra optimalizált kategória rendszert az adott márkán belül, majd kategorizáld a termékeket.
+
+1: Főkategóriák: 
+- Márkán belül Hozz létre főtkategóriákat. 
+- Itt van a márka hivatalos oldala: [LINK] (Használd ezt is segédlet, forrásanyagként!) 
+- Használd ezt a kategória struktúrát:(NEM MÓDOSÍTHATOD): 
+- - [KATEGÓRIA STRUKTÚRA] 
+
+2:  Alkategóriák: 
+- Minden főkategórián belül hozz létre alkategóriákat (és ha kell azokon belül is több alkategóirát (ha az szükségszerű)). 
+- Szabályok: 
+- - 1–4 szavas nevek 
+- - webshop-barát
+- - ne legyen átfedés 
+- - ne legyen duplikáció 
+- - add a kategória nevek elé a márkanevet 
+
+3: Kategorizálás: 
+- Minden termékhez rendeld hozzá: főkategória és alkategória
+
+4: Döntési logika: 
+- SZAKMAILAG KIFOGÁSOLHATATLAN LEGYEN (KRITIKUS ÉS KÖTELEZŐ)! 
+
+5: Output (KÖTELEZŐ): Adj vissza egy Excel fájlt Add vissza az első Worksheet-en az alábbi oszlopokkal a termékeket bekategorizálva: 
+- Cikkszám 
+- Név 
+- Főkategória 
+- Alkategória 
+- Márka 
+- Megjegyzés 
+
+6: Szabályok (KRITIKUS ÉS KÖTELEZŐ): 
+- A „Márka” oszlop minden sorban legyen kitöltve ugyanazzal a márkanévvel. 
+- Ne hagyj ki egyetlen terméket sem 
+- Ne módosítsd a termék nevét 
+- Ha bizonytalan egy termék kategorizálása, akkor a „Megjegyzés” oszlopba írd. 
+- A második Worksheet-en add vissza: 
+[Márka neve] 
+- Főkategória 1 
+- - Alkategória A 
+- - Alkategória B 
+- - … 
+- Főkategória 2 
+- - Alkategória A 
+- - Alkategória B 
+- - … 
+- …
