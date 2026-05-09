@@ -18,9 +18,19 @@ export default function Toolbar() {
   // A fallback üres objektumot már a hook-on kívül adjuk hozzá
   const fmt = rawFormat ?? {};
 
-  const apply = (format: object) => {
-    if (!selectedCell) return;
-    formatCells([selectedCell], format);
+const apply = (format: any) => { // Ha TypeScript hibát dob, használd a (format: Partial<CellFormat>) típust
+    const state = useSheetStore.getState();
+    
+    // Összegyűjtjük a kijelölt cellákat: ha van húzással kijelölt terület, azt vesszük,
+    // különben csak a szimpla aktív cellát.
+    const ids = state.dragSelection.length > 0 
+      ? state.dragSelection 
+      : (state.selectedCell ? [state.selectedCell] : []);
+
+    if (ids.length === 0) return;
+    
+    // Az összes összegyűjtött ID-t átadjuk a store formázó függvényének
+    formatCells(ids, format);
   };
 
   const toggle = (key: "bold" | "italic" | "underline") => {

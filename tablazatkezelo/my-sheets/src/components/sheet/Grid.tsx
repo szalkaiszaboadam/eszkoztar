@@ -108,9 +108,12 @@ export default function Grid() {
 
 
   // ── Drag kijelölés vége ────────────────────────────────
-  useEffect(() => {
+useEffect(() => {
     const onUp = () => { 
-        if (useSheetStore.getState().isDragging) useSheetStore.getState().endDrag(); 
+        const state = useSheetStore.getState();
+        if (state.isDragging) state.endDrag(); 
+        if (state.fillDragStart) state.endFillDrag(); // <-- EZT A SORT ADTUK HOZZÁ!
+        
         resizingCol.current = null;
         resizingRow.current = null;
         headerDrag.current = { type: null, start: null };

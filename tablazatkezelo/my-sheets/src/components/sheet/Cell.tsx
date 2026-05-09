@@ -18,19 +18,20 @@ const Cell = memo(function Cell({ id, isHeader, label, height = 28, onNavigate }
   const cellData = useSheetStore((s) => s.cells[id]);
   const formulaStr = cellData?.formula || cellData?.value || "";
   const isFormula = formulaStr.startsWith("=");
-  
+
   // Csak akkor iratkozik fel a TÖBBI cella változására, ha képletet (pl. =SUM) tartalmaz
   const allCells = useSheetStore((s) => isFormula ? s.cells : null);
-  
+
   const isSelected = useSheetStore((s) => s.selectedCell === id);
   const isMultiSelected = useSheetStore((s) => s.dragSelection.includes(id) && s.selectedCell !== id);
-  
+  const isInFillSelection = useSheetStore((s) => s.fillSelection.includes(id));
+
   const col = id.match(/[A-Z]+/)?.[0] ?? "A";
   const row = parseInt(id.match(/\d+/)?.[0] ?? "1");
-  
+
   const isRowSelected = useSheetStore((s) => s.selectedRows.includes(row));
   const isColSelected = useSheetStore((s) => s.selectedCols.includes(col));
-  
+
   const setCell = useSheetStore((s) => s.setCell);
   const setSelectedCell = useSheetStore((s) => s.setSelectedCell);
 
@@ -54,7 +55,11 @@ const Cell = memo(function Cell({ id, isHeader, label, height = 28, onNavigate }
   }
 
   const handleDoubleClick = () => { setDraft(formulaStr); setEditing(true); };
-  const handleClick = () => setSelectedCell(id);
+  const handleClick = (e: React.MouseEvent) => {
+    // Ha nyomva van a Shift (vagy Ctrl/Cmd), akkor a munkát az onMouseDown végzi el, itt kilépünk!
+    if (e.shiftKey || e.ctrlKey || e.metaKey) return;
+    setSelectedCell(id);
+  };
 
   const commitEdit = () => {
     const isF = draft.startsWith("=");
@@ -78,7 +83,7 @@ const Cell = memo(function Cell({ id, isHeader, label, height = 28, onNavigate }
     else if (e.key === "ArrowDown") { e.preventDefault(); onNavigate?.(id, "down"); }
     else if (e.key === "ArrowLeft") { e.preventDefault(); onNavigate?.(id, "left"); }
     else if (e.key === "ArrowRight") { e.preventDefault(); onNavigate?.(id, "right"); }
-else if (e.key === "Enter" || e.key === "F2") { setDraft(formulaStr); setEditing(true); }
+    else if (e.key === "Enter" || e.key === "F2") { setDraft(formulaStr); setEditing(true); }
     // --- EZT A SORT CSERÉLD LE: ---
     else if (e.key === "Delete" || e.key === "Backspace") {
       useSheetStore.getState().clearSelectionContent();
@@ -95,34 +100,42 @@ else if (e.key === "Enter" || e.key === "F2") { setDraft(formulaStr); setEditing
   const alignClass = fmt.align === "center" ? "text-center" : fmt.align === "right" ? "text-right" : "text-left";
 
   let bgClass = "";
-  if (isSelected) bgClass = "";
-  else if (isMultiSelected) bgClass = "bg-blue-100";
-  else if (isHighlighted) bgClass = "bg-blue-50";
+  let zClass = "";
+
+  if (isSelected) { bgClass = ""; zClass = "z-20"; }
+  else if (isInFillSelection) { bgClass = "bg-blue-100/50"; zClass = "z-10 outline outline-1 outline-blue-500 outline-dashed -outline-offset-1"; }
+  else if (isMultiSelected) { bgClass = "bg-blue-100"; zClass = ""; }
+  else if (isHighlighted) { bgClass = "bg-blue-50"; zClass = ""; }
 
   return (
     <div
       ref={divRef}
       data-cell={id}
       tabIndex={0}
-      className={`border-b border-r border-gray-200 relative focus:outline-none transition-colors ${
-        isSelected ? "ring-2 ring-blue-500 ring-inset z-10" : ""
-      } ${bgClass}`}
+      className={`border-b border-r border-gray-200 relative focus:outline-none transition-colors ${isSelected ? "ring-2 ring-blue-500 ring-inset" : ""
+        } ${bgClass} ${zClass}`}
       style={{
         height,
-        backgroundColor: (!isSelected && !isMultiSelected && !isHighlighted) ? (fmt.bgColor ?? "transparent") : undefined,
+        backgroundColor: fmt.bgColor || undefined,
       }}
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
       onKeyDown={handleCellKeyDown}
-onMouseDown={(e) => {
+      onMouseDown={(e) => {
         if (e.button === 0) {
           e.preventDefault();
-          useSheetStore.getState().clearHeaderSelection(); // <-- EZT A SORT ADD HOZZÁ!
-          useSheetStore.getState().startDrag(id);
+          useSheetStore.getState().clearHeaderSelection();
+          if (e.shiftKey || e.ctrlKey || e.metaKey) {
+            useSheetStore.getState().toggleMultiSelect(id);
+          } else {
+            useSheetStore.getState().startDrag(id);
+          }
         }
       }}
       onMouseEnter={() => {
-        if (useSheetStore.getState().isDragging) useSheetStore.getState().updateDrag(id);
+        const state = useSheetStore.getState();
+        if (state.isDragging) state.updateDrag(id);
+        else if (state.fillDragStart) state.updateFillDrag(id); // <-- FRISSÍTVE: Ha kitöltés húzás van
       }}
     >
       {editing ? (
@@ -147,6 +160,19 @@ onMouseDown={(e) => {
         >
           {displayValue}
         </span>
+      )}
+
+
+      {/* A Kitöltő Fogantyú (Kék Négyzet) */}
+      {isSelected && !editing && (
+        <div
+          className="absolute -bottom-[3px] -right-[3px] w-2 h-2 bg-blue-600 border border-white cursor-crosshair z-30"
+          onMouseDown={(e) => {
+            e.preventDefault();
+            e.stopPropagation(); // Fontos: Meggátolja, hogy a cella is elinduljon sima Drag-gel
+            useSheetStore.getState().startFillDrag(id);
+          }}
+        />
       )}
     </div>
   );

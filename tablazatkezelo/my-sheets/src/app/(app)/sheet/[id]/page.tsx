@@ -1,8 +1,8 @@
 // src/app/(app)/sheet/[id]/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState, Suspense } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/lib/store";
 import { useSheetStore } from "@/lib/sheetStore";
 import { saveCells, loadSheetData, renameSheet, getSheets } from "@/lib/sheetsService";
@@ -15,10 +15,14 @@ import { Save, ArrowLeft, FileSpreadsheet, Loader2 } from "lucide-react";
 import ImportButton from "@/components/sheet/ImportButton";
 import ExportButton from "@/components/sheet/ExportButton";
 
-export default function SheetPage() {
+function SheetContent() {
     const { id } = useParams<{ id: string }>();
     const { user } = useAuthStore();
     const router = useRouter();
+    
+    // URL-ből olvassuk a folder ID-t a visszalépéshez
+    const searchParams = useSearchParams();
+    const folderId = searchParams.get("folder");
 
     const {
         title, setTitle, isDirty, setDirty, setAllTabData
@@ -102,8 +106,13 @@ export default function SheetPage() {
             {/* Header */}
             <header className="flex items-center gap-2 px-4 py-2 border-b border-gray-200 bg-white shrink-0">
                 <button
-                    onClick={() => router.push("/dashboard")}
+                    onClick={() => {
+                        // Visszalépés a pontos mappába!
+                        const backPath = folderId ? `/dashboard?folder=${folderId}` : "/dashboard";
+                        router.push(backPath);
+                    }}
                     className="p-1.5 hover:bg-gray-100 rounded-lg transition"
+                    title="Vissza a dokumentumokhoz"
                 >
                     <ArrowLeft className="w-4 h-4 text-gray-600" />
                 </button>
@@ -183,5 +192,14 @@ export default function SheetPage() {
                 </>
             )}
         </div>
+    );
+}
+
+// Suspense csomagolás a useSearchParams miatt (kötelező Next.js kliens komponenseknél)
+export default function SheetPage() {
+    return (
+        <Suspense fallback={<div className="h-screen w-full flex items-center justify-center text-gray-500">Betöltés...</div>}>
+            <SheetContent />
+        </Suspense>
     );
 }
