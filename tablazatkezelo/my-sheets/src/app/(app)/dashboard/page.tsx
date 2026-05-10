@@ -12,7 +12,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import {
   Folder as FolderIcon, FolderPlus, Plus, FileSpreadsheet,
-  Trash2, Pencil, LogOut, Check, X, ChevronRight, Home, LayoutGrid, List as ListIcon, Search
+  Trash2, Pencil, LogOut, Check, X, ChevronRight, Home, LayoutGrid, List as ListIcon, Search, ArrowDownUp
 } from "lucide-react";
 
 function DashboardContent() {
@@ -40,6 +40,8 @@ function DashboardContent() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   const [searchTerm, setSearchTerm] = useState("");
+
+  const [sortBy, setSortBy] = useState<"date-desc" | "date-asc" | "name-asc" | "name-desc">("date-desc");
 
   useEffect(() => {
     if (user) loadData();
@@ -112,15 +114,16 @@ function DashboardContent() {
   const [editFolderTitle, setEditFolderTitle] = useState("");
 
   const handleDeleteFolder = async (e: React.MouseEvent, id: string) => {
-    e.stopPropagation(); // Ne navigáljon bele a mappába törléskor
-    if (!user || !confirm("Biztosan törlöd a mappát? (A benne lévő fájlok nem törlődnek, de kikerülnek a főoldalra)")) return;
-
+    e.stopPropagation();
+    if (!user || !confirm("Biztosan törlöd a mappát? (FIGYELEM: A mappával együtt a benne lévő összes táblázat és almappa is végleg törlődik az adatbázisból!)")) return;
+    
     try {
       await deleteFolder(user.uid, id);
-      // Opcionális: A benne lévő fájlok folderId-ját is nullázhatnád itt egy loop-pal, 
-      // de a legegyszerűbb, ha csak töröljük a mappát.
-      setFolders((prev) => prev.filter((f) => f.id !== id));
-      toast.success("Mappa törölve!");
+      
+      // Mivel a háttérben almappák és táblák is törlődtek, újratöltjük az egész listát!
+      loadData(); 
+      
+      toast.success("Mappa és tartalma végleg törölve!");
     } catch (error) {
       toast.error("Hiba a törléskor.");
     }
@@ -179,7 +182,7 @@ function DashboardContent() {
     curr = folders.find(f => f.id === curr?.parentId);
   }
 
-const filteredFolders = folders.filter((f) => {
+  const filteredFolders = folders.filter((f) => {
     if (searchTerm) return f.title.toLowerCase().includes(searchTerm.toLowerCase());
     return (f.parentId || null) === currentFolder;
   });
@@ -189,11 +192,44 @@ const filteredFolders = folders.filter((f) => {
     return (s.folderId || null) === currentFolder;
   });
 
+  // ── ÚJ: Rendezési logika ──────────────────────────────────────
+  const sortItems = <T,>(items: T[]): T[] => {
+    return [...items].sort((aItem, bItem) => {
+      const a = aItem as any;
+      const b = bItem as any;
+      // 1. Név szerinti rendezés (A-Z vagy Z-A)
+      if (sortBy.startsWith("name")) {
+        const nameA = (a.title || "").toLowerCase();
+        const nameB = (b.title || "").toLowerCase();
+        if (sortBy === "name-asc") return nameA.localeCompare(nameB, 'hu');
+        return nameB.localeCompare(nameA, 'hu');
+      } 
+      // 2. Dátum szerinti rendezés (Legújabb vagy Legrégebbi)
+      else {
+        // Mappáknak createdAt van, táblázatoknak updatedAt (vagy fallback createdAt)
+        const getMs = (item: any) => {
+          const ts = item.updatedAt || item.createdAt; 
+          if (!ts) return 0;
+          return ts.toDate ? ts.toDate().getTime() : new Date(ts).getTime();
+        };
+        const timeA = getMs(a);
+        const timeB = getMs(b);
+        
+        if (sortBy === "date-desc") return timeB - timeA;
+        return timeA - timeB;
+      }
+    });
+  };
+
+  const finalFolders = sortItems(filteredFolders);
+  const finalSheets = sortItems(filteredSheets);
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
+
           <div className="bg-green-600 rounded-lg p-1.5">
             <FileSpreadsheet className="text-white w-5 h-5" />
           </div>
@@ -211,10 +247,7 @@ const filteredFolders = folders.filter((f) => {
       </header>
 
       {/* Content */}
-      {/* Content */}
       <main className="max-w-5xl mx-auto px-6 py-10">
-
-      
 
        {/* Navigációs sáv és Kereső egy közös blokkban */}
 <div className="flex flex-col gap-4 mb-8">
@@ -299,7 +332,22 @@ const filteredFolders = folders.filter((f) => {
           </div>
 
           {/* A nézetváltó és az akció gombok egy csoportban, nagyobb gap-pel elválasztva */}
-          <div className="flex items-center gap-8">
+          <div className="flex items-center gap-4">
+
+               {/* Rendezés (Select dropdown) */}
+              <div className="flex items-center gap-2 bg-white border border-gray-300 rounded-xl px-3 h-[42px] shadow-sm">
+                <ArrowDownUp className="w-4 h-4 text-gray-500" />
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as any)}
+                  className="bg-transparent text-sm font-medium text-gray-700 outline-none cursor-pointer py-1"
+                >
+                  <option value="date-desc">Legújabb elöl</option>
+                  <option value="date-asc">Legrégebbi elöl</option>
+                  <option value="name-asc">Név (A-Z)</option>
+                  <option value="name-desc">Név (Z-A)</option>
+                </select>
+              </div>
 
             {/* Nézetváltó csoport */}
             {/* Nézetváltó csoport - h-[42px]-re állítva, hogy passzoljon a py-2.5-ös gombokhoz */}
@@ -357,7 +405,7 @@ const filteredFolders = folders.filter((f) => {
                 <div className="mb-8">
                   <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Mappák</h3>
                   <div className={viewMode === "grid" ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4" : "flex flex-col gap-2"}>
-                    {filteredFolders.map((folder) => (
+                    {finalFolders.map((folder) => (
                       <div
                         key={folder.id}
                         draggable
@@ -374,12 +422,12 @@ const filteredFolders = folders.filter((f) => {
                           {editingFolderId === folder.id ? (
                             <div className="flex items-center gap-1 flex-1" onClick={(e) => e.stopPropagation()}>
                               <input
-                                autoFocus
-                                value={editFolderTitle}
-                                onChange={(e) => setEditFolderTitle(e.target.value)}
-                                onKeyDown={(e) => { if (e.key === "Enter") handleRenameFolder(folder.id); if (e.key === "Escape") setEditingFolderId(null); }}
-                                className="flex-1 border border-blue-400 rounded px-2 py-1 text-sm focus:outline-none w-full"
-                              />
+  autoFocus
+  value={editFolderTitle}
+  onChange={(e) => setEditFolderTitle(e.target.value)}
+  onKeyDown={(e) => { if (e.key === "Enter") handleRenameFolder(folder.id); if (e.key === "Escape") setEditingFolderId(null); }}
+  className="flex-1 border border-blue-400 rounded px-2 py-1 text-sm focus:outline-none w-full text-gray-900" 
+/>
                             </div>
                           ) : (
                             <span className="font-medium text-gray-800 truncate flex-1">{folder.title}</span>
@@ -416,67 +464,130 @@ const filteredFolders = folders.filter((f) => {
                 <div>
                   <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Táblázatok</h3>
                   <div className={viewMode === "grid" ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" : "flex flex-col gap-2"}>
-                    {filteredSheets.map((sheet) => (
+                   {finalSheets.map((sheet) => (
                       <div
                         key={sheet.id}
                         draggable
                         onDragStart={(e) => { e.stopPropagation(); e.dataTransfer.setData("sheetId", sheet.id); }}
-                        // ÚJ: Osztályok feltételes módosítása a viewMode alapján
-                        className={`bg-white border border-gray-200 hover:shadow-md transition group cursor-pointer active:cursor-grabbing relative ${viewMode === "grid" ? "rounded-2xl p-5 flex flex-col" : "rounded-lg p-3 flex items-center flex-row gap-4"}`}
                         onClick={() => {
                           if (editingId !== sheet.id) {
                             const path = `/sheet/${sheet.id}${currentFolder ? `?folder=${currentFolder}` : ""}`;
                             router.push(path);
                           }
                         }}
+                        className={`bg-white border border-gray-200 hover:border-green-400 hover:shadow-md transition group cursor-pointer active:cursor-grabbing relative ${
+                          viewMode === "grid" 
+                            ? "rounded-2xl flex flex-col overflow-hidden" 
+                            : "rounded-lg p-3 flex items-center flex-row gap-4"
+                        }`}
                       >
-                        {/* Grid esetén felső sor (Ikon + Gombok), Listánál csak Ikon */}
-                        <div className={`flex items-start justify-between ${viewMode === "grid" ? "mb-3 w-full" : "shrink-0"}`}>
-                          <div className="bg-green-100 rounded-lg p-2 shrink-0">
-                            <FileSpreadsheet className="w-5 h-5 text-green-600" />
-                          </div>
-                          {viewMode === "grid" && (
-                            <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition">
-                              <button onClick={(e) => { e.stopPropagation(); setEditingId(sheet.id); setEditTitle(sheet.title); }} className="p-1.5 hover:bg-gray-100 rounded-lg">
-                                <Pencil className="w-3.5 h-3.5 text-gray-500" />
-                              </button>
-                              <button onClick={(e) => { e.stopPropagation(); handleDelete(sheet.id); }} className="p-1.5 hover:bg-red-50 rounded-lg">
-                                <Trash2 className="w-3.5 h-3.5 text-red-400" />
-                              </button>
-                            </div>
-                          )}
-                        </div>
+                        
+                        {viewMode === "grid" ? (
+                          /* ── GRID NÉZET: ELŐNÉZET + CÍM ── */
+                          <>
+{/* Felső rész: Előnézet (Valódi adatokkal!) */}
+                            <div className="h-32 bg-gray-50/80 border-b border-gray-100 relative p-3 overflow-hidden flex flex-col gap-[1px]">
+                              
+                              {/* 5 sor legenerálása */}
+                              {[0, 1, 2, 3, 4].map((rowIndex) => {
+                                // Ha van elmentett valódi adatunk, kivesszük a sort
+                                const rowData = sheet.previewData ? sheet.previewData[rowIndex] : null;
 
-                        {/* Középső rész: Cím és Dátum (Grid) */}
-                        <div className={`flex-1 min-w-0 ${viewMode === "grid" ? "w-full" : ""}`}>
-                          {editingId === sheet.id ? (
-                            <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                              <input
-                                autoFocus
-                                value={editTitle}
-                                onChange={(e) => setEditTitle(e.target.value)}
-                                onKeyDown={(e) => { if (e.key === "Enter") handleRename(sheet.id); if (e.key === "Escape") setEditingId(null); }}
-                                className="flex-1 border border-green-400 rounded px-2 py-1 text-sm focus:outline-none w-full"
-                              />
-                              {viewMode === "grid" && (
-                                <>
-                                  <button onClick={() => handleRename(sheet.id)} className="p-1 hover:bg-green-50 rounded"><Check className="w-3.5 h-3.5 text-green-600" /></button>
-                                  <button onClick={() => setEditingId(null)} className="p-1 hover:bg-gray-100 rounded"><X className="w-3.5 h-3.5 text-gray-400" /></button>
-                                </>
+                                return (
+                                  <div key={rowIndex} className="flex gap-[1px] w-full h-5">
+                                    {[0, 1, 2, 3, 4].map((colIndex) => {
+                                      // Kivesszük az adott cella szövegét
+                                      // A Dashboard kódjában a cellValue kiszámítása így módosul:
+const cellValue = sheet.previewData ? sheet.previewData[rowIndex * 5 + colIndex] : "";
+                                      
+                                      // Díszítés: Első sor és első oszlop szürkébb (mint egy Excel fejléc)
+                                      const isHeaderRow = rowIndex === 0;
+                                      const isHeaderCol = colIndex === 0;
+
+                                      return (
+                                        <div 
+                                          key={colIndex} 
+                                          className={`bg-white border border-gray-200/60 rounded-sm overflow-hidden flex items-center px-1
+                                            ${isHeaderCol ? 'w-8 bg-gray-100/50 justify-center' : 'flex-1'} 
+                                            ${isHeaderRow ? 'bg-gray-100/50' : ''}
+                                          `}
+                                        >
+                                          {/* IGAZI ADAT MEGJELENÍTÉSE */}
+                                          <span className={`text-[8px] truncate ${isHeaderRow || isHeaderCol ? 'text-gray-400 font-medium' : 'text-gray-700'}`}>
+                                            {cellValue}
+                                          </span>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                );
+                              })}
+                              
+                              {/* Alsó elhalványuló maszk */}
+                              <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-gray-50 to-transparent pointer-events-none" />
+
+                              {/* Lebegő akció gombok ... (maradnak) */}
+                              <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition z-10">
+                                <button onClick={(e) => { e.stopPropagation(); setEditingId(sheet.id); setEditTitle(sheet.title); }} className="p-1.5 bg-white/90 hover:bg-white shadow-sm rounded-lg text-gray-600 transition">
+                                  <Pencil className="w-4 h-4" />
+                                </button>
+                                <button onClick={(e) => { e.stopPropagation(); handleDelete(sheet.id); }} className="p-1.5 bg-white/90 hover:bg-white shadow-sm rounded-lg text-red-500 transition">
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </div>
+                            {/* Alsó rész: Ikon, Cím, Dátum */}
+                            <div className="p-4 flex items-start gap-3">
+                              <div className="bg-green-100 rounded-lg p-2 shrink-0 mt-0.5">
+                                <FileSpreadsheet className="w-5 h-5 text-green-600" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                {editingId === sheet.id ? (
+                                  <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                                    <input
+                                      autoFocus
+                                      value={editTitle}
+                                      onChange={(e) => setEditTitle(e.target.value)}
+                                      onKeyDown={(e) => { if (e.key === "Enter") handleRename(sheet.id); if (e.key === "Escape") setEditingId(null); }}
+                                      className="flex-1 border border-green-400 rounded px-2 py-1 text-sm focus:outline-none w-full text-gray-900"
+                                    />
+                                    <button onClick={() => handleRename(sheet.id)} className="p-1 hover:bg-green-50 rounded"><Check className="w-4 h-4 text-green-600" /></button>
+                                    <button onClick={() => setEditingId(null)} className="p-1 hover:bg-gray-100 rounded"><X className="w-4 h-4 text-gray-400" /></button>
+                                  </div>
+                                ) : (
+                                  <p className="font-semibold text-gray-800 truncate">{sheet.title}</p>
+                                )}
+                                <p className="text-xs text-gray-400 mt-1">Módosítva: {formatDate(sheet.updatedAt)}</p>
+                              </div>
+                            </div>
+                          </>
+                        ) : (
+                          /* ── LISTA NÉZET (Marad a régi letisztult forma) ── */
+                          <>
+                            <div className="bg-green-100 rounded-lg p-2 shrink-0">
+                              <FileSpreadsheet className="w-5 h-5 text-green-600" />
+                            </div>
+                            
+                            <div className="flex-1 min-w-0">
+                              {editingId === sheet.id ? (
+                                <div className="flex items-center gap-1 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+                                  <input
+                                    autoFocus
+                                    value={editTitle}
+                                    onChange={(e) => setEditTitle(e.target.value)}
+                                    onKeyDown={(e) => { if (e.key === "Enter") handleRename(sheet.id); if (e.key === "Escape") setEditingId(null); }}
+                                    className="flex-1 border border-green-400 rounded px-2 py-1 text-sm focus:outline-none w-full text-gray-900"
+                                  />
+                                </div>
+                              ) : (
+                                <p className="font-semibold text-gray-800 truncate">{sheet.title}</p>
                               )}
                             </div>
-                          ) : (
-                            <p className="font-semibold text-gray-800 truncate">{sheet.title}</p>
-                          )}
-                          {viewMode === "grid" && <p className="text-xs text-gray-400 mt-1">Módosítva: {formatDate(sheet.updatedAt)}</p>}
-                        </div>
 
-                        {/* Jobb oldal: Dátum és Gombok (csak Lista nézetben) */}
-                        {viewMode === "list" && (
-                          <>
                             <p className="text-xs text-gray-400 hidden sm:block shrink-0 w-36 text-right">
                               {formatDate(sheet.updatedAt)}
                             </p>
+
                             <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition shrink-0">
                               {editingId === sheet.id ? (
                                 <>
@@ -519,13 +630,13 @@ const filteredFolders = folders.filter((f) => {
               </div>
 
               <form onSubmit={handleCreateFolder}>
-                <input
-                  autoFocus
-                  value={newFolderName}
-                  onChange={(e) => setNewFolderName(e.target.value)}
-                  placeholder="Mappa neve..."
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 mb-5"
-                />
+<input
+  autoFocus
+  value={newFolderName}
+  onChange={(e) => setNewFolderName(e.target.value)}
+  placeholder="Mappa neve..."
+  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 mb-5 text-gray-900 placeholder-gray-400"
+/>
                 <div className="flex justify-end gap-3">
                   <button
                     type="button"

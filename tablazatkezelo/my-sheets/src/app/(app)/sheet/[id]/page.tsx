@@ -74,25 +74,29 @@ function SheetContent() {
         return () => window.removeEventListener("sheet-save", handler);
     }, []);
 
-    const handleSave = async (silent = false) => {
+const handleSave = async (silent = false) => {
         if (!user || !id) return;
-        setSaving(true);
+        setSaving(true); // Elindul a mentés jelzése
         
-        const state = useSheetStore.getState();
-        
-        await saveCells(
-            user.uid, 
-            id, 
-            state.cellsByTab, 
-            state.rowCountByTab, 
-            state.tabs, 
-            state.colWidthsByTab, 
-            state.rowHeightsByTab
-        );
-        
-        setDirty(false);
-        setSaving(false);
-        if (!silent) toast.success("Mentve!");
+        try {
+            const state = useSheetStore.getState();
+            await saveCells(
+                user.uid, 
+                id, 
+                state.cellsByTab, 
+                state.rowCountByTab, 
+                state.tabs, 
+                state.colWidthsByTab, 
+                state.rowHeightsByTab
+            );
+            setDirty(false);
+            if (!silent) toast.success("Mentve!");
+        } catch (error) {
+            console.error("Mentési hiba:", error);
+            toast.error("Hiba történt a mentés során!");
+        } finally {
+            setSaving(false); // Bármi történik (hiba vagy siker), a töltés jelző megáll!
+        }
     };
 
     const handleTitleSave = async () => {

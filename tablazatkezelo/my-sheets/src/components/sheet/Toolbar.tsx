@@ -8,25 +8,56 @@ import {
   Paintbrush, Type
 } from "lucide-react";
 
+// Definiáljuk az oszlopokat, hogy a sor-kijelölésnél végig tudjunk menni rajtuk (A-Z)
+const COLS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+
 export default function Toolbar() {
-  const selectedCell = useSheetStore(s => s.selectedCell);
   const formatCells = useSheetStore(s => s.formatCells);
   
-  // A Zustand csak magát a format objektumot (vagy undefined-ot) adja vissza (stabil referencia)
-  const rawFormat = useSheetStore(s => selectedCell ? s.cells[selectedCell]?.format : undefined);
+  // ── 1. OKOSABB AKTÍV CELLA KERESÉS A GOMBOK ÁLLAPOTÁHOZ ──
+  // Megkeressük a kijelölés "legelső" celláját, hogy a gombok tudják, be vannak-e nyomva
+  const activeCellId = useSheetStore(s => {
+    if (s.selectedCell) return s.selectedCell;
+    if (s.dragSelection.length > 0) return s.dragSelection[0];
+    if (s.selectedCols.length > 0) return `${s.selectedCols[0]}1`; // Oszlop első cellája
+    if (s.selectedRows.length > 0) return `A${s.selectedRows[0]}`; // Sor első cellája
+    return null;
+  });
   
-  // A fallback üres objektumot már a hook-on kívül adjuk hozzá
+  const rawFormat = useSheetStore(s => activeCellId ? s.cells[activeCellId]?.format : undefined);
   const fmt = rawFormat ?? {};
 
-const apply = (format: any) => { // Ha TypeScript hibát dob, használd a (format: Partial<CellFormat>) típust
+  // ── 2. OKOSABB FORMÁZÁS ALKALMAZÁSA ──
+  const apply = (format: any) => { 
     const state = useSheetStore.getState();
+    let ids: string[] = [];
     
-    // Összegyűjtjük a kijelölt cellákat: ha van húzással kijelölt terület, azt vesszük,
-    // különben csak a szimpla aktív cellát.
-    const ids = state.dragSelection.length > 0 
-      ? state.dragSelection 
-      : (state.selectedCell ? [state.selectedCell] : []);
+    // A) Ha oszlop(ok) van(nak) kijelölve: Generáljuk le a cellákat A1-től A[rowCount]-ig
+    if (state.selectedCols.length > 0) {
+      state.selectedCols.forEach(col => {
+        for (let r = 1; r <= state.rowCount; r++) {
+          ids.push(`${col}${r}`);
+        }
+      });
+    } 
+    // B) Ha sor(ok) van(nak) kijelölve: Generáljuk le A1-től Z1-ig
+    else if (state.selectedRows.length > 0) {
+      state.selectedRows.forEach(row => {
+        COLS.forEach(col => {
+          ids.push(`${col}${row}`);
+        });
+      });
+    } 
+    // C) Ha egérrel húzott terület van kijelölve
+    else if (state.dragSelection.length > 0) {
+      ids = state.dragSelection;
+    } 
+    // D) Ha egyetlen sima cella van kijelölve
+    else if (state.selectedCell) {
+      ids = [state.selectedCell];
+    }
 
+    // Ha véletlenül tényleg nincs semmi kijelölve, kilépünk
     if (ids.length === 0) return;
     
     // Az összes összegyűjtött ID-t átadjuk a store formázó függvényének
