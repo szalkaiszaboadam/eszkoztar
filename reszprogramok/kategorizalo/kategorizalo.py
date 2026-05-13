@@ -146,6 +146,23 @@ def run_processor(context: Context, termek_lista, mod, progress_file_path, bemen
 
         try:
             page.goto(f"{base_url}/administrator/", timeout=60000)
+
+            # --- NÉZET ELLENŐRZÉSE ÉS VÁLTÁSA ---
+            # Keresünk egy gombot, aminek az onclick eseménye a 'switchMode(2)'-t (Bizonylatkészítőt) hívja
+            nezet_valto_gomb = page.locator("li.modeSwitch[onclick*='switchMode(2)']")
+
+            # Ha ez a gomb látható, az azt jelenti, hogy a rossz (Weblap admin) nézetben vagyunk
+            if nezet_valto_gomb.is_visible(timeout=3000):
+                print("🔄 Rossz nézet (Weblap admin) észlelve! Átváltás Bizonylatkészítőre...")
+                nezet_valto_gomb.click()
+
+                # Várunk egy kicsit, hogy az oldal biztosan újratöltsön a Bizonylatkészítő nézetben
+                time.sleep(3)
+                page.locator("#searchField_all").wait_for(state="visible", timeout=10000)
+                print("✅ Sikeresen átváltottunk a Bizonylatkészítő nézetre!")
+            else:
+                print("✅ Eleve a jó (Bizonylatkészítő) nézetben vagyunk.")
+
             search_field = page.locator("#searchField_all")
             search_field.wait_for(timeout=10000)
             time.sleep(0.5)
@@ -179,7 +196,7 @@ def run_processor(context: Context, termek_lista, mod, progress_file_path, bemen
             termek_link.click()
             time.sleep(2)
 
-            # --- KATEGORIZÁLÓ MÓD (Hozzáadás meglévőkhöz) ---
+            # --- KATEGORIZÁLÓ MÓD ---
             if mod == "kategorizalo":
                 page.locator("a:has-text('A termék kategorizálása')").click()
                 popup_ablak = page.locator("#popup")
@@ -192,7 +209,12 @@ def run_processor(context: Context, termek_lista, mod, progress_file_path, bemen
                 for kat in kategoriak:
                     stabil_kategoria_valasztas(page, popup_kereso, dropdown, kat)
 
+                # Itt a módosítás:
                 popup_ablak.locator("div.pure-button:has-text('Hozzáadás a választott kategóriákhoz')").click()
+
+                # Megvárjuk, amíg a popup ténylegesen bezárul, mielőtt továbbmennénk
+                popup_ablak.wait_for(state="hidden", timeout=10000)
+                print("   ✅ Popup bezárult, kategóriák hozzáadva.")
                 time.sleep(2)
 
             # --- ÁTKATEGORIZÁLÓ MÓD (Törlés, majd új hozzáadása) ---
@@ -216,8 +238,14 @@ def run_processor(context: Context, termek_lista, mod, progress_file_path, bemen
                 for kat in kategoriak:
                     stabil_kategoria_valasztas(page, atkat_kereso, dropdown, kat)
 
-                page.locator("a#save:has-text('Mentés')").click()
-                time.sleep(3)
+                # Itt a módosítás:
+                save_button = page.locator("a#save:has-text('Mentés')")
+                save_button.click()
+
+                # Megvárjuk, amíg a mentés utáni hálózati forgalom lecsendesedik
+                page.wait_for_load_state("networkidle")
+                print("   ✅ Mentés sikeres, oldal frissült.")
+                time.sleep(2.5)
 
             print(f"  ✅ Sikeresen feldolgozva.")
             sikeres_db += 1
@@ -498,7 +526,7 @@ if __name__ == "__main__":
 
     with sync_playwright() as p:
         print("\nBöngésző indítása...")
-        browser = p.chromium.launch(headless=True)
+        browser = p.chromium.launch(headless=False)
         ctx = bejelentkezes_kezelese(browser, FELHASZNALONEV, JELSZO, BASE_URL, STATE_FAJL)
         if ctx:
             run_processor(ctx, termekek, mod, progress_file, kivalasztott_fajl_utvonala, base_url=BASE_URL)

@@ -13,7 +13,7 @@ const COLS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
 export default function Toolbar() {
   const formatCells = useSheetStore(s => s.formatCells);
-  
+
   // ── 1. OKOSABB AKTÍV CELLA KERESÉS A GOMBOK ÁLLAPOTÁHOZ ──
   // Megkeressük a kijelölés "legelső" celláját, hogy a gombok tudják, be vannak-e nyomva
   const activeCellId = useSheetStore(s => {
@@ -23,15 +23,15 @@ export default function Toolbar() {
     if (s.selectedRows.length > 0) return `A${s.selectedRows[0]}`; // Sor első cellája
     return null;
   });
-  
+
   const rawFormat = useSheetStore(s => activeCellId ? s.cells[activeCellId]?.format : undefined);
   const fmt = rawFormat ?? {};
 
   // ── 2. OKOSABB FORMÁZÁS ALKALMAZÁSA ──
-  const apply = (format: any) => { 
+  const apply = (format: any) => {
     const state = useSheetStore.getState();
     let ids: string[] = [];
-    
+
     // A) Ha oszlop(ok) van(nak) kijelölve: Generáljuk le a cellákat A1-től A[rowCount]-ig
     if (state.selectedCols.length > 0) {
       state.selectedCols.forEach(col => {
@@ -39,7 +39,7 @@ export default function Toolbar() {
           ids.push(`${col}${r}`);
         }
       });
-    } 
+    }
     // B) Ha sor(ok) van(nak) kijelölve: Generáljuk le A1-től Z1-ig
     else if (state.selectedRows.length > 0) {
       state.selectedRows.forEach(row => {
@@ -47,11 +47,11 @@ export default function Toolbar() {
           ids.push(`${col}${row}`);
         });
       });
-    } 
+    }
     // C) Ha egérrel húzott terület van kijelölve
     else if (state.dragSelection.length > 0) {
       ids = state.dragSelection;
-    } 
+    }
     // D) Ha egyetlen sima cella van kijelölve
     else if (state.selectedCell) {
       ids = [state.selectedCell];
@@ -59,7 +59,7 @@ export default function Toolbar() {
 
     // Ha véletlenül tényleg nincs semmi kijelölve, kilépünk
     if (ids.length === 0) return;
-    
+
     // Az összes összegyűjtött ID-t átadjuk a store formázó függvényének
     formatCells(ids, format);
   };
@@ -122,10 +122,12 @@ export default function Toolbar() {
 
       <div className="w-px h-5 bg-gray-200 mx-1" />
 
+
       {/* Gyors info */}
+      {/* 
       <span className="text-xs text-gray-400 ml-auto">
         Dupla kattintás = szerkesztés &nbsp;|&nbsp; Enter = le &nbsp;|&nbsp; Tab = jobbra &nbsp;|&nbsp; Ctrl+S = mentés
-      </span>
+      </span>*/}
     </div>
   );
 }
