@@ -22,8 +22,8 @@ def adatok_beolvasasa(excel_fajl_neve):
         print(f"HIBA az Excel beolvasása közben: {e}")
         return None
 
-    # Ellenőrizzük, hogy megvannak-e a kötelező oszlopok
-    szukseges_oszlopok = ["Cikkszám", "Alkategória", "Márka"]
+    # Ellenőrizzük, hogy megvannak-e a kötelező oszlopok (Név hozzáadva)
+    szukseges_oszlopok = ["Cikkszám", "Név", "Alkategória", "Márka"]
     hianyzo_oszlopok = [oszlop for oszlop in szukseges_oszlopok if oszlop not in df.columns]
 
     if hianyzo_oszlopok:
@@ -34,23 +34,33 @@ def adatok_beolvasasa(excel_fajl_neve):
     feldolgozando_lista = []
 
     for index, row in df.iterrows():
-        cikkszam = str(row["Cikkszám"]).strip()
+        # --- EXCEL DÁTUM HIBA JAVÍTÁSA ---
+        # Az Excel a "6511-10"-et dátumnak hiszi, és átalakítja: "6511-10-01 00:00:00"-ra
+        nyers_cikkszam = str(row["Cikkszám"]).strip()
+
+        if nyers_cikkszam.endswith(" 00:00:00"):
+            # Először levágjuk az időt
+            nyers_cikkszam = nyers_cikkszam.replace(" 00:00:00", "")
+            # Ha az Excel önkényesen hozzáadott egy "-01" (első nap) toldatot, azt is levágjuk
+            if nyers_cikkszam.endswith("-01"):
+                nyers_cikkszam = nyers_cikkszam[:-3]
+
+        cikkszam = nyers_cikkszam
+
+        nev = str(row["Név"]).strip()
         marka = str(row["Márka"]).strip()
         kategoria_fejlec = str(row["Alkategória"]).strip()
-
-        # Ha nincs cikkszám, vagy hiányzik a márka/kategória, átugorjuk a sort
-        if not cikkszam or cikkszam.lower() == 'nan' or marka.lower() == 'nan' or kategoria_fejlec.lower() == 'nan':
+        # ÚJ: Adatellenőrzés (Cikkszám VAGY Név kötelező)
+        van_azonosito = (cikkszam and cikkszam.lower() != 'nan') or (nev and nev.lower() != 'nan')
+        if not van_azonosito or marka.lower() == 'nan' or kategoria_fejlec.lower() == 'nan':
             continue
 
-        # Tisztítás
         tiszta_fejlec = re.sub(r'\.\d+$', '', kategoria_fejlec)
-
-        # Pontosvessző (;) alapján választjuk szét a multi kategóriákat!
         kategoriak_listaja = [k.strip() for k in tiszta_fejlec.split(';') if k.strip()]
 
         if kategoriak_listaja:
-            # Hozzáadjuk a listához pontosan úgy, ahogy a feldolgozó (run_processor) várja
-            feldolgozando_lista.append((cikkszam, marka, kategoria_fejlec, kategoriak_listaja))
+            # ÚJ: 'nev' hozzáadása a listához
+            feldolgozando_lista.append((cikkszam, marka, nev, kategoria_fejlec, kategoriak_listaja))
 
     return feldolgozando_lista
 
@@ -139,13 +149,32 @@ def run_processor(context: Context, termek_lista, mod, progress_file_path, bemen
         return
 
     # --- FŐ CIKLUS (1. KÖR) ---
-    for i, (cikkszam, marka, eredeti_fejlec, kategoriak) in enumerate(feldolgozando_maradek):
+    for i, (cikkszam, marka, nev, eredeti_fejlec, kategoriak) in enumerate(feldolgozando_maradek):
         aktualis_sorszam = start_index + i + 1
+
+        # ÚJ: Keresési kifejezés meghatározása
+        van_cikkszam = cikkszam and cikkszam.lower() != 'nan'
+        keresendo = cikkszam if van_cikkszam else nev
+
         print(f"\n[{aktualis_sorszam}/{len(termek_lista)}] Feldolgozás...")
-        print(f"  Cikkszám: {cikkszam} | Márka: {marka} | Kategória db: {len(kategoriak)}")
+        print(f"  Keresés alapja: {'Cikkszám' if van_cikkszam else 'Név'} -> {keresendo}")
 
         try:
-            page.goto(f"{base_url}/administrator/", timeout=60000)
+            # --- ÚJ, BIZTONSÁGOS NAVIGÁCIÓ ---
+            navigacio_sikeres = False
+            for proba in range(3):
+                try:
+                    # A 'domcontentloaded' gyorsabb, nem vár minden apró képre, és kevésbé dob ERR_ABORTED-ot
+                    page.goto(f"{base_url}/administrator/", timeout=60000, wait_until="domcontentloaded")
+                    navigacio_sikeres = True
+                    break  # Ha sikerült, kilépünk a próbálkozós ciklusból
+                except Exception as nav_e:
+                    print(
+                        f"   ⚠️ Navigációs hiba ({proba + 1}/3. próba): {str(nav_e).splitlines()[0]}. Újrapróbálás 3 mp múlva...")
+                    time.sleep(3)
+
+            if not navigacio_sikeres:
+                raise Exception("Nem sikerült betölteni az admin oldalt 3 próbálkozás után sem (ERR_ABORTED).")
 
             # --- NÉZET ELLENŐRZÉSE ÉS VÁLTÁSA ---
             # Keresünk egy gombot, aminek az onclick eseménye a 'switchMode(2)'-t (Bizonylatkészítőt) hívja
@@ -166,30 +195,63 @@ def run_processor(context: Context, termek_lista, mod, progress_file_path, bemen
             search_field = page.locator("#searchField_all")
             search_field.wait_for(timeout=10000)
             time.sleep(0.5)
-            search_field.fill(cikkszam)
+            search_field.fill(keresendo)  # ÚJ: cikkszám helyett 'keresendo'
             search_field.press("Enter")
             time.sleep(1.5)
 
-            sorok = page.locator(f"tr:has(td:text-is('{cikkszam}'))")
+            # --- ÚJ, BIZTONSÁGOSABB KERESÉSI LOGIKA ---
+            if van_cikkszam:
+                sorok = page.locator("tbody tr").filter(has_text=cikkszam)
+            else:
+                sorok = page.locator("tbody tr").filter(has_text=nev)
+
+            # Megvárjuk, hogy betöltsön a táblázat sora
             sorok.first.wait_for(timeout=10000)
             talalat_db = sorok.count()
 
             if talalat_db == 1:
                 sor = sorok.first
             elif talalat_db > 1:
-                print(f"   ⚠️ Több találat ({talalat_db} db). Szűrés márkára: '{marka}'...")
-                szurt_sorok = sorok.filter(has=page.locator(f"td:text-is('{marka}')"))
-                szurt_db = szurt_sorok.count()
+                print(f"   ⚠️ Több találat ({talalat_db} db). Pontosítás...")
+                sor = None
 
-                if szurt_db == 1:
-                    print("   ✅ Márka alapján beazonosítva.")
-                    sor = szurt_sorok.first
-                elif szurt_db > 1:
-                    raise Exception("DUPLIKÁCIÓ")
-                else:
-                    raise Exception(f"Nincs olyan cikkszám, aminek '{marka}' a márkája!")
+                # 1. Próba: Pontos cikkszám keresése (kizárja a hasonló végződéseket, pl. .25)
+                if van_cikkszam:
+                    pontos_c_sorok = sorok.filter(has=page.get_by_text(cikkszam, exact=True))
+                    if pontos_c_sorok.count() == 1:
+                        sor = pontos_c_sorok.first
+                        print("   ✅ Pontos cikkszám egyezés alapján beazonosítva.")
+
+                # 2. Próba: Ha a pontos cikkszám nem segített, jöhet a márka és név szűrés
+                if sor is None:
+                    szurt_sorok = sorok
+                    if marka.lower() != 'nan':
+                        szurt_sorok = szurt_sorok.filter(has_text=marka)
+
+                    # Csak akkor szűrünk névre, ha nem 'nan'
+                    van_nev = nev and nev.lower() != 'nan'
+                    if van_nev:
+                        szurt_sorok = szurt_sorok.filter(has_text=nev)
+
+                    szurt_db = szurt_sorok.count()
+
+                    if szurt_db == 1:
+                        sor = szurt_sorok.first
+                        print("   ✅ Szűrés (márka/név) alapján beazonosítva.")
+                    elif szurt_db > 1:
+                        if van_nev:
+                            pontos_n_sorok = szurt_sorok.filter(has=page.get_by_text(nev, exact=True))
+                            if pontos_n_sorok.count() == 1:
+                                sor = pontos_n_sorok.first
+                                print("   ✅ Pontos név egyezés alapján beazonosítva.")
+                            else:
+                                raise Exception("DUPLIKÁCIÓ (név és márka alapján is több azonos sor van)")
+                        else:
+                            raise Exception("DUPLIKÁCIÓ (több találat maradt, de nincs Név a döntéshez)")
+                    else:
+                        raise Exception("A szűkítés után egyetlen termék sem maradt!")
             else:
-                raise Exception("Nem található a cikkszám!")
+                raise Exception("Nem található a keresett termék a listában!")
 
             termek_link = sor.locator("a[href*='view=product']")
             termek_link.wait_for(timeout=10000)
@@ -198,24 +260,35 @@ def run_processor(context: Context, termek_lista, mod, progress_file_path, bemen
 
             # --- KATEGORIZÁLÓ MÓD ---
             if mod == "kategorizalo":
-                page.locator("a:has-text('A termék kategorizálása')").click()
-                popup_ablak = page.locator("#popup")
-                popup_ablak.wait_for(timeout=10000)
-                time.sleep(1)
+                kategorizalo_gomb = page.locator("a:has-text('A termék kategorizálása')")
 
-                popup_kereso = popup_ablak.locator("div.selectize-control.categories input[type='text']")
-                dropdown = page.locator("div.selectize-dropdown.categories")
+                try:
+                    # Várunk maximum 3 másodpercet, hátha megjelenik a gomb
+                    kategorizalo_gomb.wait_for(state="visible", timeout=3000)
+                    gomb_elerheto = True
+                except:
+                    gomb_elerheto = False
 
-                for kat in kategoriak:
-                    stabil_kategoria_valasztas(page, popup_kereso, dropdown, kat)
+                if gomb_elerheto:
+                    kategorizalo_gomb.click()
+                    popup_ablak = page.locator("#popup")
+                    popup_ablak.wait_for(timeout=10000)
+                    time.sleep(1)
 
-                # Itt a módosítás:
-                popup_ablak.locator("div.pure-button:has-text('Hozzáadás a választott kategóriákhoz')").click()
+                    popup_kereso = popup_ablak.locator("div.selectize-control.categories input[type='text']")
+                    dropdown = page.locator("div.selectize-dropdown.categories")
 
-                # Megvárjuk, amíg a popup ténylegesen bezárul, mielőtt továbbmennénk
-                popup_ablak.wait_for(state="hidden", timeout=10000)
-                print("   ✅ Popup bezárult, kategóriák hozzáadva.")
-                time.sleep(2)
+                    for kat in kategoriak:
+                        stabil_kategoria_valasztas(page, popup_kereso, dropdown, kat)
+
+                    popup_ablak.locator("div.pure-button:has-text('Hozzáadás a választott kategóriákhoz')").click()
+
+                    popup_ablak.wait_for(state="hidden", timeout=10000)
+                    print("   ✅ Popup bezárult, kategóriák hozzáadva.")
+                    time.sleep(2)
+                else:
+                    print("   ℹ️ Nincs 'A termék kategorizálása' gomb. Valószínűleg már be van kategorizálva. Átugrás.")
+                    time.sleep(0.5)
 
             # --- ÁTKATEGORIZÁLÓ MÓD (Törlés, majd új hozzáadása) ---
             elif mod == "atkategorizalo":
@@ -254,52 +327,104 @@ def run_processor(context: Context, termek_lista, mod, progress_file_path, bemen
         except Exception as e:
             hiba_uzenet = str(e)
             print(f"  ❌ HIBA (1. KÖR): {hiba_uzenet}")
-            sikertelen_lista_elso_kor.append((cikkszam, marka, eredeti_fejlec, kategoriak, hiba_uzenet))
+            sikertelen_lista_elso_kor.append((cikkszam, marka, nev, eredeti_fejlec, kategoriak, hiba_uzenet))
             mentes_allapot(aktualis_sorszam)
 
-    # --- ÚJRAPRÓBÁLKOZÁSI CIKLUS (2. KÖR) ---
+        # --- ÚJRAPRÓBÁLKOZÁSI CIKLUS (2. KÖR) ---
     if sikertelen_lista_elso_kor:
         print("\n" + "=" * 50)
         print(f"Indul a feldolgozás, 2. KÖR: Újrapróbálkozás {len(sikertelen_lista_elso_kor)} termékkel.")
         feldolgozando_retry = list(sikertelen_lista_elso_kor)
 
-        for i, (cikkszam, marka, eredeti_fejlec, kategoriak, elozo_hiba) in enumerate(feldolgozando_retry):
-            print(f"\n[{i + 1}/{len(feldolgozando_retry)}] Retry: {cikkszam}")
+        for i, (cikkszam, marka, nev, eredeti_fejlec, kategoriak, elozo_hiba) in enumerate(feldolgozando_retry):
+
+            van_cikkszam = cikkszam and cikkszam.lower() != 'nan'
+            keresendo = cikkszam if van_cikkszam else nev
+
+            print(f"\n[{i + 1}/{len(feldolgozando_retry)}] Retry: Keresés alapja -> {keresendo}")
 
             if "DUPLIKÁCIÓ" in elozo_hiba:
                 print("   ⚠️ Újrapróbálkozás átugorva (Duplikációs hiba miatt).")
                 veglegesen_sikertelen_db += 1
-                veglegesen_sikertelen_lista.append((cikkszam, marka, eredeti_fejlec, kategoriak, elozo_hiba))
-                sikertelen_lista_elso_kor = [x for x in sikertelen_lista_elso_kor if x[0] != cikkszam]
+                veglegesen_sikertelen_lista.append((cikkszam, marka, nev, eredeti_fejlec, kategoriak, elozo_hiba))
+
+                # JAVÍTÁS: Pontosan az aktuális elemet vesszük ki a listából, nem a cikkszámra szűrünk!
+                if sikertelen_lista_elso_kor: sikertelen_lista_elso_kor.pop(0)
                 mentes_allapot(start_index + len(feldolgozando_maradek))
                 continue
 
             try:
-                page.goto(f"{base_url}/administrator/", timeout=60000)
+                # --- ÚJ, BIZTONSÁGOS NAVIGÁCIÓ ---
+                navigacio_sikeres = False
+                for proba in range(3):
+                    try:
+                        # A 'domcontentloaded' gyorsabb, nem vár minden apró képre, és kevésbé dob ERR_ABORTED-ot
+                        page.goto(f"{base_url}/administrator/", timeout=60000, wait_until="domcontentloaded")
+                        navigacio_sikeres = True
+                        break  # Ha sikerült, kilépünk a próbálkozós ciklusból
+                    except Exception as nav_e:
+                        print(
+                            f"   ⚠️ Navigációs hiba ({proba + 1}/3. próba): {str(nav_e).splitlines()[0]}. Újrapróbálás 3 mp múlva...")
+                        time.sleep(3)
+
+                if not navigacio_sikeres:
+                    raise Exception("Nem sikerült betölteni az admin oldalt 3 próbálkozás után sem (ERR_ABORTED).")
                 search_field = page.locator("#searchField_all")
                 search_field.wait_for(timeout=10000)
                 time.sleep(0.5)
-                search_field.fill(cikkszam)
+
+                search_field.fill(keresendo)
                 search_field.press("Enter")
                 time.sleep(1.5)
 
-                sorok = page.locator(f"tr:has(td:text-is('{cikkszam}'))")
+                if van_cikkszam:
+                    sorok = page.locator("tbody tr").filter(has_text=cikkszam)
+                else:
+                    sorok = page.locator("tbody tr").filter(has_text=nev)
+
                 sorok.first.wait_for(timeout=10000)
                 talalat_db = sorok.count()
 
                 if talalat_db == 1:
                     sor = sorok.first
                 elif talalat_db > 1:
-                    szurt_sorok = sorok.filter(has=page.locator(f"td:text-is('{marka}')"))
-                    szurt_db = szurt_sorok.count()
-                    if szurt_db == 1:
-                        sor = szurt_sorok.first
-                    elif szurt_db > 1:
-                        raise Exception("DUPLIKÁCIÓ")
-                    else:
-                        raise Exception(f"Több cikkszám, de egyik sem '{marka}'.")
+                    print(f"   ⚠️ Több találat ({talalat_db} db). Pontosítás...")
+                    sor = None
+
+                    if van_cikkszam:
+                        pontos_c_sorok = sorok.filter(has=page.get_by_text(cikkszam, exact=True))
+                        if pontos_c_sorok.count() == 1:
+                            sor = pontos_c_sorok.first
+                            print("   ✅ Pontos cikkszám egyezés alapján beazonosítva.")
+
+                    if sor is None:
+                        szurt_sorok = sorok
+                        if marka.lower() != 'nan':
+                            szurt_sorok = szurt_sorok.filter(has_text=marka)
+
+                        van_nev = nev and nev.lower() != 'nan'
+                        if van_nev:
+                            szurt_sorok = szurt_sorok.filter(has_text=nev)
+
+                        szurt_db = szurt_sorok.count()
+
+                        if szurt_db == 1:
+                            sor = szurt_sorok.first
+                            print("   ✅ Szűrés (márka/név) alapján beazonosítva.")
+                        elif szurt_db > 1:
+                            if van_nev:
+                                pontos_n_sorok = szurt_sorok.filter(has=page.get_by_text(nev, exact=True))
+                                if pontos_n_sorok.count() == 1:
+                                    sor = pontos_n_sorok.first
+                                    print("   ✅ Pontos név egyezés alapján beazonosítva.")
+                                else:
+                                    raise Exception("DUPLIKÁCIÓ (név és márka alapján is több azonos sor van)")
+                            else:
+                                raise Exception("DUPLIKÁCIÓ (több találat maradt, de nincs Név a döntéshez)")
+                        else:
+                            raise Exception("A szűkítés után egyetlen termék sem maradt!")
                 else:
-                    raise Exception("Nem található a cikkszám!")
+                    raise Exception("Nem található a keresett termék a listában!")
 
                 termek_link = sor.locator("a[href*='view=product']")
                 termek_link.wait_for(timeout=10000)
@@ -318,7 +443,8 @@ def run_processor(context: Context, termek_lista, mod, progress_file_path, bemen
                     for kat in kategoriak:
                         stabil_kategoria_valasztas(page, popup_kereso, dropdown, kat)
 
-                    popup_ablak.locator("div.pure-button:has-text('Hozzáadás a választott kategóriákhoz')").click()
+                    popup_ablak.get_by_text("Hozzáadás a választott kategóriákhoz").click()
+                    popup_ablak.wait_for(state="hidden", timeout=10000)
                     time.sleep(2)
 
                 elif mod == "atkategorizalo":
@@ -328,7 +454,7 @@ def run_processor(context: Context, termek_lista, mod, progress_file_path, bemen
                         torles_gomb = page.locator(
                             "div.selectize-control.categories div.selectize-input a.remove").first
                         if torles_gomb.is_visible():
-                            torles_gomb.click(force=True);
+                            torles_gomb.click(force=True)
                             time.sleep(0.3)
                         else:
                             break
@@ -339,56 +465,65 @@ def run_processor(context: Context, termek_lista, mod, progress_file_path, bemen
                     for kat in kategoriak:
                         stabil_kategoria_valasztas(page, atkat_kereso, dropdown, kat)
 
-                    page.locator("a#save:has-text('Mentés')").click()
-                    time.sleep(3)
+                    save_button = page.locator("a#save:has-text('Mentés')")
+                    save_button.click()
+                    page.wait_for_load_state("networkidle")
+                    time.sleep(2.5)
 
                 print(f"  ✅ Sikeres (2. kör).")
                 sikeres_db += 1
-                sikertelen_lista_elso_kor = [x for x in sikertelen_lista_elso_kor if x[0] != cikkszam]
+
+                # JAVÍTÁS: Itt is .pop(0)-val törlünk
+                if sikertelen_lista_elso_kor: sikertelen_lista_elso_kor.pop(0)
                 mentes_allapot(start_index + len(feldolgozando_maradek))
 
             except Exception as e:
                 vegleges_hiba = str(e)
-                print(f"  ❌ VÉGLEGES HIBA: {cikkszam} - {vegleges_hiba}")
+                print(f"  ❌ VÉGLEGES HIBA: {keresendo} - {vegleges_hiba}")
                 veglegesen_sikertelen_db += 1
-                veglegesen_sikertelen_lista.append((cikkszam, marka, eredeti_fejlec, kategoriak, vegleges_hiba))
-                sikertelen_lista_elso_kor = [x for x in sikertelen_lista_elso_kor if x[0] != cikkszam]
+                veglegesen_sikertelen_lista.append((cikkszam, marka, nev, eredeti_fejlec, kategoriak, vegleges_hiba))
+
+                # JAVÍTÁS: Itt is .pop(0)-val törlünk
+                if sikertelen_lista_elso_kor: sikertelen_lista_elso_kor.pop(0)
                 mentes_allapot(start_index + len(feldolgozando_maradek))
 
     page.close()
+
+    # --- EXPORTÁLÁS ÉS MENTÉS TÖRLÉSE (JAVÍTOTT LOGIKA) ---
+
+    # 1. Csak akkor töröljük a mentést, ha a sikertelen lista tényleg teljesen kiürült
     if os.path.exists(progress_file_path) and not sikertelen_lista_elso_kor:
-        os.remove(progress_file_path)
+        try:
+            os.remove(progress_file_path)
+        except:
+            pass
 
-        # --- EXPORTÁLÁS ---
-        if veglegesen_sikertelen_lista:
-            print(f"\n📑 Exportálás: {len(veglegesen_sikertelen_lista)} sikertelen termék...")
-            SIKERTELEN_MAPPA = "sikertelen_tablak"
-            try:
-                os.makedirs(SIKERTELEN_MAPPA, exist_ok=True)
+    # 2. EXPORTÁLÁS: Ez MINDIG lefut, ha van véglegesen hibás elem, függetlenül mindentől!
+    if veglegesen_sikertelen_lista:
+        print(f"\n📑 Exportálás: {len(veglegesen_sikertelen_lista)} sikertelen termék...")
+        SIKERTELEN_MAPPA = "sikertelen_tablak"
+        try:
+            os.makedirs(SIKERTELEN_MAPPA, exist_ok=True)
+            export_adatok = []
+            for c_szam, m_ka, n_ev, e_fejlec, kats, hiba in veglegesen_sikertelen_lista:
+                export_adatok.append({
+                    "Cikkszám": c_szam,
+                    "Név": n_ev,
+                    "Márka": m_ka,
+                    "Alkategória": e_fejlec,
+                    "Hiba oka": str(hiba).strip()
+                })
 
-                # ÚJ, SOROS FORMÁTUM (Bemeneti fájllal megegyező)
-                export_adatok = []
-                for cikkszam, marka, eredeti_fejlec, kats, hiba in veglegesen_sikertelen_lista:
-                    export_adatok.append({
-                        "Cikkszám": cikkszam,
-                        "Márka": marka,
-                        "Alkategória": eredeti_fejlec,
-                        "Hiba oka": str(hiba).strip()
-                    })
+            df_sikertelen = pd.DataFrame(export_adatok)
+            alap_nev = os.path.splitext(os.path.basename(bemeneti_fajl_neve))[0]
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M")
+            fnev = f"{alap_nev}_hiba_{mod}_{timestamp}.xlsx"
+            utvonal = os.path.join(SIKERTELEN_MAPPA, fnev)
+            df_sikertelen.to_excel(utvonal, index=False, engine='openpyxl')
+            print(f"  ✅ Sikeres export: {utvonal}")
+        except Exception as e:
+            print(f"  ❌ HIBA az exportnál: {e}")
 
-                # DataFrame létrehozása a dict listából
-                df_sikertelen = pd.DataFrame(export_adatok)
-
-                alap_nev = os.path.splitext(os.path.basename(bemeneti_fajl_neve))[0]
-                timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M")
-                fnev = f"{alap_nev}_hiba_{mod}_{timestamp}.xlsx"
-                utvonal = os.path.join(SIKERTELEN_MAPPA, fnev)
-
-                # Mentés Excelbe, fejlécekkel együtt! (header=True az alapértelmezett, ezért elhagyható a header=False)
-                df_sikertelen.to_excel(utvonal, index=False, engine='openpyxl')
-                print(f"  ✅ Sikeres export: {utvonal}")
-            except Exception as e:
-                print(f"  ❌ HIBA az exportnál: {e}")
 
 # --- 3. LÉPÉS: Bejelentkezés ---
 def bejelentkezes_kezelese(browser: Browser, username, password, base_url, state_fajl="state.json"):
@@ -526,7 +661,7 @@ if __name__ == "__main__":
 
     with sync_playwright() as p:
         print("\nBöngésző indítása...")
-        browser = p.chromium.launch(headless=False)
+        browser = p.chromium.launch(headless=True)
         ctx = bejelentkezes_kezelese(browser, FELHASZNALONEV, JELSZO, BASE_URL, STATE_FAJL)
         if ctx:
             run_processor(ctx, termekek, mod, progress_file, kivalasztott_fajl_utvonala, base_url=BASE_URL)

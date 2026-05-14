@@ -1,0 +1,10 @@
+HIBA 6511-10-01 00:00:00 (King Tony - Autóvízpumpa fogó, ívelt fogazott csuklóval 250 mm/50 mm, 7 állítási pozíció, muanyag nyél): Locator.wait_for: Timeout 10000ms exceeded.
+Call log:
+  - waiting for locator("tr:has(td:text-is('6511-10-01 00:00:00'))").first to be visible
+    - waiting for" https://szvgtoolsshop.hu/administrator/index.php?view=store&keyword=6511-10-01+00%3A00%3A00" navigation to finish...
+    - navigated to "https://szvgtoolsshop.hu/administrator/index.php?view=store&keyword=6511-10-01+00%3A00%3A00"
+
+HIBA 6511-10-01 (King Tony - Autóvízpumpa fogó, ívelt fogazott csuklóval 250 mm/50 mm, 7 állítási pozíció, muanyag nyél): Locator.wait_for: Timeout 10000ms exceeded.
+Call log:
+  - waiting for locator("tbody tr").filter(has_text="6511-10-01").first to be visible
+

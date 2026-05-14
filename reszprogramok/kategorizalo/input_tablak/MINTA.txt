@@ -1,1 +1,1 @@
-Cikkszám | Alkategória (több kategóriánál elválasztó: ";") | Márka
+Cikkszám | Név | Alkategória (több kategóriánál elválasztó: ";") | Márka

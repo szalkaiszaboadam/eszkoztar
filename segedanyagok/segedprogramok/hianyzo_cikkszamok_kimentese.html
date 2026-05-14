@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <title>Cikkszám Ellenőrző</title>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: #eef2f3; 
+        }
+        .card { 
+            background: white; 
+            padding: 40px; 
+            border-radius: 15px; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
+            width: 100%; 
+            max-width: 450px; 
+            text-align: center; 
+        }
+        h2 { color: #2c3e50; margin-bottom: 10px; }
+        p { color: #7f8c8d; margin-bottom: 30px; }
+        
+        .upload-area {
+            border: 2px dashed #3498db;
+            padding: 20px;
+            border-radius: 10px;
+            background: #f9fbfd;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .upload-area:hover { background: #f0f7ff; border-color: #2980b9; }
+        
+        input[type="file"] { display: none; }
+        
+        .custom-file-upload {
+            display: inline-block;
+            padding: 12px 24px;
+            cursor: pointer;
+            background: #3498db;
+            color: white;
+            border-radius: 5px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        #downloadBtn { 
+            background: #27ae60; 
+            color: white; 
+            border: none; 
+            padding: 15px 30px; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            display: none; 
+            margin: 20px auto 0; 
+            font-size: 16px;
+            font-weight: bold;
+            width: 100%;
+        }
+        #downloadBtn:hover { background: #219150; }
+        
+        #status { 
+            margin-top: 20px; 
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>📦 Cikkszám Szűrő</h2>
+    <p>Csak azokat a sorokat mentjük ki, ahol a <b>Cikkszám</b> üres.</p>
+    
+    <label class="upload-area" for="fileInput">
+        <span id="fileName">Kattints ide a fájl feltöltéséhez</span>
+        <input type="file" id="fileInput" accept=".xlsx, .xls">
+    </label>
+
+    <div id="status"></div>
+    <button id="downloadBtn">📥 Hiányzó cikkszámok letöltése (.xlsx)</button>
+</div>
+
+<script>
+    let filteredData = [];
+    let originalFileName = "";
+
+    document.getElementById('fileInput').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        const status = document.getElementById('status');
+        const btn = document.getElementById('downloadBtn');
+        const fileNameLabel = document.getElementById('fileName');
+        
+        if (!file) return;
+        
+        originalFileName = file.name.replace(/\.[^/.]+$/, "");
+        fileNameLabel.textContent = file.name;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                
+                // A 'defval: ""' biztosítja, hogy az üres cellák is bekerüljenek a JSON-ba üres szövegként
+                const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+                
+                if (jsonData.length > 0 && !jsonData[0].hasOwnProperty('Cikkszám')) {
+                    status.className = "error";
+                    status.innerHTML = "❌ Hiba: Nem található <b>'Cikkszám'</b> nevű oszlop!";
+                    btn.style.display = "none";
+                    return;
+                }
+
+                // Szűrés a hiányzó cikkszámokra
+                filteredData = jsonData.filter(row => {
+                    const val = row['Cikkszám'];
+                    return val === undefined || val === null || val.toString().trim() === "";
+                });
+
+                if (filteredData.length > 0) {
+                    status.className = "success";
+                    status.innerHTML = `✅ Találtam <b>${filteredData.length}</b> hiányos sort.<br>A kiexportált fájl tartalmazni fogja a Cikkszám oszlopot is.`;
+                    btn.style.display = "block";
+                } else {
+                    status.className = "success";
+                    status.innerHTML = "✨ Minden cikkszám ki van töltve!";
+                    btn.style.display = "none";
+                }
+            } catch (err) {
+                status.className = "error";
+                status.innerHTML = "❌ Hiba történt a fájl feldolgozása közben.";
+                console.error(err);
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    });
+
+    document.getElementById('downloadBtn').addEventListener('click', function() {
+        if (filteredData.length === 0) return;
+
+        // Új táblázat létrehozása (a filteredData már tartalmazza a 'Cikkszám' kulcsot az üres értékkel is)
+        const newSheet = XLSX.utils.json_to_sheet(filteredData);
+        const newWorkbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(newWorkbook, newSheet, "Hiányzó adatok");
+
+        // Fájl mentése
+        XLSX.writeFile(newWorkbook, `${originalFileName}_hianyzo_cikkszamok.xlsx`);
+    });
+</script>
+
+</body>
+</html>

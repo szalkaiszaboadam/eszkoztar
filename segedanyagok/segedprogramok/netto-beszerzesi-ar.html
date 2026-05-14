@@ -30,7 +30,7 @@
         .tool-brand { border-color: #f39c12; }
         .tool-price { border-color: #4CAF50; }
         .tool-filter { border-color: #9b59b6; }
-        .tool-compare { border-color: #e74c3c; } /* Új eszköz színe */
+        .tool-compare { border-color: #e74c3c; } 
         
         h2 { margin-top: 0; padding-bottom: 10px; border-bottom: 1px solid #eee; }
         .file-upload { margin-bottom: 20px; padding: 15px; background: #e9ecef; border-radius: 6px; }
@@ -70,6 +70,10 @@
         .btn-download { background-color: #008CBA; display: none; }
         .btn-download:hover { background-color: #007B9E; }
 
+        select {
+            width: 100%; padding: 10px; margin-bottom: 15px; border-radius: 5px; border: 1px solid #ccc;
+        }
+
         .brands-preview { margin-top: 20px; }
         #brandsList { list-style-type: none; padding: 0; display: flex; flex-wrap: wrap; gap: 10px; }
         #brandsList li { background: #eee; padding: 5px 15px; border-radius: 20px; font-size: 14px; border: 1px solid #ddd; }
@@ -81,7 +85,6 @@
 
 <div class="container">
     
-    <!-- 1. ESZKÖZ -->
     <div class="tool-card tool-brand">
         <h2>1. Eszköz: Márka Kigyűjtő</h2>
         <p>Tölts fel egy Excel fájlt ("Márka" oszloppal).</p>
@@ -96,7 +99,6 @@
         </div>
     </div>
 
-    <!-- 2. ESZKÖZ -->
     <div class="tool-card tool-price">
         <h2>2. Eszköz: Árfrissítő</h2>
         <p>Azonosítás: <strong>"Cikkszám"</strong> | Frissítés: <strong>"Nettó beszerzési ár"</strong></p>
@@ -113,7 +115,6 @@
         <button class="btn-download" id="priceDownloadBtn">Frissített Excel letöltése</button>
     </div>
 
-    <!-- 3. ESZKÖZ -->
     <div class="tool-card tool-filter">
         <h2>3. Eszköz: Beszerzési Ár Szűrő</h2>
         <p>Csak azokat a termékeket tartja meg, ahol ki van töltve a <strong>"Nettó beszerzési ár"</strong>.</p>
@@ -126,10 +127,14 @@
         <div id="filterStatus" class="status-info"></div>
     </div>
 
-    <!-- 4. ÚJ ESZKÖZ: KÉT FÁJL ÖSSZEVETÉSE -->
     <div class="tool-card tool-compare">
         <h2>4. Eszköz: Termékek Szűrése / Kigyűjtése 2 fájl alapján</h2>
-        <p>Azonosítás alapja a <strong>"Cikkszám"</strong> oszlop.</p>
+        
+        <label for="compareKey">Azonosítás alapja:</label>
+        <select id="compareKey">
+            <option value="Cikkszám">Cikkszám</option>
+            <option value="Név">Név</option>
+        </select>
         
         <div class="file-upload">
             <label for="compareFileA">"A" fájl (Ebből szedjük ki a tételeket):</label>
@@ -137,7 +142,7 @@
         </div>
         
         <div class="file-upload">
-            <label for="compareFileB">"B" fájl (A keresendő cikkszámok listája):</label>
+            <label for="compareFileB">"B" fájl (A keresendő tételek listája):</label>
             <input type="file" id="compareFileB" accept=".xlsx, .xls">
         </div>
 
@@ -285,10 +290,11 @@
         finally { btn.disabled = false; }
     }
 
-    // --- ÚJ: 4. ESZKÖZ LOGIKA (ÖSSZEVETÉS) ---
+    // --- FRISSÍTETT 4. ESZKÖZ LOGIKA ---
     async function processCompare(action) {
         const fileAInput = document.getElementById('compareFileA').files[0];
         const fileBInput = document.getElementById('compareFileB').files[0];
+        const compareKey = document.getElementById('compareKey').value; // 'Cikkszám' vagy 'Terméknév'
         
         if (!fileAInput || !fileBInput) return alert("Mindkét fájl (A és B) szükséges!");
 
@@ -306,32 +312,29 @@
             const dataA = XLSX.utils.sheet_to_json(wbA.Sheets[wbA.SheetNames[0]], { defval: "" });
             const dataB = XLSX.utils.sheet_to_json(wbB.Sheets[wbB.SheetNames[0]], { defval: "" });
 
-            // B fájl cikkszámainak kigyűjtése egy Set-be a gyors kereséshez
-            const bSkus = new Set();
+            // B fájl kiválasztott oszlopának értékei egy Set-be
+            const bValues = new Set();
             dataB.forEach(row => {
-                const id = row["Cikkszám"];
-                if (id !== undefined && id !== null && id !== "") {
-                    bSkus.add(id.toString().trim());
+                const val = row[compareKey];
+                if (val !== undefined && val !== null && val !== "") {
+                    bValues.add(val.toString().trim().toLowerCase()); // Kisbetűs azonosítás a pontosságért
                 }
             });
 
             const originalCount = dataA.length;
             let resultData = [];
 
-            // Attól függően mit nyomott a felhasználó, szűrünk
             if (action === 'keep') {
-                // Csak az marad A-ban, ami benne van B-ben
                 resultData = dataA.filter(row => {
-                    const id = row["Cikkszám"];
-                    if (!id) return false;
-                    return bSkus.has(id.toString().trim());
+                    const val = row[compareKey];
+                    if (!val) return false;
+                    return bValues.has(val.toString().trim().toLowerCase());
                 });
             } else if (action === 'remove') {
-                // Töröljük A-ból, ami benne van B-ben
                 resultData = dataA.filter(row => {
-                    const id = row["Cikkszám"];
-                    if (!id) return true; // Ha nincs cikkszám, megtartjuk? Igen, általában.
-                    return !bSkus.has(id.toString().trim());
+                    const val = row[compareKey];
+                    if (!val) return true; 
+                    return !bValues.has(val.toString().trim().toLowerCase());
                 });
             }
 
@@ -339,6 +342,7 @@
 
             if (resultCount === 0) {
                 alert("A művelet után nem maradt egyetlen termék sem a listában!");
+                statusDiv.style.display = "none";
             } else {
                 const newSheet = XLSX.utils.json_to_sheet(resultData);
                 const newWb = XLSX.utils.book_new();
@@ -346,22 +350,23 @@
 
                 statusDiv.style.display = "block";
                 
-                let modeText = action === 'keep' ? "Egyezők megtartva (kigyűjtés)" : "Egyezők törölve (kivonás)";
+                let modeText = action === 'keep' ? "Egyezők megtartva" : "Egyezők törölve";
                 statusDiv.innerHTML = `
                     <strong>Feldolgozás kész (${modeText}):</strong><br>
+                    Azonosítás alapja: <strong>${compareKey}</strong><br>
                     Eredeti sorok az "A" fájlban: ${originalCount} db<br>
                     Eredmény fájl tartalma: <strong>${resultCount} db</strong>
                 `;
 
                 const dlBtn = document.getElementById('compareDownloadBtn');
                 dlBtn.style.display = "block";
-                const fileName = action === 'keep' ? "Kigyujtott_Kozos_Termekek.xlsx" : "B_Fajl_Nelkuli_Termekek.xlsx";
+                const fileName = action === 'keep' ? `Kigyujtott_Kozos_${compareKey}.xlsx` : `Szurt_Lista_Kivonas_${compareKey}.xlsx`;
                 dlBtn.onclick = () => XLSX.writeFile(newWb, fileName);
             }
 
         } catch (e) {
             console.error(e);
-            alert("Hiba történt a fájlok feldolgozásakor! Ellenőrizd a 'Cikkszám' oszlopot.");
+            alert(`Hiba! Ellenőrizd, hogy mindkét fájlban létezik-e a '${compareKey}' oszlop!`);
         } finally {
             btnKeep.disabled = false;
             btnRemove.disabled = false;
