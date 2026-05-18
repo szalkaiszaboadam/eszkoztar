@@ -101,7 +101,7 @@
 
     <div class="tool-card tool-price">
         <h2>2. Eszköz: Árfrissítő</h2>
-        <p>Azonosítás: <strong>"Cikkszám"</strong> | Frissítés: <strong>"Nettó beszerzési ár"</strong></p>
+        <p>Azonosítás: <strong>"Cikkszám"</strong> (vezető nullák és kis/nagybetű eltérés nélkül) | Frissítés: <strong>"Nettó beszerzési ár"</strong></p>
         <div class="file-upload">
             <label for="baseFile">Alap Excel fájl (hiányos árak):</label>
             <input type="file" id="baseFile" accept=".xlsx, .xls" onchange="analyzeBaseFile(this)">
@@ -219,6 +219,7 @@
         finally { btn.disabled = false; }
     }
 
+    // --- 2. ESZKÖZ: JAVÍTOTT CIKKSZÁM ÖSSZEVETÉS ---
     async function updatePrices() {
         const baseFileInput = document.getElementById('baseFile').files[0];
         const refFileInput = document.getElementById('refFile').files[0];
@@ -230,24 +231,30 @@
             const refWb = await readFile(refFileInput);
             const baseData = XLSX.utils.sheet_to_json(baseWb.Sheets[baseWb.SheetNames[0]], { defval: "" });
             const refData = XLSX.utils.sheet_to_json(refWb.Sheets[refWb.SheetNames[0]], { defval: "" });
+            
             const priceDict = {};
             refData.forEach(row => {
                 if (row["Cikkszám"] && row["Nettó beszerzési ár"]) {
-                    priceDict[row["Cikkszám"].toString().trim()] = row["Nettó beszerzési ár"];
+                    // Tisztítás: szóköz levágása -> NAGYBETŰ -> vezető nullák eltávolítása
+                    const refId = row["Cikkszám"].toString().trim().toUpperCase().replace(/^0+/, '') || '0';
+                    priceDict[refId] = row["Nettó beszerzési ár"];
                 }
             });
+            
             let updatedCount = 0;
             baseData.forEach(row => {
                 const ar = row["Nettó beszerzési ár"];
                 const id = row["Cikkszám"];
                 if ((ar === "" || ar === null || ar === undefined) && id) {
-                    const cleanId = id.toString().trim();
+                    // Ugyanaz a tisztítás az alapfájlon is
+                    const cleanId = id.toString().trim().toUpperCase().replace(/^0+/, '') || '0';
                     if (priceDict[cleanId] !== undefined) {
                         row["Nettó beszerzési ár"] = priceDict[cleanId];
                         updatedCount++;
                     }
                 }
             });
+            
             const newSheet = XLSX.utils.json_to_sheet(baseData);
             const newWb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(newWb, newSheet, "Frissített");
@@ -290,11 +297,11 @@
         finally { btn.disabled = false; }
     }
 
-    // --- FRISSÍTETT 4. ESZKÖZ LOGIKA ---
+    // --- 4. ESZKÖZ: JAVÍTOTT ÖSSZEVETÉS ---
     async function processCompare(action) {
         const fileAInput = document.getElementById('compareFileA').files[0];
         const fileBInput = document.getElementById('compareFileB').files[0];
-        const compareKey = document.getElementById('compareKey').value; // 'Cikkszám' vagy 'Terméknév'
+        const compareKey = document.getElementById('compareKey').value; 
         
         if (!fileAInput || !fileBInput) return alert("Mindkét fájl (A és B) szükséges!");
 
@@ -312,12 +319,16 @@
             const dataA = XLSX.utils.sheet_to_json(wbA.Sheets[wbA.SheetNames[0]], { defval: "" });
             const dataB = XLSX.utils.sheet_to_json(wbB.Sheets[wbB.SheetNames[0]], { defval: "" });
 
-            // B fájl kiválasztott oszlopának értékei egy Set-be
             const bValues = new Set();
             dataB.forEach(row => {
                 const val = row[compareKey];
                 if (val !== undefined && val !== null && val !== "") {
-                    bValues.add(val.toString().trim().toLowerCase()); // Kisbetűs azonosítás a pontosságért
+                    // Itt is nagybetűsítés biztosítja az M / m egyezést
+                    let cleanVal = val.toString().trim().toUpperCase();
+                    if (compareKey === 'Cikkszám') {
+                        cleanVal = cleanVal.replace(/^0+/, '') || '0';
+                    }
+                    bValues.add(cleanVal);
                 }
             });
 
@@ -328,13 +339,21 @@
                 resultData = dataA.filter(row => {
                     const val = row[compareKey];
                     if (!val) return false;
-                    return bValues.has(val.toString().trim().toLowerCase());
+                    let cleanVal = val.toString().trim().toUpperCase();
+                    if (compareKey === 'Cikkszám') {
+                        cleanVal = cleanVal.replace(/^0+/, '') || '0';
+                    }
+                    return bValues.has(cleanVal);
                 });
             } else if (action === 'remove') {
                 resultData = dataA.filter(row => {
                     const val = row[compareKey];
                     if (!val) return true; 
-                    return !bValues.has(val.toString().trim().toLowerCase());
+                    let cleanVal = val.toString().trim().toUpperCase();
+                    if (compareKey === 'Cikkszám') {
+                        cleanVal = cleanVal.replace(/^0+/, '') || '0';
+                    }
+                    return !bValues.has(cleanVal);
                 });
             }
 
@@ -353,7 +372,7 @@
                 let modeText = action === 'keep' ? "Egyezők megtartva" : "Egyezők törölve";
                 statusDiv.innerHTML = `
                     <strong>Feldolgozás kész (${modeText}):</strong><br>
-                    Azonosítás alapja: <strong>${compareKey}</strong><br>
+                    Azonosítás alapja: <strong>${compareKey}</strong> (kis/nagybetű független, vezető nullák nélkül)<br>
                     Eredeti sorok az "A" fájlban: ${originalCount} db<br>
                     Eredmény fájl tartalma: <strong>${resultCount} db</strong>
                 `;

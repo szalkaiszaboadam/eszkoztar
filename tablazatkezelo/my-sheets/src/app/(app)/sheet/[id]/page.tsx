@@ -19,11 +19,12 @@ function SheetContent() {
     const { id } = useParams<{ id: string }>();
     const { user } = useAuthStore();
     const router = useRouter();
-    
+
     // URL-ből olvassuk a folder ID-t a visszalépéshez
     const searchParams = useSearchParams();
     const folderId = searchParams.get("folder");
 
+    // ITT MÁR DEKLARÁLVA VAN AZ isDirty!
     const {
         title, setTitle, isDirty, setDirty, setAllTabData
     } = useSheetStore();
@@ -32,6 +33,34 @@ function SheetContent() {
     const [editingTitle, setEditingTitle] = useState(false);
     const [isInitialLoading, setIsInitialLoading] = useState(true);
 
+    // ── 1. handleSave FELJEBB MOZGATVA ──
+    // Hogy a lenti useEffect-ek már lássák és tudják használni
+    const handleSave = async (silent = false) => {
+        if (!user || !id) return;
+        setSaving(true); // Elindul a mentés jelzése
+
+        try {
+            const state = useSheetStore.getState();
+            await saveCells(
+                user.uid,
+                id,
+                state.cellsByTab,
+                state.rowCountByTab,
+                state.tabs,
+                state.colWidthsByTab,
+                state.rowHeightsByTab
+            );
+            setDirty(false);
+            if (!silent) toast.success("Mentve!");
+        } catch (error) {
+            console.error("Mentési hiba:", error);
+            toast.error("Hiba történt a mentés során!");
+        } finally {
+            setSaving(false); // Bármi történik (hiba vagy siker), a töltés jelző megáll!
+        }
+    };
+
+    // ── 2. Adatok betöltése ──
     useEffect(() => {
         if (!user || !id) return;
 
@@ -56,15 +85,19 @@ function SheetContent() {
 
         fetchData();
     }, [user, id]);
-    
-    // Auto-save
+
+    // ── 3. A profi automatikus mentés (Debounce) ──
     useEffect(() => {
         if (!isDirty) return;
-        const timer = setTimeout(() => handleSave(true), 3000);
-        return () => clearTimeout(timer);
+
+        const timeoutId = setTimeout(() => {
+            handleSave(true);
+        }, 1000);
+
+        return () => clearTimeout(timeoutId);
     }, [isDirty]);
 
-    // Ctrl+S
+    // ── 4. Ctrl+S figyelése ──
     useEffect(() => {
         const handler = (e: Event) => {
             e.preventDefault();
@@ -74,30 +107,21 @@ function SheetContent() {
         return () => window.removeEventListener("sheet-save", handler);
     }, []);
 
-const handleSave = async (silent = false) => {
-        if (!user || !id) return;
-        setSaving(true); // Elindul a mentés jelzése
-        
-        try {
-            const state = useSheetStore.getState();
-            await saveCells(
-                user.uid, 
-                id, 
-                state.cellsByTab, 
-                state.rowCountByTab, 
-                state.tabs, 
-                state.colWidthsByTab, 
-                state.rowHeightsByTab
-            );
-            setDirty(false);
-            if (!silent) toast.success("Mentve!");
-        } catch (error) {
-            console.error("Mentési hiba:", error);
-            toast.error("Hiba történt a mentés során!");
-        } finally {
-            setSaving(false); // Bármi történik (hiba vagy siker), a töltés jelző megáll!
-        }
-    };
+    // ── 5. Oldal elhagyásának megakadályozása ÉS vészmentés ──
+    useEffect(() => {
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            const isCurrentlyDirty = useSheetStore.getState().isDirty;
+
+            if (isCurrentlyDirty) {
+                handleSave(true);
+                e.preventDefault();
+                e.returnValue = "";
+            }
+        };
+
+        window.addEventListener("beforeunload", handleBeforeUnload);
+        return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+    }, [handleSave]);
 
     const handleTitleSave = async () => {
         if (!user || !id || !title.trim()) return;
@@ -110,10 +134,16 @@ const handleSave = async (silent = false) => {
             {/* Header */}
             <header className="flex items-center gap-2 px-4 py-2 border-b border-gray-200 bg-white shrink-0">
                 <button
-                    onClick={() => {
-                        // Visszalépés a pontos mappába!
+                    onClick={async () => {
+                        // 1. Megnézzük, van-e mentetlen változás (akár a legutolsó betű leütése óta)
+                        if (isDirty) {
+                            // 2. Kikényszerítjük a mentést és MEGVÁRJUK, amíg befejeződik!
+                            await handleSave(true);
+                        }
+
+                        // 3. Csak azután lépünk vissza, hogy az adatok már biztosan a szerveren vannak
                         const backPath = folderId ? `/dashboard?folder=${folderId}` : "/dashboard";
-                        router.push(backPath);
+                        window.location.href = backPath; //router.push(backPath);
                     }}
                     className="p-1.5 hover:bg-gray-100 rounded-lg transition"
                     title="Vissza a dokumentumokhoz"
