@@ -6,40 +6,51 @@ import { useAuthStore } from "@/lib/store";
 import { useAuth } from "@/lib/useAuth";
 import {
   getFolders, createFolder, Folder, moveFolder, deleteFolder, renameFolder,
-  createSheet, getSheets, deleteSheet, renameSheet, Sheet, moveSheetToFolder
+  createSheet, getSheets, deleteSheet, renameSheet, Sheet, moveSheetToFolder,
+  csvToCells, xlsxToCells, saveCells, toggleSheetFavorite, toggleFolderFavorite, // <-- EZ HIÁNYZOTT AZ IMPORTOK KÖZÜL
 } from "@/lib/sheetsService";
 import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import {
   Folder as FolderIcon, FolderPlus, Plus, FileSpreadsheet,
   Trash2, Pencil, LogOut, Check, X, ChevronRight, Home,
-  LayoutGrid, List as ListIcon, Search, ArrowDownUp, Upload, Clock
+  LayoutGrid, List as ListIcon, Search, ArrowDownUp, Upload, Clock, Star
 } from "lucide-react";
 
 // ── Legutóbb megnyitott táblák kezelése LocalStorage-ban ──
 const RECENT_KEY = "mysheets_recent";
-const MAX_RECENT = 5;
+const MAX_RECENT = 1;
 
 interface RecentSheet { id: string; title: string; folderId?: string | null; openedAt: number; }
 
 function getRecent(): RecentSheet[] {
-  try { return JSON.parse(localStorage.getItem(RECENT_KEY) || "[]"); } catch { return []; }
+  try {
+    const items = JSON.parse(localStorage.getItem(RECENT_KEY) || "[]");
+    // SZIGORÚAN LEVÁGJUK 1-RE (ha a korábbi verzióból több maradt volna bent)
+    return items.slice(0, MAX_RECENT);
+  } catch { return []; }
 }
 
 function saveRecent(sheet: RecentSheet) {
-  const prev = getRecent().filter(r => r.id !== sheet.id);
-  const next = [sheet, ...prev].slice(0, MAX_RECENT);
-  localStorage.setItem(RECENT_KEY, JSON.stringify(next));
+  try {
+    const prev = getRecent().filter(r => r.id !== sheet.id);
+    const next = [sheet, ...prev].slice(0, MAX_RECENT);
+    localStorage.setItem(RECENT_KEY, JSON.stringify(next));
+  } catch (e) { console.error(e); }
 }
 
 function removeRecentById(ids: string[]) {
-  const next = getRecent().filter(r => !ids.includes(r.id));
-  localStorage.setItem(RECENT_KEY, JSON.stringify(next));
+  try {
+    const next = getRecent().filter(r => !ids.includes(r.id));
+    localStorage.setItem(RECENT_KEY, JSON.stringify(next));
+  } catch (e) { console.error(e); }
 }
 
 function removeRecentByFolder(folderId: string) {
-  const next = getRecent().filter(r => r.folderId !== folderId);
-  localStorage.setItem(RECENT_KEY, JSON.stringify(next));
+  try {
+    const next = getRecent().filter(r => r.folderId !== folderId);
+    localStorage.setItem(RECENT_KEY, JSON.stringify(next));
+  } catch (e) { console.error(e); }
 }
 
 function DashboardContent() {
@@ -66,6 +77,27 @@ function DashboardContent() {
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
   const [editFolderTitle, setEditFolderTitle] = useState("");
 
+  // ── ÚJ: Kedvencek állapota és logikája ──
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+
+  const handleToggleFavoriteSheet = async (e: React.MouseEvent, sheet: Sheet) => {
+    e.stopPropagation();
+    if (!user) return;
+    const newValue = !sheet.isFavorite;
+    setSheets(prev => prev.map(s => s.id === sheet.id ? { ...s, isFavorite: newValue } : s));
+    try { await toggleSheetFavorite(user.uid, sheet.id, newValue); }
+    catch { toast.error("Hiba a mentéskor."); setSheets(prev => prev.map(s => s.id === sheet.id ? { ...s, isFavorite: !newValue } : s)); }
+  };
+
+  const handleToggleFavoriteFolder = async (e: React.MouseEvent, folder: Folder) => {
+    e.stopPropagation();
+    if (!user) return;
+    const newValue = !folder.isFavorite;
+    setFolders(prev => prev.map(f => f.id === folder.id ? { ...f, isFavorite: newValue } : f));
+    try { await toggleFolderFavorite(user.uid, folder.id, newValue); }
+    catch { toast.error("Hiba a mentéskor."); setFolders(prev => prev.map(f => f.id === folder.id ? { ...f, isFavorite: !newValue } : f)); }
+  };
+
   useEffect(() => {
     setRecentSheets(getRecent());
     if (user) loadData();
@@ -88,6 +120,7 @@ function DashboardContent() {
   };
 
   const navigateToFolder = (id: string | null) => {
+    setShowFavoritesOnly(false); // Reseteljük a kedvenceket mappaváltáskor
     if (id) router.push(`/dashboard?folder=${id}`);
     else router.push("/dashboard");
   };
@@ -95,28 +128,68 @@ function DashboardContent() {
   const openSheet = (sheet: Sheet) => {
     saveRecent({ id: sheet.id, title: sheet.title, folderId: sheet.folderId, openedAt: Date.now() });
     const path = `/sheet/${sheet.id}${currentFolder ? `?folder=${currentFolder}` : ""}`;
-    router.push(path);
+    // 1. JAVÍTÁS: A router.push helyett ezt használjuk a stabilitás és memória ürítés érdekében
+    window.location.href = path;
   };
 
   const handleCreateSheet = async () => {
     if (!user) return;
     const id = await createSheet(user.uid, "Névtelen táblázat", currentFolder);
     toast.success("Táblázat létrehozva!");
+    saveRecent({ id, title: "Névtelen táblázat", folderId: currentFolder, openedAt: Date.now() });
     const path = `/sheet/${id}${currentFolder ? `?folder=${currentFolder}` : ""}`;
-    router.push(path);
+    // 2. JAVÍTÁS
+    window.location.href = path;
   };
 
-  // Import gomb: fájl feltöltése majd megnyitás
   const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
-    const id = await createSheet(user.uid, file.name.replace(/\.[^.]+$/, ""), currentFolder);
-    // A Sheet oldalon az ImportButton-t programozottan aktiváljuk
-    // Egyelőre csak megnyitjuk a lapot
-    toast.success("Táblázat létrehozva! Importáld a fájlt a szerkesztőben.");
-    const path = `/sheet/${id}${currentFolder ? `?folder=${currentFolder}` : ""}`;
-    router.push(path);
-    if (importRef.current) importRef.current.value = "";
+
+    const toastId = toast.loading("Importálás...");
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase();
+      let result: { cells: Record<string, any>; rowCount: number } | null = null;
+
+      if (ext === "csv") {
+        const text = await file.text();
+        result = csvToCells(text);
+      } else if (ext === "xlsx" || ext === "xls") {
+        const buffer = await file.arrayBuffer();
+        result = xlsxToCells(buffer);
+      } else {
+        toast.error("Csak .csv, .xlsx és .xls fájlok támogatottak!", { id: toastId });
+        if (importRef.current) importRef.current.value = "";
+        return;
+      }
+
+      const sheetTitle = file.name.replace(/\.[^.]+$/, "");
+
+      // 1. Metaadat létrehozása a Firestore-ban
+      const id = await createSheet(user.uid, sheetTitle, currentFolder);
+
+      // 3. JAVÍTÁS: Itt TÉNYLEGESEN lementjük az importált cellákat a Firebase-be!
+      await saveCells(
+        user.uid,
+        id,
+        { 0: result.cells }, // cellsByTab
+        { 0: result.rowCount }, // rowCountByTab
+        ["Sheet1"], // tabs
+        { 0: {} }, // colWidths
+        { 0: {} }  // rowHeights
+      );
+
+      toast.success(`Importálva! ${Object.keys(result.cells).length} cella betöltve.`, { id: toastId });
+      saveRecent({ id, title: sheetTitle, folderId: currentFolder, openedAt: Date.now() });
+
+      const path = `/sheet/${id}${currentFolder ? `?folder=${currentFolder}` : ""}`;
+      window.location.href = path;
+    } catch (err) {
+      console.error(err);
+      toast.error("Hiba történt az importálás során.", { id: toastId });
+    } finally {
+      if (importRef.current) importRef.current.value = "";
+    }
   };
 
   const handleCreateFolder = async (e: React.FormEvent) => {
@@ -153,7 +226,6 @@ function DashboardContent() {
     if (!user || !confirm("Biztosan törlöd a mappát? (A tartalma is törlődik!)")) return;
     try {
       await deleteFolder(user.uid, id);
-      // Eltávolítjuk a törölt mappában lévő összes lapot a legutóbbiak közül
       removeRecentByFolder(id);
       setRecentSheets(getRecent());
       loadData();
@@ -210,10 +282,13 @@ function DashboardContent() {
 
   const filteredFolders = folders.filter(f => {
     if (searchTerm) return f.title.toLowerCase().includes(searchTerm.toLowerCase());
+    if (showFavoritesOnly) return f.isFavorite;
     return (f.parentId || null) === currentFolder;
   });
+
   const filteredSheets = sheets.filter(s => {
     if (searchTerm) return s.title.toLowerCase().includes(searchTerm.toLowerCase());
+    if (showFavoritesOnly) return s.isFavorite;
     return (s.folderId || null) === currentFolder;
   });
 
@@ -229,7 +304,6 @@ function DashboardContent() {
   const finalFolders = sortItems(filteredFolders);
   const finalSheets = sortItems(filteredSheets);
 
-  // Felhasználó neve a welcome sectionhoz
   const displayName = user?.displayName || user?.email?.split("@")[0] || "Felhasználó";
 
   return (
@@ -301,298 +375,350 @@ function DashboardContent() {
       </div>
 
       {/* ── FŐ TARTALOM ── */}
-      <div style={{ maxWidth: 1280, margin: "0 auto", padding: "28px 48px 48px" }}>
+      <div style={{ padding: "0 48px" }}>
+        <div style={{ maxWidth: 1280, margin: "0 auto", padding: "28px 0 48px" }}>
 
-        {/* ── VISSZAUGRÁS / LEGUTÓBB MEGNYITOTT ── */}
-        {recentSheets.length > 0 && !searchTerm && !currentFolder && (
-          <section style={{ marginBottom: 36 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-              <Clock size={15} color="#6b7280" />
-              <h2 style={{ fontSize: 13, fontWeight: 700, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.05em", margin: 0 }}>
-                Visszaugrás
-              </h2>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 12 }}>
-              {recentSheets.slice(0, 4).map(r => (
-                <div
-                  key={r.id}
-                  onClick={() => { saveRecent(r); router.push(`/sheet/${r.id}${r.folderId ? `?folder=${r.folderId}` : ""}`); }}
-                  style={{
-                    background: "#fff", borderRadius: 10, border: "1px solid #e5e7eb",
-                    padding: "12px 14px", cursor: "pointer", display: "flex", alignItems: "center",
-                    gap: 12, transition: "all 0.15s", boxShadow: "0 1px 3px rgba(0,0,0,0.04)"
-                  }}
-                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "#86efac"; (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 12px rgba(0,0,0,0.08)"; }}
-                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "#e5e7eb"; (e.currentTarget as HTMLElement).style.boxShadow = "0 1px 3px rgba(0,0,0,0.04)"; }}
-                >
-                  <div style={{ background: "#f0fdf4", borderRadius: 8, padding: "8px", display: "flex", flexShrink: 0 }}>
-                    <FileSpreadsheet size={20} color="#16a34a" />
-                  </div>
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: "#111827", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                      {r.title}
-                    </div>
-                    <div style={{ fontSize: 12, color: "#9ca3af", marginTop: 2 }}>
-                      {formatRelative(r.openedAt)}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* ── BREADCRUMB + KERESŐ + KONTROLL SOR ── */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, marginBottom: 20, flexWrap: "wrap" }}>
-
-          {/* Bal: Breadcrumb */}
-          <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
-            <button
-              onClick={() => { setSearchTerm(""); navigateToFolder(null); }}
-              onDragOver={e => { e.preventDefault(); e.stopPropagation(); }}
-              onDrop={e => handleDropToFolder(e, null)}
-              style={{
-                display: "flex", alignItems: "center", gap: 6, background: "none", border: "none",
-                padding: "6px 10px", borderRadius: 8, cursor: "pointer", fontSize: 14,
-                fontWeight: 600, color: currentFolder ? "#6b7280" : "#111827",
-                transition: "background 0.1s"
-              }}
-              onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "#f3f4f6"}
-              onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "none"}
-            >
-              <Home size={15} /> Főoldal
-            </button>
-            {breadcrumbs.map(crumb => (
-              <div key={crumb.id} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                <ChevronRight size={14} color="#d1d5db" />
-                <button
-                  onClick={() => { setSearchTerm(""); navigateToFolder(crumb.id); }}
-                  style={{
-                    background: "none", border: "none", padding: "6px 10px", borderRadius: 8,
-                    cursor: "pointer", fontSize: 14, fontWeight: 600, color: "#111827", transition: "background 0.1s"
-                  }}
-                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "#f3f4f6"}
-                  onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "none"}
-                >
-                  {crumb.title}
-                </button>
+          {/* ── VISSZAUGRÁS / LEGUTÓBB MEGNYITOTT ── */}
+          {/* ── VISSZAUGRÁS / LEGUTÓBB MEGNYITOTT ── */}
+          {recentSheets.length > 0 && !searchTerm && !currentFolder && !showFavoritesOnly && (
+            <section style={{ marginBottom: 36 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+                <Clock size={15} color="#6b7280" />
+                <h2 style={{ fontSize: 13, fontWeight: 700, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.05em", margin: 0 }}>
+                  Folytatás innen
+                </h2>
               </div>
-            ))}
-          </div>
 
-          {/* Jobb: Kereső + kontrollok */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            {/* Kereső */}
-            <div style={{ position: "relative" }}>
-              <Search size={14} color={searchTerm ? "#16a34a" : "#9ca3af"} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
-              <input
-                type="text"
-                placeholder="Keresés..."
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                style={{
-                  paddingLeft: 36, paddingRight: searchTerm ? 32 : 14, paddingTop: 8, paddingBottom: 8,
-                  border: "1px solid #e5e7eb", borderRadius: 8, fontSize: 13, outline: "none",
-                  background: "#fff", width: 220, transition: "all 0.2s",
-                  color: "#111827"
+              <div
+                onClick={() => {
+                  // Frissítjük a kártyát a legújabb időbélyeggel megnyitáskor!
+                  saveRecent({ ...recentSheets[0], openedAt: Date.now() });
+                  router.push(`/sheet/${recentSheets[0].id}${recentSheets[0].folderId ? `?folder=${recentSheets[0].folderId}` : ""}`);
                 }}
-                onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = "#86efac"}
-                onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = "#e5e7eb"}
-              />
-              {searchTerm && (
-                <button onClick={() => setSearchTerm("")} style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", padding: 2, color: "#9ca3af", display: "flex" }}>
-                  <X size={14} />
-                </button>
-              )}
-            </div>
-
-            {/* Rendezés */}
-            <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, padding: "0 10px", height: 36 }}>
-              <ArrowDownUp size={13} color="#6b7280" />
-              <select
-                value={sortBy}
-                onChange={e => setSortBy(e.target.value as any)}
-                style={{ background: "transparent", border: "none", fontSize: 13, color: "#374151", outline: "none", cursor: "pointer" }}
+                style={{
+                  background: "#fff", borderRadius: 10, border: "1px solid #e5e7eb",
+                  padding: "12px 14px", cursor: "pointer", display: "flex", alignItems: "center",
+                  gap: 12, transition: "all 0.15s", boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+                  maxWidth: "400px"
+                }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "#86efac"; (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 12px rgba(0,0,0,0.08)"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "#e5e7eb"; (e.currentTarget as HTMLElement).style.boxShadow = "0 1px 3px rgba(0,0,0,0.04)"; }}
               >
-                <option value="date-desc">Legújabb</option>
-                <option value="date-asc">Legrégebbi</option>
-                <option value="name-asc">Név (A-Z)</option>
-                <option value="name-desc">Név (Z-A)</option>
-              </select>
-            </div>
+                <div style={{ background: "#f0fdf4", borderRadius: 8, padding: "8px", display: "flex", flexShrink: 0 }}>
+                  <FileSpreadsheet size={20} color="#16a34a" />
+                </div>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: "#111827", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {recentSheets[0].title}
+                  </div>
+                  <div style={{ fontSize: 12, color: "#9ca3af", marginTop: 2 }}>
+                    {formatRelative(recentSheets[0].openedAt)}
+                  </div>
+                </div>
+                <ChevronRight size={18} color="#d1d5db" />
+              </div>
+            </section>
+          )}
 
-            {/* Nézetváltó */}
-            <div style={{ display: "flex", background: "#f3f4f6", borderRadius: 8, padding: 3, gap: 2 }}>
-              {(["grid", "list"] as const).map(mode => (
-                <button
-                  key={mode}
-                  onClick={() => setViewMode(mode)}
-                  style={{
-                    background: viewMode === mode ? "#fff" : "transparent",
-                    border: "none", borderRadius: 6, padding: "5px 10px", cursor: "pointer",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    color: viewMode === mode ? "#16a34a" : "#6b7280",
-                    boxShadow: viewMode === mode ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
-                    transition: "all 0.15s"
-                  }}
-                >
-                  {mode === "grid" ? <LayoutGrid size={16} /> : <ListIcon size={16} />}
-                </button>
+          {/* ── BREADCRUMB + KERESŐ + KONTROLL SOR ── */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, marginBottom: 20, flexWrap: "wrap" }}>
+
+            {/* Bal: Breadcrumb */}
+            <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap", visibility: showFavoritesOnly ? "hidden" : "visible" }}>
+              <button
+                onClick={() => { setSearchTerm(""); navigateToFolder(null); }}
+                onDragOver={e => { e.preventDefault(); e.stopPropagation(); }}
+                onDrop={e => handleDropToFolder(e, null)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 6, background: "none", border: "none",
+                  padding: "6px 10px", borderRadius: 8, cursor: "pointer", fontSize: 14,
+                  fontWeight: 600, color: currentFolder ? "#6b7280" : "#111827",
+                  transition: "background 0.1s"
+                }}
+                onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "#f3f4f6"}
+                onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "none"}
+              >
+                <Home size={15} /> Főoldal
+              </button>
+              {breadcrumbs.map(crumb => (
+                <div key={crumb.id} style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <ChevronRight size={14} color="#d1d5db" />
+                  <button
+                    onClick={() => { setSearchTerm(""); navigateToFolder(crumb.id); }}
+                    style={{
+                      background: "none", border: "none", padding: "6px 10px", borderRadius: 8,
+                      cursor: "pointer", fontSize: 14, fontWeight: 600, color: "#111827", transition: "background 0.1s"
+                    }}
+                    onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "#f3f4f6"}
+                    onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "none"}
+                  >
+                    {crumb.title}
+                  </button>
+                </div>
               ))}
             </div>
 
-            {/* Új mappa */}
-            <button
-              onClick={() => setIsFolderModalOpen(true)}
-              style={{
-                display: "flex", alignItems: "center", gap: 6,
-                background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8,
-                padding: "7px 14px", fontSize: 13, fontWeight: 600, color: "#374151",
-                cursor: "pointer", transition: "all 0.15s", height: 36
-              }}
-              onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "#f9fafb"}
-              onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "#fff"}
-            >
-              <FolderPlus size={15} color="#3b82f6" /> Új mappa
-            </button>
+            {/* Jobb: Kereső + kontrollok */}
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              {/* Kereső */}
+              <div style={{ position: "relative" }}>
+                <Search size={14} color={searchTerm ? "#16a34a" : "#9ca3af"} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
+                <input
+                  type="text"
+                  placeholder="Keresés..."
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  style={{
+                    paddingLeft: 36, paddingRight: searchTerm ? 32 : 14, paddingTop: 8, paddingBottom: 8,
+                    border: "1px solid #e5e7eb", borderRadius: 8, fontSize: 13, outline: "none",
+                    background: "#fff", width: 220, transition: "all 0.2s",
+                    color: "#111827"
+                  }}
+                  onFocus={e => (e.currentTarget as HTMLElement).style.borderColor = "#86efac"}
+                  onBlur={e => (e.currentTarget as HTMLElement).style.borderColor = "#e5e7eb"}
+                />
+                {searchTerm && (
+                  <button onClick={() => setSearchTerm("")} style={{ position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", padding: 2, color: "#9ca3af", display: "flex" }}>
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+
+              {/* Rendezés */}
+              <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8, padding: "0 10px", height: 36 }}>
+                <ArrowDownUp size={13} color="#6b7280" />
+                <select
+                  value={sortBy}
+                  onChange={e => setSortBy(e.target.value as any)}
+                  style={{ background: "transparent", border: "none", fontSize: 13, color: "#374151", outline: "none", cursor: "pointer" }}
+                >
+                  <option value="date-desc">Legújabb</option>
+                  <option value="date-asc">Legrégebbi</option>
+                  <option value="name-asc">Név (A-Z)</option>
+                  <option value="name-desc">Név (Z-A)</option>
+                </select>
+              </div>
+
+              {/* Nézetváltó */}
+              <div style={{ display: "flex", background: "#f3f4f6", borderRadius: 8, padding: 3, gap: 2 }}>
+                {(["grid", "list"] as const).map(mode => (
+                  <button
+                    key={mode}
+                    onClick={() => setViewMode(mode)}
+                    style={{
+                      background: viewMode === mode ? "#fff" : "transparent",
+                      border: "none", borderRadius: 6, padding: "5px 10px", cursor: "pointer",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      color: viewMode === mode ? "#16a34a" : "#6b7280",
+                      boxShadow: viewMode === mode ? "0 1px 3px rgba(0,0,0,0.1)" : "none",
+                      transition: "all 0.15s"
+                    }}
+                  >
+                    {mode === "grid" ? <LayoutGrid size={16} /> : <ListIcon size={16} />}
+                  </button>
+                ))}
+              </div>
+
+              <button
+                onClick={() => {
+                  const next = !showFavoritesOnly;
+                  setShowFavoritesOnly(next);
+                  if (next) { setSearchTerm(""); router.push("/dashboard"); }
+                }}
+                style={{
+                  display: "flex", alignItems: "center", gap: 6,
+                  background: showFavoritesOnly ? "#fef08a" : "#fff",
+                  border: `1px solid ${showFavoritesOnly ? "#fde047" : "#e5e7eb"}`,
+                  borderRadius: 8, padding: "7px 14px", fontSize: 13, fontWeight: 600,
+                  color: showFavoritesOnly ? "#854d0e" : "#374151",
+                  cursor: "pointer", transition: "all 0.15s", height: 36
+                }}
+              >
+                <Star size={15} fill={showFavoritesOnly ? "currentColor" : "none"} color={showFavoritesOnly ? "#854d0e" : "#9ca3af"} />
+                Kedvencek
+              </button>
+
+              {/* Új mappa */}
+              <button
+                onClick={() => setIsFolderModalOpen(true)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 6,
+                  background: "#fff", border: "1px solid #e5e7eb", borderRadius: 8,
+                  padding: "7px 14px", fontSize: 13, fontWeight: 600, color: "#374151",
+                  cursor: "pointer", transition: "all 0.15s", height: 36
+                }}
+                onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = "#f9fafb"}
+                onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = "#fff"}
+              >
+                <FolderPlus size={15} color="#3b82f6" /> Új mappa
+              </button>
+            </div>
           </div>
-        </div>
 
-        {/* Szekció cím + darabszám */}
-        <div style={{ marginBottom: 16 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: "#111827", margin: 0 }}>
-            {searchTerm ? `Keresési találatok: "${searchTerm}"` : (currentFolder ? folders.find(f => f.id === currentFolder)?.title : "Saját munkafüzetek")}
-          </h2>
-          <p style={{ fontSize: 13, color: "#9ca3af", marginTop: 2 }}>
-            {filteredFolders.length + filteredSheets.length === 0
-              ? "Nincs elem"
-              : `${filteredFolders.length} mappa, ${filteredSheets.length} táblázat`
-            }
-          </p>
-        </div>
+          {/* Szekció cím + darabszám */}
+          <div style={{ marginBottom: 16 }}>
+            <h2 style={{ fontSize: 18, fontWeight: 700, color: "#111827", margin: 0 }}>
+              {searchTerm ? `Keresési találatok: "${searchTerm}"` : (currentFolder ? folders.find(f => f.id === currentFolder)?.title : "Saját munkafüzetek")}
+            </h2>
+            <p style={{ fontSize: 13, color: "#9ca3af", marginTop: 2 }}>
+              {filteredFolders.length + filteredSheets.length === 0
+                ? "Nincs elem"
+                : `${filteredFolders.length} mappa, ${filteredSheets.length} táblázat`
+              }
+            </p>
+          </div>
 
-        {loading ? (
-          <div style={{ textAlign: "center", padding: "80px 0", color: "#9ca3af" }}>Betöltés...</div>
-        ) : (
-          <>
-            {/* ── MAPPÁK ── */}
-            {finalFolders.length > 0 && (
-              <div style={{ marginBottom: 32 }}>
-                <p style={{ fontSize: 11, fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>Mappák</p>
-                <div style={viewMode === "grid"
-                  ? { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 10 }
-                  : { display: "flex", flexDirection: "column", gap: 6 }
-                }>
-                  {finalFolders.map(folder => (
-                    <div
-                      key={folder.id}
-                      draggable
-                      onDragStart={e => { e.stopPropagation(); e.dataTransfer.setData("folderId", folder.id); }}
-                      onDragOver={e => { e.preventDefault(); e.stopPropagation(); }}
-                      onDrop={e => handleDropToFolder(e, folder.id)}
-                      onClick={() => editingFolderId !== folder.id && navigateToFolder(folder.id)}
-                      className="group"
-                      style={{
-                        background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10,
-                        padding: viewMode === "grid" ? "12px 14px" : "10px 14px",
-                        cursor: "pointer", display: "flex", alignItems: "center", gap: 12,
-                        transition: "all 0.15s", position: "relative",
-                        boxShadow: "0 1px 2px rgba(0,0,0,0.04)"
-                      }}
-                      onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = "#93c5fd"; el.style.boxShadow = "0 4px 12px rgba(0,0,0,0.08)"; }}
-                      onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = "#e5e7eb"; el.style.boxShadow = "0 1px 2px rgba(0,0,0,0.04)"; }}
-                    >
-                      <FolderIcon size={22} color="#3b82f6" fill="#dbeafe" style={{ flexShrink: 0 }} />
-                      {editingFolderId === folder.id ? (
-                        <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 4 }} onClick={e => e.stopPropagation()}>
-                          <input
-                            autoFocus
-                            value={editFolderTitle}
-                            onChange={e => setEditFolderTitle(e.target.value)}
-                            onKeyDown={e => { if (e.key === "Enter") handleRenameFolder(folder.id); if (e.key === "Escape") setEditingFolderId(null); }}
-                            style={{ flex: 1, border: "1px solid #93c5fd", borderRadius: 6, padding: "3px 8px", fontSize: 13, outline: "none", color: "#111827" }}
-                          />
-                          <button onClick={() => handleRenameFolder(folder.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#16a34a", padding: 2 }}><Check size={14} /></button>
-                          <button onClick={() => setEditingFolderId(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#9ca3af", padding: 2 }}><X size={14} /></button>
-                        </div>
-                      ) : (
-                        <span style={{ fontSize: 14, fontWeight: 600, color: "#111827", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{folder.title}</span>
-                      )}
-                      <div style={{ display: "flex", gap: 2, opacity: 0, transition: "opacity 0.15s" }} className="folder-actions">
-                        <button onClick={e => { e.stopPropagation(); setEditingFolderId(folder.id); setEditFolderTitle(folder.title); }} style={{ background: "none", border: "none", cursor: "pointer", padding: 5, borderRadius: 6, color: "#6b7280" }}><Pencil size={13} /></button>
-                        <button onClick={e => handleDeleteFolder(e, folder.id)} style={{ background: "none", border: "none", cursor: "pointer", padding: 5, borderRadius: 6, color: "#ef4444" }}><Trash2 size={13} /></button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* ── TÁBLÁZATOK ── */}
-            {finalSheets.length === 0 && finalFolders.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "64px 0", background: "#fff", borderRadius: 16, border: "2px dashed #e5e7eb" }}>
-                <Search size={48} color="#d1d5db" style={{ margin: "0 auto 12px" }} />
-                <p style={{ fontSize: 16, color: "#9ca3af", marginBottom: 4 }}>
-                  {searchTerm ? `Nincs találat: "${searchTerm}"` : "Ez a mappa üres."}
-                </p>
-                <p style={{ fontSize: 13, color: "#d1d5db" }}>
-                  {searchTerm ? "Ellenőrizd a helyesírást." : "Hozz létre egy új táblázatot vagy mappát!"}
-                </p>
-              </div>
-            ) : finalSheets.length > 0 ? (
-              <div>
-                <p style={{ fontSize: 11, fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>Táblázatok</p>
-                <div style={viewMode === "grid"
-                  ? { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 14 }
-                  : { display: "flex", flexDirection: "column", gap: 6 }
-                }>
-                  {finalSheets.map(sheet => (
-                    <div
-                      key={sheet.id}
-                      draggable
-                      onDragStart={e => { e.stopPropagation(); e.dataTransfer.setData("sheetId", sheet.id); }}
-                      onClick={() => editingId !== sheet.id && openSheet(sheet)}
-                      style={{
-                        background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12,
-                        cursor: "pointer", overflow: "hidden", transition: "all 0.15s", position: "relative",
-                        boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-                        ...(viewMode === "list" ? { display: "flex", alignItems: "center", gap: 14, padding: "10px 14px", borderRadius: 10 } : {})
-                      }}
-                      onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = "#86efac"; el.style.boxShadow = "0 6px 16px rgba(0,0,0,0.1)"; }}
-                      onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = "#e5e7eb"; el.style.boxShadow = "0 1px 3px rgba(0,0,0,0.04)"; }}
-                    >
-                      {viewMode === "grid" ? (
-                        <>
-                          {/* Előnézet terület */}
-                          <div style={{ height: 110, background: "#f9fafb", borderBottom: "1px solid #f3f4f6", padding: "10px 10px 0", overflow: "hidden", position: "relative" }}>
-                            {[0,1,2,3,4].map(ri => (
-                              <div key={ri} style={{ display: "flex", gap: 2, marginBottom: 2 }}>
-                                {[0,1,2,3,4].map(ci => {
-                                  const val = sheet.previewData ? sheet.previewData[ri * 5 + ci] : "";
-                                  return (
-                                    <div key={ci} style={{
-                                      background: ri === 0 || ci === 0 ? "#f3f4f6" : "#fff",
-                                      border: "1px solid #e5e7eb", borderRadius: 2, overflow: "hidden",
-                                      display: "flex", alignItems: "center", padding: "0 3px",
-                                      height: 16, flex: ci === 0 ? "0 0 24px" : 1
-                                    }}>
-                                      <span style={{ fontSize: 7, color: ri === 0 || ci === 0 ? "#9ca3af" : "#374151", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                        {val}
-                                      </span>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            ))}
-                            <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 40, background: "linear-gradient(to top, #f9fafb, transparent)" }} />
-                            {/* Hover akció gombok */}
-                            <div style={{ position: "absolute", top: 8, right: 8, display: "flex", gap: 4, opacity: 0, transition: "opacity 0.15s" }} className="sheet-actions">
-                              <button onClick={e => { e.stopPropagation(); setEditingId(sheet.id); setEditTitle(sheet.title); }} style={{ background: "rgba(255,255,255,0.9)", border: "1px solid #e5e7eb", borderRadius: 6, padding: "4px 7px", cursor: "pointer", display: "flex" }}><Pencil size={13} color="#6b7280" /></button>
-                              <button onClick={e => { e.stopPropagation(); handleDelete(sheet.id); }} style={{ background: "rgba(255,255,255,0.9)", border: "1px solid #e5e7eb", borderRadius: 6, padding: "4px 7px", cursor: "pointer", display: "flex" }}><Trash2 size={13} color="#ef4444" /></button>
-                            </div>
+          {loading ? (
+            <div style={{ textAlign: "center", padding: "80px 0", color: "#9ca3af" }}>Betöltés...</div>
+          ) : (
+            <>
+              {/* ── MAPPÁK ── */}
+              {finalFolders.length > 0 && (
+                <div style={{ marginBottom: 32 }}>
+                  <p style={{ fontSize: 11, fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>Mappák</p>
+                  <div style={viewMode === "grid"
+                    ? { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 10 }
+                    : { display: "flex", flexDirection: "column", gap: 6 }
+                  }>
+                    {finalFolders.map(folder => (
+                      <div
+                        key={folder.id}
+                        draggable
+                        onDragStart={e => { e.stopPropagation(); e.dataTransfer.setData("folderId", folder.id); }}
+                        onDragOver={e => { e.preventDefault(); e.stopPropagation(); }}
+                        onDrop={e => handleDropToFolder(e, folder.id)}
+                        onClick={() => editingFolderId !== folder.id && navigateToFolder(folder.id)}
+                        className="group"
+                        style={{
+                          background: "#fff", border: "1px solid #e5e7eb", borderRadius: 10,
+                          padding: viewMode === "grid" ? "12px 14px" : "10px 14px",
+                          cursor: "pointer", display: "flex", alignItems: "center", gap: 12,
+                          transition: "all 0.15s", position: "relative",
+                          boxShadow: "0 1px 2px rgba(0,0,0,0.04)"
+                        }}
+                        onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = "#93c5fd"; el.style.boxShadow = "0 4px 12px rgba(0,0,0,0.08)"; }}
+                        onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = "#e5e7eb"; el.style.boxShadow = "0 1px 2px rgba(0,0,0,0.04)"; }}
+                      >
+                        <FolderIcon size={22} color="#3b82f6" fill="#dbeafe" style={{ flexShrink: 0 }} />
+                        {editingFolderId === folder.id ? (
+                          <div style={{ flex: 1, display: "flex", alignItems: "center", gap: 4 }} onClick={e => e.stopPropagation()}>
+                            <input
+                              autoFocus
+                              value={editFolderTitle}
+                              onChange={e => setEditFolderTitle(e.target.value)}
+                              onKeyDown={e => { if (e.key === "Enter") handleRenameFolder(folder.id); if (e.key === "Escape") setEditingFolderId(null); }}
+                              style={{ flex: 1, border: "1px solid #93c5fd", borderRadius: 6, padding: "3px 8px", fontSize: 13, outline: "none", color: "#111827" }}
+                            />
+                            <button onClick={() => handleRenameFolder(folder.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#16a34a", padding: 2 }}><Check size={14} /></button>
+                            <button onClick={() => setEditingFolderId(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#9ca3af", padding: 2 }}><X size={14} /></button>
                           </div>
-                          {/* Cím + dátum */}
-                          <div style={{ padding: "12px 14px", display: "flex", alignItems: "center", gap: 10 }}>
+                        ) : (
+                          <span style={{ fontSize: 14, fontWeight: 600, color: "#111827", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{folder.title}</span>
+                        )}
+                        <div style={{ display: "flex", gap: 2, opacity: folder.isFavorite ? 1 : 0, transition: "opacity 0.15s" }} className={folder.isFavorite ? "" : "folder-actions"}>
+                          <button onClick={e => handleToggleFavoriteFolder(e, folder)} style={{ background: "none", border: "none", cursor: "pointer", padding: 5, borderRadius: 6, color: folder.isFavorite ? "#eab308" : "#9ca3af" }}><Star size={14} fill={folder.isFavorite ? "currentColor" : "none"} /></button>
+                          {/* Itt marad a Pencil és a Trash2 gombod */}
+                          <button onClick={e => { e.stopPropagation(); setEditingFolderId(folder.id); setEditFolderTitle(folder.title); }} style={{ background: "none", border: "none", cursor: "pointer", padding: 5, borderRadius: 6, color: "#6b7280" }}><Pencil size={13} /></button>
+                          <button onClick={e => handleDeleteFolder(e, folder.id)} style={{ background: "none", border: "none", cursor: "pointer", padding: 5, borderRadius: 6, color: "#ef4444" }}><Trash2 size={13} /></button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* ── TÁBLÁZATOK ── */}
+              {finalSheets.length === 0 && finalFolders.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "64px 0", background: "#fff", borderRadius: 16, border: "2px dashed #e5e7eb" }}>
+                  <Search size={48} color="#d1d5db" style={{ margin: "0 auto 12px" }} />
+                  <p style={{ fontSize: 16, color: "#9ca3af", marginBottom: 4 }}>
+                    {searchTerm ? `Nincs találat: "${searchTerm}"` : "Ez a mappa üres."}
+                  </p>
+                  <p style={{ fontSize: 13, color: "#d1d5db" }}>
+                    {searchTerm ? "Ellenőrizd a helyesírást." : "Hozz létre egy új táblázatot vagy mappát!"}
+                  </p>
+                </div>
+              ) : finalSheets.length > 0 ? (
+                <div>
+                  <p style={{ fontSize: 11, fontWeight: 700, color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.06em", marginBottom: 10 }}>Táblázatok</p>
+                  <div style={viewMode === "grid"
+                    ? { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 14 }
+                    : { display: "flex", flexDirection: "column", gap: 6 }
+                  }>
+                    {finalSheets.map(sheet => (
+                      <div
+                        key={sheet.id}
+                        draggable
+                        onDragStart={e => { e.stopPropagation(); e.dataTransfer.setData("sheetId", sheet.id); }}
+                        onClick={() => editingId !== sheet.id && openSheet(sheet)}
+                        style={{
+                          background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12,
+                          cursor: "pointer", overflow: "hidden", transition: "all 0.15s", position: "relative",
+                          boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+                          ...(viewMode === "list" ? { display: "flex", alignItems: "center", gap: 14, padding: "10px 14px", borderRadius: 10 } : {})
+                        }}
+                        onMouseEnter={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = "#86efac"; el.style.boxShadow = "0 6px 16px rgba(0,0,0,0.1)"; }}
+                        onMouseLeave={e => { const el = e.currentTarget as HTMLElement; el.style.borderColor = "#e5e7eb"; el.style.boxShadow = "0 1px 3px rgba(0,0,0,0.04)"; }}
+                      >
+                        {viewMode === "grid" ? (
+                          <>
+                            {/* Előnézet terület */}
+                            <div style={{ height: 110, background: "#f9fafb", borderBottom: "1px solid #f3f4f6", padding: "10px 10px 0", overflow: "hidden", position: "relative" }}>
+                              {[0, 1, 2, 3, 4].map(ri => (
+                                <div key={ri} style={{ display: "flex", gap: 2, marginBottom: 2 }}>
+                                  {[0, 1, 2, 3, 4].map(ci => {
+                                    const val = sheet.previewData ? sheet.previewData[ri * 5 + ci] : "";
+                                    return (
+                                      <div key={ci} style={{
+                                        background: ri === 0 || ci === 0 ? "#f3f4f6" : "#fff",
+                                        border: "1px solid #e5e7eb", borderRadius: 2, overflow: "hidden",
+                                        display: "flex", alignItems: "center", padding: "0 3px",
+                                        height: 16, flex: ci === 0 ? "0 0 24px" : 1
+                                      }}>
+                                        <span style={{ fontSize: 7, color: ri === 0 || ci === 0 ? "#9ca3af" : "#374151", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                          {val}
+                                        </span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              ))}
+                              <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 40, background: "linear-gradient(to top, #f9fafb, transparent)" }} />
+                              {/* Hover akció gombok */}
+                              <div style={{ position: "absolute", top: 8, right: 8, display: "flex", gap: 4, opacity: sheet.isFavorite ? 1 : 0, transition: "opacity 0.15s" }} className={sheet.isFavorite ? "" : "sheet-actions"}>
+                                <button onClick={e => handleToggleFavoriteSheet(e, sheet)} style={{ background: "rgba(255,255,255,0.9)", border: "1px solid #e5e7eb", borderRadius: 6, padding: "4px 7px", cursor: "pointer", display: "flex" }}><Star size={13} color={sheet.isFavorite ? "#eab308" : "#6b7280"} fill={sheet.isFavorite ? "#eab308" : "none"} /></button>
+                                {/* Itt marad a Pencil és a Trash2 gombod */}
+                                <button onClick={e => { e.stopPropagation(); setEditingId(sheet.id); setEditTitle(sheet.title); }} style={{ background: "rgba(255,255,255,0.9)", border: "1px solid #e5e7eb", borderRadius: 6, padding: "4px 7px", cursor: "pointer", display: "flex" }}><Pencil size={13} color="#6b7280" /></button>
+                                <button onClick={e => { e.stopPropagation(); handleDelete(sheet.id); }} style={{ background: "rgba(255,255,255,0.9)", border: "1px solid #e5e7eb", borderRadius: 6, padding: "4px 7px", cursor: "pointer", display: "flex" }}><Trash2 size={13} color="#ef4444" /></button>
+                              </div>
+                            </div>
+                            {/* Cím + dátum */}
+                            <div style={{ padding: "12px 14px", display: "flex", alignItems: "center", gap: 10 }}>
+                              <div style={{ background: "#f0fdf4", borderRadius: 8, padding: "7px", display: "flex", flexShrink: 0 }}>
+                                <FileSpreadsheet size={16} color="#16a34a" />
+                              </div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                {editingId === sheet.id ? (
+                                  <div style={{ display: "flex", gap: 4 }} onClick={e => e.stopPropagation()}>
+                                    <input
+                                      autoFocus value={editTitle}
+                                      onChange={e => setEditTitle(e.target.value)}
+                                      onKeyDown={e => { if (e.key === "Enter") handleRename(sheet.id); if (e.key === "Escape") setEditingId(null); }}
+                                      style={{ flex: 1, border: "1px solid #86efac", borderRadius: 6, padding: "2px 6px", fontSize: 13, outline: "none", color: "#111827" }}
+                                    />
+                                    <button onClick={() => handleRename(sheet.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#16a34a" }}><Check size={14} /></button>
+                                    <button onClick={() => setEditingId(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#9ca3af" }}><X size={14} /></button>
+                                  </div>
+                                ) : (
+                                  <p style={{ fontSize: 14, fontWeight: 600, color: "#111827", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", margin: 0 }}>{sheet.title}</p>
+                                )}
+                                <p style={{ fontSize: 11, color: "#9ca3af", margin: "2px 0 0" }}>Módosítva: {formatDate(sheet.updatedAt)}</p>
+                              </div>
+                            </div>
+                          </>
+                        ) : (
+                          /* Lista nézet */
+                          <>
                             <div style={{ background: "#f0fdf4", borderRadius: 8, padding: "7px", display: "flex", flexShrink: 0 }}>
                               <FileSpreadsheet size={16} color="#16a34a" />
                             </div>
@@ -603,63 +729,41 @@ function DashboardContent() {
                                     autoFocus value={editTitle}
                                     onChange={e => setEditTitle(e.target.value)}
                                     onKeyDown={e => { if (e.key === "Enter") handleRename(sheet.id); if (e.key === "Escape") setEditingId(null); }}
-                                    style={{ flex: 1, border: "1px solid #86efac", borderRadius: 6, padding: "2px 6px", fontSize: 13, outline: "none", color: "#111827" }}
+                                    style={{ flex: 1, border: "1px solid #86efac", borderRadius: 6, padding: "2px 6px", fontSize: 13, outline: "none", color: "#111827", maxWidth: 280 }}
                                   />
-                                  <button onClick={() => handleRename(sheet.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "#16a34a" }}><Check size={14} /></button>
-                                  <button onClick={() => setEditingId(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#9ca3af" }}><X size={14} /></button>
                                 </div>
                               ) : (
                                 <p style={{ fontSize: 14, fontWeight: 600, color: "#111827", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", margin: 0 }}>{sheet.title}</p>
                               )}
-                              <p style={{ fontSize: 11, color: "#9ca3af", margin: "2px 0 0" }}>Módosítva: {formatDate(sheet.updatedAt)}</p>
                             </div>
-                          </div>
-                        </>
-                      ) : (
-                        /* Lista nézet */
-                        <>
-                          <div style={{ background: "#f0fdf4", borderRadius: 8, padding: "7px", display: "flex", flexShrink: 0 }}>
-                            <FileSpreadsheet size={16} color="#16a34a" />
-                          </div>
-                          <div style={{ flex: 1, minWidth: 0 }}>
-                            {editingId === sheet.id ? (
-                              <div style={{ display: "flex", gap: 4 }} onClick={e => e.stopPropagation()}>
-                                <input
-                                  autoFocus value={editTitle}
-                                  onChange={e => setEditTitle(e.target.value)}
-                                  onKeyDown={e => { if (e.key === "Enter") handleRename(sheet.id); if (e.key === "Escape") setEditingId(null); }}
-                                  style={{ flex: 1, border: "1px solid #86efac", borderRadius: 6, padding: "2px 6px", fontSize: 13, outline: "none", color: "#111827", maxWidth: 280 }}
-                                />
-                              </div>
-                            ) : (
-                              <p style={{ fontSize: 14, fontWeight: 600, color: "#111827", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", margin: 0 }}>{sheet.title}</p>
-                            )}
-                          </div>
-                          <p style={{ fontSize: 12, color: "#9ca3af", flexShrink: 0, marginLeft: "auto" }}>
-                            {formatDate(sheet.updatedAt)}
-                          </p>
-                          <div style={{ display: "flex", gap: 2, flexShrink: 0, opacity: 0, transition: "opacity 0.15s" }} className="sheet-actions">
-                            {editingId === sheet.id ? (
-                              <>
-                                <button onClick={e => { e.stopPropagation(); handleRename(sheet.id); }} style={{ background: "none", border: "none", cursor: "pointer", padding: "5px 8px", borderRadius: 6, color: "#16a34a" }}><Check size={14} /></button>
-                                <button onClick={e => { e.stopPropagation(); setEditingId(null); }} style={{ background: "none", border: "none", cursor: "pointer", padding: "5px 8px", borderRadius: 6, color: "#9ca3af" }}><X size={14} /></button>
-                              </>
-                            ) : (
-                              <>
-                                <button onClick={e => { e.stopPropagation(); setEditingId(sheet.id); setEditTitle(sheet.title); }} style={{ background: "none", border: "none", cursor: "pointer", padding: "5px 8px", borderRadius: 6, color: "#6b7280" }}><Pencil size={14} /></button>
-                                <button onClick={e => { e.stopPropagation(); handleDelete(sheet.id); }} style={{ background: "none", border: "none", cursor: "pointer", padding: "5px 8px", borderRadius: 6, color: "#ef4444" }}><Trash2 size={14} /></button>
-                              </>
-                            )}
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  ))}
+                            <p style={{ fontSize: 12, color: "#9ca3af", flexShrink: 0, marginLeft: "auto" }}>
+                              {formatDate(sheet.updatedAt)}
+                            </p>
+                            <div style={{ display: "flex", gap: 2, flexShrink: 0, opacity: sheet.isFavorite ? 1 : 0, transition: "opacity 0.15s" }} className={sheet.isFavorite ? "" : "sheet-actions"}>
+                              <button onClick={e => handleToggleFavoriteSheet(e, sheet)} style={{ background: "none", border: "none", cursor: "pointer", padding: "5px 8px", borderRadius: 6, color: sheet.isFavorite ? "#eab308" : "#9ca3af" }}><Star size={14} fill={sheet.isFavorite ? "currentColor" : "none"} /></button>
+                              {/* Itt marad a Pencil és a Trash2 gombod */}
+                              {editingId === sheet.id ? (
+                                <>
+                                  <button onClick={e => { e.stopPropagation(); handleRename(sheet.id); }} style={{ background: "none", border: "none", cursor: "pointer", padding: "5px 8px", borderRadius: 6, color: "#16a34a" }}><Check size={14} /></button>
+                                  <button onClick={e => { e.stopPropagation(); setEditingId(null); }} style={{ background: "none", border: "none", cursor: "pointer", padding: "5px 8px", borderRadius: 6, color: "#9ca3af" }}><X size={14} /></button>
+                                </>
+                              ) : (
+                                <>
+                                  <button onClick={e => { e.stopPropagation(); setEditingId(sheet.id); setEditTitle(sheet.title); }} style={{ background: "none", border: "none", cursor: "pointer", padding: "5px 8px", borderRadius: 6, color: "#6b7280" }}><Pencil size={14} /></button>
+                                  <button onClick={e => { e.stopPropagation(); handleDelete(sheet.id); }} style={{ background: "none", border: "none", cursor: "pointer", padding: "5px 8px", borderRadius: 6, color: "#ef4444" }}><Trash2 size={14} /></button>
+                                </>
+                              )}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ) : null}
-          </>
-        )}
+              ) : null}
+            </>
+          )}
+        </div>
       </div>
 
       {/* ── CSS a hover opacity effektekhez ── */}
