@@ -167,21 +167,13 @@ function SheetContent({ onToggleSplit, isSplit }: { onToggleSplit: () => void, i
 
                 {/* ── PROFI STÁTUSZ JELZŐ (Pill dizájn) ── */}
                 <div className="flex items-center shrink-0 px-2">
-                    {isInitialLoading ? (
-                        <div className="flex items-center gap-1.5 text-xs font-medium text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full">
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" /> Kapcsolódás...
-                        </div>
-                    ) : saving ? (
-                        <div className="flex items-center gap-1.5 text-xs font-medium text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full border border-blue-100 shadow-sm">
+                    {isInitialLoading || saving || isDirty ? (
+                        <div className="flex items-center gap-1.5 text-xs font-medium text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full border border-blue-100 shadow-sm transition-all">
                             <Loader2 className="w-3.5 h-3.5 animate-spin" /> Mentés...
-                        </div>
-                    ) : isDirty ? (
-                        <div className="flex items-center gap-1.5 text-xs font-medium text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-100 shadow-sm transition-all">
-                            <AlertCircle className="w-3.5 h-3.5" /> Nincs mentve
                         </div>
                     ) : (
                         <div className="flex items-center gap-1.5 text-xs font-medium text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100 shadow-sm transition-all">
-                            <Cloud className="w-3.5 h-3.5" /> Mentve a felhőbe
+                            <Cloud className="w-3.5 h-3.5" /> Mentve
                         </div>
                     )}
                 </div>

@@ -6,7 +6,7 @@ import { useSheetStore } from "@/lib/sheetStore";
 import {
   Bold, Italic, Underline,
   AlignLeft, AlignCenter, AlignRight,
-  Paintbrush, Type, Plus, Save
+  Paintbrush, Type, Plus
 } from "lucide-react";
 import ImportButton from "./ImportButton";
 import ExportButton from "./ExportButton";
@@ -93,13 +93,6 @@ export default function Toolbar() {
         
         {activeTab === "Fájl" && (
           <>
-            <button 
-              onClick={() => window.dispatchEvent(new CustomEvent("sheet-save"))} 
-              className="flex items-center gap-1.5 text-sm text-gray-700 hover:bg-gray-100 px-2.5 py-1.5 rounded-lg shrink-0 transition"
-            >
-              <Save className="w-4 h-4 text-blue-600" /> Mentés (Ctrl+S)
-            </button>
-            <div className="w-px h-5 bg-gray-300 mx-2 shrink-0" />
             <ImportButton />
             <div className="w-px h-5 bg-gray-300 mx-2 shrink-0" />
             <ExportButton />
