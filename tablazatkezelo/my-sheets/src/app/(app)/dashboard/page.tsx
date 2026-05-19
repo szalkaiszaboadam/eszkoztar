@@ -103,6 +103,20 @@ function DashboardContent() {
     if (user) loadData();
   }, [user]);
 
+  // ── ÚJ: BFCache (Böngésző Vissza gomb) fagyás javítása ──
+  useEffect(() => {
+    const handlePageShow = (event: PageTransitionEvent) => {
+      // Az event.persisted akkor 'true', ha a böngésző a memóriából (cache-ből) állította vissza az oldalt
+      if (event.persisted) {
+        // Ilyenkor kikényszerítünk egy azonnali, tiszta újratöltést, hogy helyreálljon a Firebase Auth
+        window.location.reload();
+      }
+    };
+
+    window.addEventListener("pageshow", handlePageShow);
+    return () => window.removeEventListener("pageshow", handlePageShow);
+  }, []);
+
   const loadData = async () => {
     if (!user) return;
     try {
