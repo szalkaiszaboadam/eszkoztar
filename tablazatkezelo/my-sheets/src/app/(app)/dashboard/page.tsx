@@ -1,19 +1,21 @@
 // src/app/(app)/dashboard/page.tsx
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, Suspense, useRef } from "react";
 import { useAuthStore } from "@/lib/store";
 import { useAuth } from "@/lib/useAuth";
 import {
   getFolders, createFolder, Folder, moveFolder, deleteFolder, renameFolder,
-  createSheet, getSheets, deleteSheet, renameSheet, Sheet, moveSheetToFolder
+  createSheet, getSheets, deleteSheet, renameSheet, Sheet, moveSheetToFolder, saveCells, csvToCells, xlsxToCells
 } from "@/lib/sheetsService";
 import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import {
   Folder as FolderIcon, FolderPlus, Plus, FileSpreadsheet,
-  Trash2, Pencil, LogOut, Check, X, ChevronRight, Home, LayoutGrid, List as ListIcon, Search, ArrowDownUp
+  Trash2, Pencil, LogOut, Check, X, ChevronRight, Home, LayoutGrid, List as ListIcon, Search, ArrowDownUp, ChevronDown, Upload, File, Loader2
 } from "lucide-react";
+
+import { DEFAULT_ROW_COUNT } from "@/lib/constants";
 
 function DashboardContent() {
   const { user } = useAuthStore();
@@ -42,6 +44,89 @@ function DashboardContent() {
   const [searchTerm, setSearchTerm] = useState("");
 
   const [sortBy, setSortBy] = useState<"date-desc" | "date-asc" | "name-asc" | "name-desc">("date-desc");
+
+
+// ── ÚJ ÁLLAPOTOK AZ IMPORTÁLÁSHOZ ──
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [isImporting, setIsImporting] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // ── Fájl kiválasztása után lefutó logika ──
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !user) return;
+
+        setIsImporting(true);
+        setIsDropdownOpen(false); // Menü bezárása
+
+        const toastId = toast.loading("Fájl feldolgozása...");
+
+        try {
+            const fileName = file.name.split(".").slice(0, -1).join(".") || "Importált táblázat";
+            const extension = file.name.split(".").pop()?.toLowerCase();
+
+            let importedData: { cells: any; rowCount: number };
+
+            // 1. Fájl beolvasása és átalakítása cellákká
+            if (extension === "csv") {
+                const text = await file.text();
+                importedData = csvToCells(text);
+            } else if (extension === "xlsx") {
+                const buffer = await file.arrayBuffer();
+                importedData = xlsxToCells(buffer);
+            } else {
+                toast.error("Nem támogatott formátum! Csak .csv és .xlsx engedélyezett.", { id: toastId });
+                setIsImporting(false);
+                return;
+            }
+
+            // 2. Új táblázat metaadatainak létrehozása a Firestore-ban
+            // (Ha van aktuális mappád, pl. currentFolder, add át harmadik paraméterként)
+            const newSheetId = await createSheet(user.uid, fileName, currentFolder || null);
+
+            // 3. Cellák és alapértelmezett tab adatok felépítése az új táblázathoz
+            const cellsByTab = { 0: importedData.cells };
+            const rowCountByTab = { 0: importedData.rowCount };
+            const tabs = ["Sheet1"];
+            const colWidthsByTab = { 0: {} };
+            const rowHeightsByTab = { 0: {} };
+
+            // 4. Mentés a Realtime Database-be és az előnézet legenerálása
+            await saveCells(
+                user.uid,
+                newSheetId,
+                cellsByTab,
+                rowCountByTab,
+                tabs,
+                colWidthsByTab,
+                rowHeightsByTab
+            );
+
+            toast.success("Sikeres importálás!", { id: toastId });
+            
+            // 5. Azonnali átirányítás az új, importált táblázatra
+            router.push(`/sheet/${newSheetId}${currentFolder ? `?folder=${currentFolder}` : ""}`);
+
+        } catch (error) {
+            console.error("Importálási hiba a dashboardon:", error);
+            toast.error("Hiba történt az importálás során.", { id: toastId });
+        } finally {
+            setIsImporting(false);
+            if (e.target.value) e.target.value = ""; // Input reset
+        }
+    };
+
+    // Az eredeti üres táblázat létrehozó függvényed (ezt egészítsd ki, ha nálad másképp van)
+    const handleCreateEmptySheet = async () => {
+        if (!user) return;
+        try {
+            const id = await createSheet(user.uid, "Névtelen táblázat", currentFolder || null);
+            router.push(`/sheet/${id}${currentFolder ? `?folder=${currentFolder}` : ""}`);
+        } catch (error) {
+            toast.error("Nem sikerült létrehozni a táblázatot.");
+        }
+    };
+
 
   useEffect(() => {
     if (user) loadData();
@@ -384,13 +469,77 @@ function DashboardContent() {
                 <span className="hidden sm:block">Új mappa</span>
               </button>
 
-              <button
-                onClick={handleCreateSheet}
-                className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-xl font-medium text-sm transition shadow-sm"
-              >
-                <Plus className="w-4 h-4" />
-                <span className="hidden sm:block">Új táblázat</span>
-              </button>
+{/* ── ÚJ TÁBLÁZAT LÉTREHOZÁSA ÉS IMPORTÁLÁS GOMB ── */}
+                <div className="relative inline-block text-left">
+                    <div className="flex items-center bg-green-600 hover:bg-green-700 text-white font-medium text-sm rounded-xl shadow-sm transition overflow-hidden">
+                        {/* Bal oldali rész: Alapértelmezett kattintás (Üres táblázat) */}
+                        <button
+                            onClick={handleCreateEmptySheet}
+                            disabled={isImporting}
+                            className="flex items-center gap-2 px-4 py-2.5 hover:bg-black/10 transition border-r border-green-500/30 disabled:opacity-50"
+                        >
+                            {isImporting ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                                <Plus className="w-4 h-4" />
+                            )}
+                            <span>Új táblázat</span>
+                        </button>
+
+                        {/* Jobb oldali rész: Kis nyíl a menü megnyitásához */}
+                        <button
+                            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                            disabled={isImporting}
+                            className="p-2.5 hover:bg-black/10 transition disabled:opacity-50"
+                        >
+                            <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                        </button>
+                    </div>
+
+                    {/* Rejtett fájl-input az importáláshoz */}
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleFileChange}
+                        accept=".csv, .xlsx"
+                        className="hidden"
+                    />
+
+                    {/* Maga a legördülő menü panel */}
+                    {isDropdownOpen && (
+                        <>
+                            {/* Kattintás-elnyelő háttér, ami bezárja a menüt, ha mellékattintasz */}
+                            <div className="fixed inset-0 z-20" onClick={() => setIsDropdownOpen(false)} />
+                            
+                            <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl border border-gray-100 shadow-xl z-30 py-1.5 animate-in fade-in slide-in-from-top-2 duration-150">
+                                <button
+                                    onClick={() => {
+                                        setIsDropdownOpen(false);
+                                        handleCreateEmptySheet();
+                                    }}
+                                    className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition text-left"
+                                >
+                                    <File className="w-4 h-4 text-gray-400" />
+                                    <span>Üres táblázat</span>
+                                </button>
+                                
+                                <button
+                                    onClick={() => {
+                                        // Triggereljük a rejtett fájl-választót
+                                        fileInputRef.current?.click();
+                                    }}
+                                    className="flex items-center gap-3 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition text-left border-t border-gray-50"
+                                >
+                                    <Upload className="w-4 h-4 text-green-500" />
+                                    <div className="flex flex-col">
+                                        <span className="font-medium text-green-600">Táblázat importálása</span>
+                                        <span className="text-[10px] text-gray-400">.csv, .xlsx támogatás</span>
+                                    </div>
+                                </button>
+                            </div>
+                        </>
+                    )}
+                </div>
             </div>
           </div>
         </div>
