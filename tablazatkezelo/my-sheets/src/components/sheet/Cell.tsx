@@ -14,12 +14,10 @@ interface CellProps {
 }
 
 const Cell = memo(function Cell({ id, isHeader, label, height = 28, onNavigate }: CellProps) {
-  // 1. Célzott adatlekérés: csak a saját adatát kéri le
   const cellData = useSheetStore((s) => s.cells[id]);
   const formulaStr = cellData?.formula || cellData?.value || "";
   const isFormula = formulaStr.startsWith("=");
 
-  // Csak akkor iratkozik fel a TÖBBI cella változására, ha képletet (pl. =SUM) tartalmaz
   const allCells = useSheetStore((s) => isFormula ? s.cells : null);
 
   const isSelected = useSheetStore((s) => s.selectedCell === id);
@@ -56,7 +54,6 @@ const Cell = memo(function Cell({ id, isHeader, label, height = 28, onNavigate }
 
   const handleDoubleClick = () => { setDraft(formulaStr); setEditing(true); };
   const handleClick = (e: React.MouseEvent) => {
-    // Ha nyomva van a Shift (vagy Ctrl/Cmd), akkor a munkát az onMouseDown végzi el, itt kilépünk!
     if (e.shiftKey || e.ctrlKey || e.metaKey) return;
     setSelectedCell(id);
   };
@@ -84,11 +81,9 @@ const Cell = memo(function Cell({ id, isHeader, label, height = 28, onNavigate }
     else if (e.key === "ArrowLeft") { e.preventDefault(); onNavigate?.(id, "left"); }
     else if (e.key === "ArrowRight") { e.preventDefault(); onNavigate?.(id, "right"); }
     else if (e.key === "Enter" || e.key === "F2") { setDraft(formulaStr); setEditing(true); }
-    // --- EZT A SORT CSERÉLD LE: ---
     else if (e.key === "Delete" || e.key === "Backspace") {
       useSheetStore.getState().clearSelectionContent();
     }
-    // ------------------------------
     else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
       e.preventDefault();
       setDraft(e.key);
@@ -99,24 +94,41 @@ const Cell = memo(function Cell({ id, isHeader, label, height = 28, onNavigate }
   const isHighlighted = isRowSelected || isColSelected;
   const alignClass = fmt.align === "center" ? "text-center" : fmt.align === "right" ? "text-right" : "text-left";
 
-  let bgClass = "";
+  let overlayClass = "";
   let zClass = "";
 
-  if (isSelected) { bgClass = ""; zClass = "z-20"; }
-  else if (isInFillSelection) { bgClass = "bg-blue-100/50"; zClass = "z-10 outline outline-1 outline-blue-500 outline-dashed -outline-offset-1"; }
-  else if (isMultiSelected) { bgClass = "bg-blue-100"; zClass = ""; }
-  else if (isHighlighted) { bgClass = "bg-blue-50"; zClass = ""; }
+  if (isSelected) { 
+    zClass = "z-20"; 
+  } else if (isInFillSelection) { 
+    overlayClass = "after:absolute after:inset-0 after:bg-blue-500/20 after:pointer-events-none"; 
+    zClass = "z-10 outline outline-1 outline-blue-500 outline-dashed -outline-offset-1"; 
+  } else if (isMultiSelected) { 
+    overlayClass = "after:absolute after:inset-0 after:bg-blue-500/20 after:pointer-events-none"; 
+    zClass = ""; 
+  } else if (isHighlighted) { 
+    overlayClass = "after:absolute after:inset-0 after:bg-blue-500/10 after:pointer-events-none"; 
+    zClass = ""; 
+  }
+
+  let boxShadows = [];
+  if (fmt.border) {
+    if (fmt.border.top) boxShadows.push("inset 0 1px 0 0 #000");
+    if (fmt.border.right) boxShadows.push("inset -1px 0 0 0 #000");
+    if (fmt.border.bottom) boxShadows.push("inset 0 -1px 0 0 #000");
+    if (fmt.border.left) boxShadows.push("inset 1px 0 0 0 #000");
+  }
+  const borderShadow = boxShadows.length > 0 ? boxShadows.join(", ") : undefined;
 
   return (
     <div
       ref={divRef}
       data-cell={id}
       tabIndex={0}
-      className={`border-b border-r border-gray-200 relative focus:outline-none transition-colors ${isSelected ? "ring-2 ring-blue-500 ring-inset" : ""
-        } ${bgClass} ${zClass}`}
+      className={`border-b border-r border-gray-200 relative focus:outline-none transition-colors ${isSelected ? "ring-2 ring-blue-500 ring-inset" : ""} ${overlayClass} ${zClass}`}
       style={{
         height,
         backgroundColor: fmt.bgColor || undefined,
+        boxShadow: borderShadow,
       }}
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
@@ -135,7 +147,7 @@ const Cell = memo(function Cell({ id, isHeader, label, height = 28, onNavigate }
       onMouseEnter={() => {
         const state = useSheetStore.getState();
         if (state.isDragging) state.updateDrag(id);
-        else if (state.fillDragStart) state.updateFillDrag(id); // <-- FRISSÍTVE: Ha kitöltés húzás van
+        else if (state.fillDragStart) state.updateFillDrag(id);
       }}
     >
       {editing ? (
@@ -155,6 +167,7 @@ const Cell = memo(function Cell({ id, isHeader, label, height = 28, onNavigate }
             fontStyle: fmt.italic ? "italic" : "normal",
             textDecoration: fmt.underline ? "underline" : "none",
             color: fmt.color ?? "#1f2937",
+            fontSize: fmt.fontSize ? `${fmt.fontSize}px` : undefined,
             lineHeight: `${height}px`,
           }}
         >
@@ -162,14 +175,12 @@ const Cell = memo(function Cell({ id, isHeader, label, height = 28, onNavigate }
         </span>
       )}
 
-
-      {/* A Kitöltő Fogantyú (Kék Négyzet) */}
       {isSelected && !editing && (
         <div
           className="absolute -bottom-[3px] -right-[3px] w-2 h-2 bg-blue-600 border border-white cursor-crosshair z-30"
           onMouseDown={(e) => {
             e.preventDefault();
-            e.stopPropagation(); // Fontos: Meggátolja, hogy a cella is elinduljon sima Drag-gel
+            e.stopPropagation();
             useSheetStore.getState().startFillDrag(id);
           }}
         />

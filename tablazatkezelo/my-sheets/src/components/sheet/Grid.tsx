@@ -33,6 +33,11 @@ export default function Grid() {
   const setColWidth = useSheetStore(s => s.setColWidth);
   const setRowHeight = useSheetStore(s => s.setRowHeight);
 
+  // --- ÚJ: Az aktív cella lekérése a fejlécek kiemeléséhez ---
+  const selectedCell = useSheetStore(s => s.selectedCell);
+  const activeCol = selectedCell ? parseCell(selectedCell)[0] : null;
+  const activeRow = selectedCell ? parseCell(selectedCell)[1] : null;
+
   const gridRef = useRef<HTMLDivElement>(null);
   const [ctxMenu, setCtxMenu] = useState<CtxMenu | null>(null);
   const resizingCol = useRef<{ col: string; startX: number; startW: number } | null>(null);
@@ -50,7 +55,6 @@ export default function Grid() {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  // Kiszámítjuk, hogy a custom sormagasságok alapján melyik sor milyen pixel-y pozícióban van
   const { positions, totalHeight } = useMemo(() => {
     const pos = [0];
     let y = 0;
@@ -61,7 +65,6 @@ export default function Grid() {
     return { positions: pos, totalHeight: y };
   }, [rowCount, rowHeights]);
 
-  // Csak a képernyőn látható sorok indexeit számoljuk ki (+/- egy kis ráhagyás a sima görgetésért)
   const { startIndex, endIndex } = useMemo(() => {
     let start = 1;
     while (start <= rowCount && positions[start] < scrollTop - 400) start++;
@@ -78,8 +81,6 @@ export default function Grid() {
 
   const topSpacerHeight = positions[startIndex - 1] || 0;
   const bottomSpacerHeight = totalHeight - (positions[endIndex] || 0);
-  // ────────────────────────────────────────────────────────
-  
   
   // ── Resize event listenrek ─────────────────────────────
   useEffect(() => {
@@ -108,11 +109,11 @@ export default function Grid() {
 
 
   // ── Drag kijelölés vége ────────────────────────────────
-useEffect(() => {
+  useEffect(() => {
     const onUp = () => { 
         const state = useSheetStore.getState();
         if (state.isDragging) state.endDrag(); 
-        if (state.fillDragStart) state.endFillDrag(); // <-- EZT A SORT ADTUK HOZZÁ!
+        if (state.fillDragStart) state.endFillDrag();
         
         resizingCol.current = null;
         resizingRow.current = null;
@@ -158,7 +159,7 @@ useEffect(() => {
   }, []);
 
   // ── Context menük ──────────────────────────────────────
-const onColContextMenu = (e: React.MouseEvent, col: string) => {
+  const onColContextMenu = (e: React.MouseEvent, col: string) => {
     e.preventDefault();
     const state = useSheetStore.getState();
     const isSelected = state.selectedCols.includes(col);
@@ -213,7 +214,7 @@ const onColContextMenu = (e: React.MouseEvent, col: string) => {
       <div
         ref={gridRef}
         className="overflow-auto flex-1 select-none"
-        onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)} // <-- ÚJ GÖRGETÉS FIGYELŐ
+        onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
       >
         <div className="grid" style={{ gridTemplateColumns, minWidth: "fit-content" }}>
 
@@ -223,13 +224,16 @@ const onColContextMenu = (e: React.MouseEvent, col: string) => {
           {/* Oszlop fejlécek */}
           {COLS.map((col) => {
             const isSelected = selectedCols.includes(col);
+            const isActive = col === activeCol;
             const width = colWidths[col] ?? DEFAULT_COL_WIDTH;
             return (
               <div
                 key={col}
                 data-header="col"
                 className={`relative border-b border-r border-gray-300 flex items-center justify-center text-xs font-semibold select-none sticky top-0 z-10 cursor-pointer transition-colors ${
-                  isSelected ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                  isSelected ? "bg-blue-100 text-blue-700" : 
+                  isActive ? "bg-gray-300 text-blue-800" : 
+                  "bg-gray-100 text-gray-500 hover:bg-gray-200"
                 }`}
                 style={{ height: 28 }}
                 onMouseDown={(e) => {
@@ -245,7 +249,6 @@ const onColContextMenu = (e: React.MouseEvent, col: string) => {
                 onContextMenu={(e) => onColContextMenu(e, col)}
               >
                 {col}
-                {/* Oszlop resize handle */}
                 <div
                   className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-blue-400 z-20"
                   onMouseDown={(e) => {
@@ -263,9 +266,10 @@ const onColContextMenu = (e: React.MouseEvent, col: string) => {
             <div style={{ gridColumn: "1 / -1", height: topSpacerHeight }} />
           )}
 
-          {/* Sorok (MOST MÁR CSAK A LÁTHATÓ SOROKAT RENDERELJÜK!) */}
+          {/* Sorok */}
           {VISIBLE_ROWS.map((row) => {
             const isRowSelected = selectedRows.includes(row);
+            const isActiveRow = row === activeRow;
             const height = rowHeights[row] ?? DEFAULT_ROW_HEIGHT;
             return (
               <React.Fragment key={row}>
@@ -273,7 +277,9 @@ const onColContextMenu = (e: React.MouseEvent, col: string) => {
                 <div
                   data-header="row"
                   className={`relative border-b border-r border-gray-300 flex items-center justify-center text-xs font-semibold select-none sticky left-0 z-10 cursor-pointer transition-colors ${
-                    isRowSelected ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                    isRowSelected ? "bg-blue-100 text-blue-700" : 
+                    isActiveRow ? "bg-gray-300 text-blue-800" : 
+                    "bg-gray-100 text-gray-500 hover:bg-gray-200"
                   }`}
                   style={{ height }}
                   onMouseDown={(e) => {
@@ -289,7 +295,6 @@ const onColContextMenu = (e: React.MouseEvent, col: string) => {
                   onContextMenu={(e) => onRowContextMenu(e, row)}
                 >
                   {row}
-                  {/* Sor resize handle */}
                   <div
                     className="absolute bottom-0 left-0 w-full h-1.5 cursor-row-resize hover:bg-blue-400 z-20"
                     onMouseDown={(e) => {

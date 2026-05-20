@@ -76,6 +76,8 @@ function DashboardContent() {
   const [sortBy, setSortBy] = useState<"date-desc" | "date-asc" | "name-asc" | "name-desc">("date-desc");
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
   const [editFolderTitle, setEditFolderTitle] = useState("");
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
 
   // ── ÚJ: Kedvencek állapota és logikája ──
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
@@ -98,24 +100,44 @@ function DashboardContent() {
     catch { toast.error("Hiba a mentéskor."); setFolders(prev => prev.map(f => f.id === folder.id ? { ...f, isFavorite: !newValue } : f)); }
   };
 
+  // JAVÍTVA: A refreshTrigger változása is újra le fogja futtatni az adatletöltést!
   useEffect(() => {
     setRecentSheets(getRecent());
     if (user) loadData();
-  }, [user]);
+  }, [user, refreshTrigger]);
 
-  // ── ÚJ: BFCache (Böngésző Vissza gomb) fagyás javítása ──
+
+  // ── JAVÍTÁS: Kíméletes, Next.js kompatibilis visszalépés kezelés ──
   useEffect(() => {
-    const handlePageShow = (event: PageTransitionEvent) => {
-      // Az event.persisted akkor 'true', ha a böngésző a memóriából (cache-ből) állította vissza az oldalt
-      if (event.persisted) {
-        // Ilyenkor kikényszerítünk egy azonnali, tiszta újratöltést, hogy helyreálljon a Firebase Auth
-        window.location.reload();
+    const handleRestore = () => {
+      // Ez a sor garantálja, hogy a React a legfrissebb user adatokkal ébred fel!
+      setRefreshTrigger(prev => prev + 1);
+      
+      if (typeof getRecent === "function" && typeof setRecentSheets === "function") {
+        setRecentSheets(getRecent());
       }
+      
+      router.refresh();
     };
 
-    window.addEventListener("pageshow", handlePageShow);
-    return () => window.removeEventListener("pageshow", handlePageShow);
-  }, []);
+    // Amikor a history-ban lépünk (egér oldalsó gomb vagy böngésző vissza gomb)
+    window.addEventListener("popstate", handleRestore);
+    
+    // Amikor a böngésző a memóriájából (BFCache) húzza elő az oldalt
+    window.addEventListener("pageshow", (e) => {
+      if (e.persisted) handleRestore();
+    });
+
+    // Ha az ablak visszakapja a fókuszt (pl. átkattintottál egy másik fülről vissza)
+    window.addEventListener("focus", handleRestore);
+
+    return () => {
+      window.removeEventListener("popstate", handleRestore);
+      window.removeEventListener("pageshow", handleRestore);
+      window.removeEventListener("focus", handleRestore);
+    };
+  }, [router]);
+
 
   const loadData = async () => {
     if (!user) return;
@@ -163,37 +185,42 @@ function DashboardContent() {
     const toastId = toast.loading("Importálás...");
     try {
       const ext = file.name.split(".").pop()?.toLowerCase();
-      let result: { cells: Record<string, any>; rowCount: number } | null = null;
+      let result: {
+        cellsByTab: Record<number, Record<string, any>>;
+        rowCountByTab: Record<number, number>;
+        tabs: string[];
+        colWidthsByTab: Record<number, Record<string, number>>;
+        rowHeightsByTab: Record<number, Record<string, number>>;
+      } | null = null;
 
       if (ext === "csv") {
         const text = await file.text();
         result = csvToCells(text);
       } else if (ext === "xlsx" || ext === "xls") {
         const buffer = await file.arrayBuffer();
-        result = xlsxToCells(buffer);
+        result = await xlsxToCells(buffer); // <-- JAVÍTVA: await hozzáadva
       } else {
         toast.error("Csak .csv, .xlsx és .xls fájlok támogatottak!", { id: toastId });
         if (importRef.current) importRef.current.value = "";
         return;
       }
 
+      if (!result) throw new Error("Üres eredmény");
       const sheetTitle = file.name.replace(/\.[^.]+$/, "");
-
-      // 1. Metaadat létrehozása a Firestore-ban
       const id = await createSheet(user.uid, sheetTitle, currentFolder);
 
-      // 3. JAVÍTÁS: Itt TÉNYLEGESEN lementjük az importált cellákat a Firebase-be!
+      // JAVÍTÁS: Itt adjuk át a valódi szélességeket és magasságokat a { 0: {} } helyett!
       await saveCells(
         user.uid,
         id,
-        { 0: result.cells }, // cellsByTab
-        { 0: result.rowCount }, // rowCountByTab
-        ["Sheet1"], // tabs
-        { 0: {} }, // colWidths
-        { 0: {} }  // rowHeights
+        result.cellsByTab,
+        result.rowCountByTab,
+        result.tabs,
+        result.colWidthsByTab,    // <-- ÚJ SOR
+        result.rowHeightsByTab    // <-- ÚJ SOR
       );
 
-      toast.success(`Importálva! ${Object.keys(result.cells).length} cella betöltve.`, { id: toastId });
+      toast.success(`Importálva! ${Object.keys(result.cellsByTab[0] || {}).length} cella betöltve.`, { id: toastId });
       saveRecent({ id, title: sheetTitle, folderId: currentFolder, openedAt: Date.now() });
 
       const path = `/sheet/${id}${currentFolder ? `?folder=${currentFolder}` : ""}`;
