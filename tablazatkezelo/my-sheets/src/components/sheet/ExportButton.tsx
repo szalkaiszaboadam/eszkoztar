@@ -1,7 +1,7 @@
 // src/components/sheet/ExportButton.tsx
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { Download } from "lucide-react";
 import { useSheetStore } from "@/lib/sheetStore";
 import { COLS } from "@/lib/constants";
@@ -9,150 +9,57 @@ import toast from "react-hot-toast";
 
 export default function ExportButton() {
   const [open, setOpen] = useState(false);
-  const btnRef = useRef<HTMLButtonElement>(null);
-  
-  // A méretek lekérése a store-ból (figyelj, hogy a colWidthsByTab és rowHeightsByTab benne legyen a store-ban!)
-  const { cellsByTab, rowCountByTab, tabs, title, colWidthsByTab, rowHeightsByTab } = useSheetStore();
+  const { cells, rowCount, title } = useSheetStore();
   const fileName = title || "tablazat";
 
-  const exportCSV = () => {
-    const activeTabIdx = useSheetStore.getState().activeTab;
-    const cells = cellsByTab[activeTabIdx] || {};
-    const rowCount = rowCountByTab[activeTabIdx] || 100;
-
+  // Cellák → 2D tömb
+  const toRows = (): string[][] => {
     const rows: string[][] = [];
     for (let r = 1; r <= rowCount; r++) {
       const row = COLS.map((col) => cells[`${col}${r}`]?.value ?? "");
+      // Üres sorokat kihagyjuk a végéről
       if (row.some((v) => v !== "")) {
         rows.push(row);
       }
     }
+    return rows;
+  };
 
+  const exportCSV = () => {
+    const rows = toRows();
     const csv = rows.map((r) =>
       r.map((v) => (v.includes(",") || v.includes('"') ? `"${v.replace(/"/g, '""')}"` : v)).join(",")
     ).join("\n");
 
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${fileName}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-
+    download(`${fileName}.csv`, csv, "text/csv;charset=utf-8;");
     toast.success("CSV exportálva!");
     setOpen(false);
   };
 
   const exportXLSX = async () => {
-    const toastId = toast.loading("Excel generálása...");
-    try {
-      // ÚJ MOTOR: ExcelJS betöltése (Sokkal profibb a formázásokhoz és méretekhez)
-      const exceljsModule = await import("exceljs");
-      const ExcelJS = exceljsModule.default || exceljsModule;
-      
-      const wb = new ExcelJS.Workbook();
-      
-      // Friss állapot lekérése
-      const state = useSheetStore.getState();
+    const XLSX = (await import("xlsx")).default;
+    const rows = toRows();
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+    XLSX.writeFile(wb, `${fileName}.xlsx`);
+    toast.success("XLSX exportálva!");
+    setOpen(false);
+  };
 
-      // Végigmegyünk az összes fülön
-      state.tabs.forEach((tabName, tabIdx) => {
-        const ws = wb.addWorksheet(tabName);
-        const cells = state.cellsByTab[tabIdx] || {};
-        
-        // Biztonságos lekérés, ha esetleg undefined lenne
-        const colWidths = state.colWidthsByTab?.[tabIdx] || {};
-        const rowHeights = state.rowHeightsByTab?.[tabIdx] || {};
-
-        // --- OSZLOP SZÉLESSÉGEK EXPORTÁLÁSA ---
-        Object.entries(colWidths).forEach(([colLetter, width]) => {
-          ws.getColumn(colLetter).width = width / 7;
-        });
-
-        // --- SOR MAGASSÁGOK EXPORTÁLÁSA ---
-        Object.entries(rowHeights).forEach(([rowStr, height]) => {
-          ws.getRow(parseInt(rowStr)).height = height / 1.33;
-        });
-
-        // --- CELLÁK ÉS FORMÁZÁSOK EXPORTÁLÁSA ---
-        Object.entries(cells).forEach(([cellRef, cellData]) => {
-          if (!cellData || (!cellData.value && !cellData.formula)) return;
-
-          const cell = ws.getCell(cellRef);
-
-          // Érték vagy Képlet visszaírása
-          if (cellData.formula) {
-            const cleanFormula = cellData.formula.startsWith("=")
-              ? cellData.formula.slice(1)
-              : cellData.formula;
-            cell.value = { formula: cleanFormula, result: undefined };
-          } else {
-            cell.value = cellData.value;
-          }
-
-          // Formázások (Stílusok) átadása
-          if (cellData.format) {
-            const fmt = cellData.format;
-
-            cell.font = {
-              bold: !!fmt.bold,
-              italic: !!fmt.italic,
-              underline: !!fmt.underline,
-              size: fmt.fontSize || undefined,
-              color: fmt.color ? { argb: "FF" + fmt.color.replace("#", "").toUpperCase() } : undefined,
-            };
-
-            if (fmt.bgColor) {
-              cell.fill = {
-                type: "pattern",
-                pattern: "solid",
-                fgColor: { argb: "FF" + fmt.bgColor.replace("#", "").toUpperCase() },
-              };
-            }
-
-            if (fmt.align) {
-              cell.alignment = { horizontal: fmt.align as any };
-            }
-
-            if (fmt.border) {
-              cell.border = {
-                top: fmt.border.top ? { style: "thin", color: { argb: "FF000000" } } : undefined,
-                bottom: fmt.border.bottom ? { style: "thin", color: { argb: "FF000000" } } : undefined,
-                left: fmt.border.left ? { style: "thin", color: { argb: "FF000000" } } : undefined,
-                right: fmt.border.right ? { style: "thin", color: { argb: "FF000000" } } : undefined,
-              };
-            }
-          }
-        });
-      });
-
-      // Fájl írása és letöltése
-      const buffer = await wb.xlsx.writeBuffer();
-      const blob = new Blob([buffer], {
-        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      });
-      
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${fileName}.xlsx`;
-      a.click();
-      URL.revokeObjectURL(url);
-
-      toast.success("Excel fájl sikeresen kiexportálva!", { id: toastId });
-    } catch (error) {
-      console.error(error);
-      toast.error("Hiba történt az exportálás során.", { id: toastId });
-    } finally {
-      setOpen(false);
-    }
+  const download = (name: string, content: string, type: string) => {
+    const blob = new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = name;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
     <div className="relative">
       <button
-        ref={btnRef}
         onClick={() => setOpen((v) => !v)}
         className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-green-600 hover:bg-gray-100 px-2.5 py-1.5 rounded-lg transition"
         title="Exportálás"
@@ -163,14 +70,9 @@ export default function ExportButton() {
 
       {open && (
         <>
+          {/* Háttér klikk bezárja */}
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div
-            className="fixed mt-1 bg-white border border-gray-200 rounded-xl shadow-lg py-1.5 z-50 min-w-[140px]"
-            style={{
-              top: btnRef.current ? btnRef.current.getBoundingClientRect().bottom : 0,
-              left: btnRef.current ? btnRef.current.getBoundingClientRect().left : 0,
-            }}
-          >
+          <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg py-1.5 z-50 min-w-[140px]">
             <button
               onClick={exportCSV}
               className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition"

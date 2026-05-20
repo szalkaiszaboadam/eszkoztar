@@ -10,7 +10,7 @@ import toast from "react-hot-toast";
 export default function ImportButton() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
-  const { setAllTabData, setDirty } = useSheetStore(); // Most az egészet egyben töltjük be
+  const { setCells, setDirty, setRowCount } = useSheetStore(); // ← setRowCount hozzáadva
 
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -19,36 +19,23 @@ export default function ImportButton() {
 
     try {
       const ext = file.name.split(".").pop()?.toLowerCase();
-      let result: {
-        cellsByTab: Record<number, Record<string, any>>;
-        rowCountByTab: Record<number, number>;
-        tabs: string[];
-        colWidthsByTab: Record<number, Record<string, number>>;
-        rowHeightsByTab: Record<number, Record<string, number>>;
-      } | null = null;
+      let result: ReturnType<typeof csvToCells> | null = null;
 
       if (ext === "csv") {
         const text = await file.text();
         result = csvToCells(text);
       } else if (ext === "xlsx" || ext === "xls") {
         const buffer = await file.arrayBuffer();
-        result = await xlsxToCells(buffer);
+        result = xlsxToCells(buffer);
       } else {
         toast.error("Csak .csv, .xlsx és .xls fájlok támogatottak!");
         return;
       }
 
-      if (result) {
-        setAllTabData({
-          cellsByTab: result.cellsByTab,
-          rowCountByTab: result.rowCountByTab,
-          tabs: result.tabs,
-          colWidthsByTab: result.colWidthsByTab,
-          rowHeightsByTab: result.rowHeightsByTab,
-        });
-        setDirty(true);
-        toast.success(`Importálva!`);
-      }
+      setCells(result.cells);
+      setRowCount(result.rowCount); // ← ez volt a hiányzó sor!
+      setDirty(true);
+      toast.success(`Importálva! ${Object.keys(result.cells).length} cella betöltve.`);
     } catch (err) {
       console.error(err);
       toast.error("Hiba történt az importálás során.");
@@ -60,7 +47,13 @@ export default function ImportButton() {
 
   return (
     <>
-      <input ref={inputRef} type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={handleFile} />
+      <input
+        ref={inputRef}
+        type="file"
+        accept=".csv,.xlsx,.xls"
+        className="hidden"
+        onChange={handleFile}
+      />
       <button
         onClick={() => inputRef.current?.click()}
         disabled={loading}
