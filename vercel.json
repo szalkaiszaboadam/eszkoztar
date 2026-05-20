@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/tablazatkezelo",
+      "destination": "https://eszkoztar.vercel.app"
+    },
+    {
+      "source": "/tablazatkezelo/:match*",
+      "destination": "https://eszkoztar.vercel.app/:match*"
+    }
+  ]
+}
