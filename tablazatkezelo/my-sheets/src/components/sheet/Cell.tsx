@@ -97,6 +97,9 @@ const Cell = memo(function Cell({ id, isHeader, label, height = 28, onNavigate }
   let overlayClass = "";
   let zClass = "";
 
+  // Ellenőrizzük, hogy a cellának van-e egyedi szegélye
+  const hasCustomBorder = !!(fmt.border && (fmt.border.top || fmt.border.bottom || fmt.border.left || fmt.border.right));
+
   if (isSelected) { 
     zClass = "z-20"; 
   } else if (isInFillSelection) { 
@@ -104,31 +107,54 @@ const Cell = memo(function Cell({ id, isHeader, label, height = 28, onNavigate }
     zClass = "z-10 outline outline-1 outline-blue-500 outline-dashed -outline-offset-1"; 
   } else if (isMultiSelected) { 
     overlayClass = "after:absolute after:inset-0 after:bg-blue-500/20 after:pointer-events-none"; 
-    zClass = ""; 
+    zClass = hasCustomBorder ? "z-10" : ""; 
   } else if (isHighlighted) { 
     overlayClass = "after:absolute after:inset-0 after:bg-blue-500/10 after:pointer-events-none"; 
-    zClass = ""; 
+    zClass = hasCustomBorder ? "z-10" : ""; 
+  } else if (hasCustomBorder) {
+    zClass = "z-10"; // A szegélyes cellák mindig feljebb kerülnek, hogy rárajzolhassanak a gridre
   }
 
-  let boxShadows = [];
-  if (fmt.border) {
-    if (fmt.border.top) boxShadows.push("inset 0 1px 0 0 #000");
-    if (fmt.border.right) boxShadows.push("inset -1px 0 0 0 #000");
-    if (fmt.border.bottom) boxShadows.push("inset 0 -1px 0 0 #000");
-    if (fmt.border.left) boxShadows.push("inset 1px 0 0 0 #000");
-  }
-  const borderShadow = boxShadows.length > 0 ? boxShadows.join(", ") : undefined;
+  // --- ÚJ: A szegélyek generálása abszolút, tökéletesen átfedő rétegekként ---
+  const renderBorder = (b: any, side: "top" | "bottom" | "left" | "right") => {
+    if (!b) return null;
+    let w = 1; let style = "solid";
+    
+    if (b !== true) {
+      if (b.style === "thick") w = 3;
+      else if (b.style === "medium") w = 2;
+      if (b.style?.toLowerCase().includes("dash")) style = "dashed";
+      else if (b.style?.toLowerCase().includes("dot")) style = "dotted";
+    }
+    const color = b.color || '#000000';
+    
+    // ZSENIÁLIS TRÜKK: Középre igazítjuk a vonalat a cella határvonalán, vastagságtól függően!
+    const shift = Math.floor((w - 1) / 2);
+    const offset = `-${1 + shift}px`;
+
+    const common: React.CSSProperties = { position: "absolute", zIndex: 11, pointerEvents: "none" };
+    
+    // MINDIG borderTop-ot és borderLeft-et használunk!
+    // Így az egymás melletti cellák szegélyei pixelre pontosan EGYMÁSRA kerülnek, nem pedig egymás mellé!
+    if (side === "top") return <div style={{ ...common, top: offset, left: offset, right: offset, borderTop: `${w}px ${style} ${color}` }} />;
+    if (side === "bottom") return <div style={{ ...common, top: `calc(100% - ${1 + shift}px)`, left: offset, right: offset, borderTop: `${w}px ${style} ${color}` }} />;
+    
+    if (side === "left") return <div style={{ ...common, left: offset, top: offset, bottom: offset, borderLeft: `${w}px ${style} ${color}` }} />;
+    if (side === "right") return <div style={{ ...common, left: `calc(100% - ${1 + shift}px)`, top: offset, bottom: offset, borderLeft: `${w}px ${style} ${color}` }} />;
+  };
 
   return (
     <div
       ref={divRef}
       data-cell={id}
       tabIndex={0}
-      className={`border-b border-r border-gray-200 relative focus:outline-none transition-colors ${isSelected ? "ring-2 ring-blue-500 ring-inset" : ""} ${overlayClass} ${zClass}`}
+      // A default tailwind border színt (border-gray-200) kivettük, dinamikussá tettük!
+      className={`border-b border-r relative focus:outline-none transition-colors ${isSelected ? "ring-2 ring-blue-500 ring-inset" : ""} ${overlayClass} ${zClass}`}
       style={{
         height,
         backgroundColor: fmt.bgColor || undefined,
-        boxShadow: borderShadow,
+        // HÁTTÉRSZÍN TRÜKK: Ha van háttérszín, a gridvonal átszíneződik arra, így láthatatlanul összeolvad!
+        borderColor: fmt.bgColor ? fmt.bgColor : "#e5e7eb",
       }}
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
@@ -150,6 +176,12 @@ const Cell = memo(function Cell({ id, isHeader, label, height = 28, onNavigate }
         else if (state.fillDragStart) state.updateFillDrag(id);
       }}
     >
+      {/* A szegélyek kirajzolása független rétegként a cella felett */}
+      {fmt.border?.top && renderBorder(fmt.border.top, "top")}
+      {fmt.border?.bottom && renderBorder(fmt.border.bottom, "bottom")}
+      {fmt.border?.left && renderBorder(fmt.border.left, "left")}
+      {fmt.border?.right && renderBorder(fmt.border.right, "right")}
+
       {editing ? (
         <input
           ref={inputRef}
@@ -175,6 +207,7 @@ const Cell = memo(function Cell({ id, isHeader, label, height = 28, onNavigate }
         </span>
       )}
 
+      {/* A Kitöltő Fogantyú (Kék Négyzet) */}
       {isSelected && !editing && (
         <div
           className="absolute -bottom-[3px] -right-[3px] w-2 h-2 bg-blue-600 border border-white cursor-crosshair z-30"

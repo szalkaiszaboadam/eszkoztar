@@ -115,12 +115,21 @@ export default function ExportButton() {
               cell.alignment = { horizontal: fmt.align as any };
             }
 
-            if (fmt.border) {
+if (fmt.border) {
+              const mapExportBorder = (b: any) => {
+                if (!b) return undefined;
+                // Visszamenőleges kompatibilitás a régi "true" értékes szegélyekhez
+                if (b === true) return { style: "thin", color: { argb: "FF000000" } }; 
+                return { 
+                  style: b.style || "thin", 
+                  color: { argb: "FF" + (b.color || "#000000").replace("#", "").toUpperCase() } 
+                };
+              };
               cell.border = {
-                top: fmt.border.top ? { style: "thin", color: { argb: "FF000000" } } : undefined,
-                bottom: fmt.border.bottom ? { style: "thin", color: { argb: "FF000000" } } : undefined,
-                left: fmt.border.left ? { style: "thin", color: { argb: "FF000000" } } : undefined,
-                right: fmt.border.right ? { style: "thin", color: { argb: "FF000000" } } : undefined,
+                top: mapExportBorder(fmt.border.top),
+                bottom: mapExportBorder(fmt.border.bottom),
+                left: mapExportBorder(fmt.border.left),
+                right: mapExportBorder(fmt.border.right),
               };
             }
           }

@@ -14,9 +14,14 @@ const COLS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 const FONT_SIZES = [8, 9, 10, 11, 12, 14, 16, 18, 24, 36];
 
 export default function Toolbar() {
+
   const [activeTab, setActiveTab] = useState("Kezdőlap");
   const [borderMenuOpen, setBorderMenuOpen] = useState(false);
   const borderBtnRef = useRef<HTMLButtonElement>(null);
+
+  // ÚJ: Szegély stílus és szín állapotok
+  const [borderLineColor, setBorderLineColor] = useState("#000000");
+  const [borderLineStyle, setBorderLineStyle] = useState("thin");
   
   const formatCells = useSheetStore(s => s.formatCells);
   const insertRowAt = useSheetStore(s => s.insertRowAt);
@@ -63,6 +68,7 @@ export default function Toolbar() {
   };
 
   // --- PROFI SZEGÉLY LOGIKA ---
+// --- PROFI SZEGÉLY LOGIKA ---
   const applyBorders = (type: "all" | "none" | "outside" | "bottom" | "top" | "left" | "right") => {
     const state = useSheetStore.getState();
     let ids = state.dragSelection.length > 0 ? state.dragSelection : (state.selectedCell ? [state.selectedCell] : []);
@@ -83,30 +89,40 @@ export default function Toolbar() {
       const cIdx = COLS.indexOf(c);
       const existing = newCells[id] || { value: "", formula: "" };
       const prevBorder = existing.format?.border || {};
-      let newBorder = { ...prevBorder };
+      let newBorder: any = { ...prevBorder };
+
+      // A kiválasztott szín és stílus objektuma
+      const borderDef = { style: borderLineStyle, color: borderLineColor };
 
       if (type === "none") { newBorder = {}; }
-      else if (type === "all") { newBorder = { top: true, bottom: true, left: true, right: true }; }
+      else if (type === "all") { newBorder = { top: borderDef, bottom: borderDef, left: borderDef, right: borderDef }; }
       else if (type === "outside") {
-        if (r === minR) newBorder.top = true;
-        if (r === maxR) newBorder.bottom = true;
-        if (cIdx === minC) newBorder.left = true;
-        if (cIdx === maxC) newBorder.right = true;
+        if (r === minR) newBorder.top = borderDef;
+        if (r === maxR) newBorder.bottom = borderDef;
+        if (cIdx === minC) newBorder.left = borderDef;
+        if (cIdx === maxC) newBorder.right = borderDef;
       }
-      else if (type === "bottom") newBorder.bottom = true;
-      else if (type === "top") newBorder.top = true;
-      else if (type === "left") newBorder.left = true;
-      else if (type === "right") newBorder.right = true;
+      else if (type === "bottom") newBorder.bottom = borderDef;
+      else if (type === "top") newBorder.top = borderDef;
+      else if (type === "left") newBorder.left = borderDef;
+      else if (type === "right") newBorder.right = borderDef;
 
-      // Tisztítás
-      Object.keys(newBorder).forEach(k => !newBorder[k as keyof typeof newBorder] && delete newBorder[k as keyof typeof newBorder]);
+      // JAVÍTÁS 1: Szigorú tisztítás a falsy/undefined értékektől Firebase miatt!
+      const cleanBorder: any = {};
+      Object.keys(newBorder).forEach(k => {
+        if (newBorder[k]) cleanBorder[k] = newBorder[k];
+      });
+
+      const newFormat = { ...existing.format };
+      if (Object.keys(cleanBorder).length > 0) {
+        newFormat.border = cleanBorder;
+      } else {
+        delete newFormat.border; // Ha nincs szegély, teljesen eltüntetjük a kulcsot
+      }
 
       newCells[id] = {
         ...existing,
-        format: {
-          ...existing.format,
-          border: Object.keys(newBorder).length > 0 ? newBorder : undefined
-        }
+        format: newFormat
       };
       hasChanges = true;
     });
@@ -183,10 +199,25 @@ export default function Toolbar() {
               <input type="color" className="w-4 h-4 cursor-pointer rounded border-0" value={fmt.color ?? "#1f2937"} onChange={(e) => apply({ color: e.target.value })} />
             </label>
 
-            <label className="flex items-center gap-1.5 cursor-pointer p-1.5 rounded hover:bg-gray-200 shrink-0" title="Háttér színe">
-              <Paintbrush className="w-4 h-4 text-gray-700" />
-              <input type="color" className="w-4 h-4 cursor-pointer rounded border-0" value={fmt.bgColor ?? "#ffffff"} onChange={(e) => apply({ bgColor: e.target.value })} />
-            </label>
+            {/* Háttérszín választó + Reset gomb */}
+            <div className="flex items-center gap-0.5 rounded hover:bg-gray-200 p-0.5 shrink-0">
+              <label className="flex items-center gap-1.5 cursor-pointer p-1 rounded" title="Háttér színe">
+                <Paintbrush className="w-4 h-4 text-gray-700" />
+                <input 
+                  type="color" 
+                  className="w-4 h-4 cursor-pointer rounded border-0" 
+                  value={fmt.bgColor ?? "#ffffff"} 
+                  onChange={(e) => apply({ bgColor: e.target.value })} 
+                />
+              </label>
+              <button 
+                onClick={() => apply({ bgColor: undefined })} 
+                className="text-gray-400 hover:text-red-500 p-1" 
+                title="Háttérszín eltávolítása"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
 
             <div className="w-px h-5 bg-gray-300 mx-1 shrink-0" />
 
@@ -220,6 +251,22 @@ export default function Toolbar() {
                     <button onClick={() => { applyBorders("none"); setBorderMenuOpen(false); }} title="Nincs szegély" className="p-1.5 flex justify-center hover:bg-gray-100 rounded border border-gray-200 text-red-500">
                       <X className="w-4 h-4" />
                     </button>
+
+{/* ÚJ: Szín és stílus választó a szegélyekhez */}
+                    <div className="col-span-4 h-px bg-gray-200 my-1" />
+                    <div className="col-span-4 flex items-center gap-2 px-1 pb-1">
+                      <input type="color" value={borderLineColor} onChange={e => setBorderLineColor(e.target.value)} className="w-6 h-6 p-0 border-0 rounded cursor-pointer shrink-0" title="Szegély színe" />
+                      <select value={borderLineStyle} onChange={e => setBorderLineStyle(e.target.value)} className="text-xs border border-gray-300 rounded p-1 outline-none flex-1 text-gray-700 bg-white">
+                        <option value="thin">Vékony</option>
+                        <option value="medium">Közepes</option>
+                        <option value="thick">Vastag</option>
+                        <option value="dashed">Szaggatott</option>
+                        <option value="dotted">Pontozott</option>
+                      </select>
+                    </div>
+                    <div className="col-span-4 h-px bg-gray-200 my-1" />
+                    {/* ------------------------------------------- */}
+
                     <div className="col-span-4 h-px bg-gray-200 my-1" />
                     <button onClick={() => { applyBorders("top"); setBorderMenuOpen(false); }} title="Felső szegély" className="p-1.5 flex justify-center hover:bg-gray-100 rounded border border-gray-200">
                       <div className="w-4 h-4 border-t-2 border-black" />
