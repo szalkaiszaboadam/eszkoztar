@@ -1,7 +1,7 @@
 // src/components/sheet/Cell.tsx
 "use client";
 
-import { useState, useRef, useEffect, memo } from "react";
+import { useState, useRef, useEffect, memo, useMemo } from "react";
 import { useSheetStore } from "@/lib/sheetStore";
 import { evaluateCell } from "@/lib/formulaEngine";
 
@@ -94,32 +94,89 @@ const Cell = memo(function Cell({ id, isHeader, label, height = 28, onNavigate }
   const isHighlighted = isRowSelected || isColSelected;
   const alignClass = fmt.align === "center" ? "text-center" : fmt.align === "right" ? "text-right" : "text-left";
 
+// --- PROFI KIJELÖLÉS ÉS TARTOMÁNYKERET LOGIKA ---
+  const dragSelection = useSheetStore((s) => s.dragSelection);
+  const fillSelection = useSheetStore((s) => s.fillSelection); // ÚJ: Kitöltési (húzás) tartomány lekérése
+  
+  const activeSelection = dragSelection.length > 0 ? dragSelection : (isSelected ? [id] : []);
+  const isInSelection = activeSelection.includes(id);
+  
   let overlayClass = "";
   let zClass = "";
 
-  // Ellenőrizzük, hogy a cellának van-e egyedi szegélye
   const hasCustomBorder = !!(fmt.border && (fmt.border.top || fmt.border.bottom || fmt.border.left || fmt.border.right));
 
-  if (isSelected) { 
+// JAVÍTÁS: Kiszámoljuk, hogy a meglévő kijelölés több cellás-e
+  const isMultiSelectActive = activeSelection.length > 1;
+
+if (isSelected) { 
+    zClass = "z-30"; 
+  } else if (isInSelection && isMultiSelectActive) { 
+    // JAVÍTÁS: Az 'inset-0' helyett kinyújtjuk a kék fóliát a cella alsó és jobb keretére is (-bottom-px -right-px).
+    // Így a szegély színe is tökéletesen beleolvad a színezett háttérbe!
+    overlayClass = "after:absolute after:top-0 after:left-0 after:-bottom-px after:-right-px after:bg-blue-600/15 after:pointer-events-none"; 
     zClass = "z-20"; 
   } else if (isInFillSelection) { 
-    overlayClass = "after:absolute after:inset-0 after:bg-blue-500/20 after:pointer-events-none"; 
-    zClass = "z-10 outline outline-1 outline-blue-500 outline-dashed -outline-offset-1"; 
-  } else if (isMultiSelected) { 
-    overlayClass = "after:absolute after:inset-0 after:bg-blue-500/20 after:pointer-events-none"; 
-    zClass = hasCustomBorder ? "z-10" : ""; 
+    overlayClass = ""; 
+    zClass = "z-20"; 
   } else if (isHighlighted) { 
-    overlayClass = "after:absolute after:inset-0 after:bg-blue-500/10 after:pointer-events-none"; 
+    // Ugyanígy kiterjesztjük a fejléc-kijelölés fóliáját is
+    overlayClass = "after:absolute after:top-0 after:left-0 after:-bottom-px after:-right-px after:bg-blue-600/5 after:pointer-events-none"; 
     zClass = hasCustomBorder ? "z-10" : ""; 
   } else if (hasCustomBorder) {
-    zClass = "z-10"; // A szegélyes cellák mindig feljebb kerülnek, hogy rárajzolhassanak a gridre
+    zClass = "z-10";
   }
 
-  // --- ÚJ: A szegélyek generálása abszolút, tökéletesen átfedő rétegekként ---
+  // DINAMIKUS TARTOMÁNY-PERIMETER (SIMA KIJELÖLÉS KÜLSŐ SZÉLE)
+  const selectionEdges = useMemo(() => {
+    if (!isInSelection) return null;
+    
+    const rows = activeSelection.map(x => parseInt(x.match(/\d+/)?.[0] ?? "1"));
+    const cols = activeSelection.map(x => x.match(/[A-Z]+/)?.[0] ?? "A");
+    const colIndices = cols.map(c => "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").indexOf(c));
+    
+    const minR = Math.min(...rows);
+    const maxR = Math.max(...rows);
+    const minC = Math.min(...colIndices);
+    const maxC = Math.max(...colIndices);
+    
+    const currentColIdx = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").indexOf(col);
+    
+    return {
+      top: row === minR,
+      bottom: row === maxR,
+      left: currentColIdx === minC,
+      right: currentColIdx === maxC
+    };
+  }, [isInSelection, activeSelection, row, col]);
+
+  // ÚJ: KITÖLTÉSI TARTOMÁNY (SZAGGATOTT VONAL) KÜLSŐ SZÉLEINEK SZÁMÍTÁSA
+  const fillEdges = useMemo(() => {
+    if (!isInFillSelection) return null;
+    
+    const rows = fillSelection.map(x => parseInt(x.match(/\d+/)?.[0] ?? "1"));
+    const cols = fillSelection.map(x => x.match(/[A-Z]+/)?.[0] ?? "A");
+    const colIndices = cols.map(c => "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").indexOf(c));
+    
+    const minR = Math.min(...rows);
+    const maxR = Math.max(...rows);
+    const minC = Math.min(...colIndices);
+    const maxC = Math.max(...colIndices);
+    
+    const currentColIdx = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").indexOf(col);
+    
+    return {
+      top: row === minR,
+      bottom: row === maxR,
+      left: currentColIdx === minC,
+      right: currentColIdx === maxC
+    };
+  }, [isInFillSelection, fillSelection, row, col]);
+
+  // Személyre szabott szegélyek (változatlan)
   const renderBorder = (b: any, side: "top" | "bottom" | "left" | "right") => {
     if (!b) return null;
     let w = 1; let style = "solid";
-    
     if (b !== true) {
       if (b.style === "thick") w = 3;
       else if (b.style === "medium") w = 2;
@@ -127,33 +184,51 @@ const Cell = memo(function Cell({ id, isHeader, label, height = 28, onNavigate }
       else if (b.style?.toLowerCase().includes("dot")) style = "dotted";
     }
     const color = b.color || '#000000';
-    
-    // ZSENIÁLIS TRÜKK: Középre igazítjuk a vonalat a cella határvonalán, vastagságtól függően!
     const shift = Math.floor((w - 1) / 2);
     const offset = `-${1 + shift}px`;
-
     const common: React.CSSProperties = { position: "absolute", zIndex: 11, pointerEvents: "none" };
     
-    // MINDIG borderTop-ot és borderLeft-et használunk!
-    // Így az egymás melletti cellák szegélyei pixelre pontosan EGYMÁSRA kerülnek, nem pedig egymás mellé!
     if (side === "top") return <div style={{ ...common, top: offset, left: offset, right: offset, borderTop: `${w}px ${style} ${color}` }} />;
     if (side === "bottom") return <div style={{ ...common, top: `calc(100% - ${1 + shift}px)`, left: offset, right: offset, borderTop: `${w}px ${style} ${color}` }} />;
-    
     if (side === "left") return <div style={{ ...common, left: offset, top: offset, bottom: offset, borderLeft: `${w}px ${style} ${color}` }} />;
     if (side === "right") return <div style={{ ...common, left: `calc(100% - ${1 + shift}px)`, top: offset, bottom: offset, borderLeft: `${w}px ${style} ${color}` }} />;
   };
+
+  // ÚJ ÉS JAVÍTOTT: KÜLSŐ KERET RENDERELÉSE (Sima kijelölés ÉS Szaggatott kitöltés)
+  const renderOuterBorder = (edges: any, isDashed: boolean = false) => {
+    if (!edges) return null;
+    const zInd = isDashed ? 40 : 25; // A szaggatott vonal a sima kijelölés fölött van
+    const common: React.CSSProperties = { position: "absolute", zIndex: zInd, pointerEvents: "none" };
+    
+    // JAVÍTÁS: A -2px eltolás teljesen kiviszi a keretet a cella dobozából (a szomszédokra), 
+    // így garantáltan kívül lesz és nem nyomja össze a cellát! A szaggatottnak elég a -1px.
+    const offset = isDashed ? "-1px" : "-2px"; 
+    const bStyle = isDashed ? "1px dashed #2563eb" : "2px solid #2563eb"; 
+    
+    return (
+      <>
+        {edges.top && <div style={{ ...common, top: offset, left: offset, right: offset, borderTop: bStyle }} />}
+        {edges.bottom && <div style={{ ...common, bottom: offset, left: offset, right: offset, borderBottom: bStyle }} />}
+        {edges.left && <div style={{ ...common, left: offset, top: offset, bottom: offset, borderLeft: bStyle }} />}
+        {edges.right && <div style={{ ...common, right: offset, top: offset, bottom: offset, borderRight: bStyle }} />}
+      </>
+    );
+  };
+
+  const isBottomRightOfSelection = isInSelection && selectionEdges?.bottom && selectionEdges?.right;
+  if (isBottomRightOfSelection) {
+    zClass += " z-30";
+  }
 
   return (
     <div
       ref={divRef}
       data-cell={id}
       tabIndex={0}
-      // A default tailwind border színt (border-gray-200) kivettük, dinamikussá tettük!
-      className={`border-b border-r relative focus:outline-none transition-colors ${isSelected ? "ring-2 ring-blue-500 ring-inset" : ""} ${overlayClass} ${zClass}`}
+      className={`border-b border-r relative focus:outline-none transition-colors ${zClass} ${overlayClass}`}
       style={{
         height,
         backgroundColor: fmt.bgColor || undefined,
-        // HÁTTÉRSZÍN TRÜKK: Ha van háttérszín, a gridvonal átszíneződik arra, így láthatatlanul összeolvad!
         borderColor: fmt.bgColor ? fmt.bgColor : "#e5e7eb",
       }}
       onClick={handleClick}
@@ -176,11 +251,19 @@ const Cell = memo(function Cell({ id, isHeader, label, height = 28, onNavigate }
         else if (state.fillDragStart) state.updateFillDrag(id);
       }}
     >
-      {/* A szegélyek kirajzolása független rétegként a cella felett */}
+      {/* Egyedi cellaszegélyek */}
       {fmt.border?.top && renderBorder(fmt.border.top, "top")}
       {fmt.border?.bottom && renderBorder(fmt.border.bottom, "bottom")}
       {fmt.border?.left && renderBorder(fmt.border.left, "left")}
       {fmt.border?.right && renderBorder(fmt.border.right, "right")}
+
+      {/* JAVÍTOTT: TARTOMÁNY KÉK VÉGLEGES KERETE (Teljesen kívül fut, -2px eltolással) */}
+      {selectionEdges && renderOuterBorder(selectionEdges, false)}
+
+      {/* ÚJ: TARTOMÁNY KITÖLTÉSI (SZAGGATOTT) KERETE (Csak a peremen!) */}
+      {fillEdges && renderOuterBorder(fillEdges, true)}
+
+      {/* ... Innen lefelé az input / span és a kitöltő fogantyú kódja változatlan marad ... */}
 
       {editing ? (
         <input
@@ -189,11 +272,12 @@ const Cell = memo(function Cell({ id, isHeader, label, height = 28, onNavigate }
           onChange={(e) => setDraft(e.target.value)}
           onBlur={commitEdit}
           onKeyDown={handleInputKeyDown}
-          className="absolute inset-0 w-full h-full px-1.5 text-sm text-gray-900 outline-none bg-white border-2 border-blue-500 z-20"
+          // JAVÍTÁS: Eltávolítottuk a 'border-2 border-blue-500' osztályokat, így nem lesz dupla keret!
+          className="absolute inset-0 w-full h-full px-1.5 text-sm text-gray-900 outline-none bg-white z-40"
         />
       ) : (
         <span
-          className={`block px-1.5 py-0.5 text-sm truncate ${alignClass}`}
+          className={`block px-1.5 py-0.5 text-sm truncate ${alignClass} relative z-10`}
           style={{
             fontWeight: fmt.bold ? "bold" : "normal",
             fontStyle: fmt.italic ? "italic" : "normal",
@@ -207,10 +291,10 @@ const Cell = memo(function Cell({ id, isHeader, label, height = 28, onNavigate }
         </span>
       )}
 
-      {/* A Kitöltő Fogantyú (Kék Négyzet) */}
-      {isSelected && !editing && (
+      {/* JAVÍTOTT: A Kitöltő Fogantyú (Kék Négyzet) most már a tartomány jobb alsó sarkán jelenik meg! */}
+      {isBottomRightOfSelection && !editing && (
         <div
-          className="absolute -bottom-[3px] -right-[3px] w-2 h-2 bg-blue-600 border border-white cursor-crosshair z-30"
+          className="absolute -bottom-[3px] -right-[3px] w-2 h-2 bg-blue-600 border border-white cursor-crosshair z-50"
           onMouseDown={(e) => {
             e.preventDefault();
             e.stopPropagation();

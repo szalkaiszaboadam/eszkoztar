@@ -15,6 +15,23 @@ urllib3.disable_warnings(urllib3.exceptions.NotOpenSSLWarning)
 
 
 # --- UTILS & CLEANERS ---
+def biztonsagos_oldalbetoltes(page, url, max_probalkozas=3):
+    """Megpróbál betölteni egy oldalt. Ha elmegy a net, vár és újrapróbálja."""
+    for proba in range(1, max_probalkozas + 1):
+        try:
+            page.goto(url, timeout=60000)
+            time.sleep(2.5)
+            return True
+        except Exception as e:
+            print(f"      ⚠️ Hálózat/Betöltési hiba ({proba}/{max_probalkozas}): {e}")
+            if proba < max_probalkozas:
+                print("      🔄 Újrapróbálkozás 5 másodperc múlva...")
+                time.sleep(5)
+            else:
+                print("      ❌ Végleges hiba: Nem sikerült betölteni az oldalt.")
+                return False
+
+
 def tiszta_nev(nev):
     return re.sub(r'[\\/*?:"<>|]', "", nev).strip()
 
@@ -75,6 +92,55 @@ def indexek_kiszamitasa(osszes_termek, kivan_db=10, mod="random"):
 
 
 # ==============================================================================
+# --- REKURZÍV KÉP-TÉRKÉP REKONSTRUKCIÓ (MODUL SZINTEN!) ---
+# JAVÍTÁS: Ez a függvény korábban az else blokkba volt indentálva,
+# ezért az 1. fázis után sosem futott le, és final_image_map üres maradt.
+# ==============================================================================
+def rekurziv_image_map_betoltes(mappa, kat_id_list, current_map):
+    """
+    Rekurzívan bejárja a kollazs_kepek mappát és feltölti a final_image_map-et
+    a lemezen lévő képek alapján. Újraindításkor ez adja vissza az állapotot.
+    """
+    if not os.path.exists(mappa):
+        return
+
+    kepek = [os.path.join(mappa, f) for f in os.listdir(mappa)
+             if f.lower().endswith(('.jpg', '.jpeg', '.png')) and not f.startswith('_kollazs')]
+
+    if kepek and kat_id_list:  # Gyökér mappa ('kollazs_kepek') nem kap saját bejegyzést
+        kat_id = " > ".join(kat_id_list)
+        if kat_id in current_map:
+            # Duplikátumok elkerülése: csak az új fájlokat adjuk hozzá
+            meglevo_abspath = set(os.path.abspath(f) for f in current_map[kat_id])
+            for f in kepek:
+                if os.path.abspath(f) not in meglevo_abspath:
+                    current_map[kat_id].append(f)
+        else:
+            current_map[kat_id] = kepek
+
+    for item in os.listdir(mappa):
+        path = os.path.join(mappa, item)
+        if os.path.isdir(path) and not item.startswith('_'):
+            rekurziv_image_map_betoltes(path, kat_id_list + [item], current_map)
+
+
+def kollazs_kesz_e(kat_id):
+    """
+    Megvizsgálja, hogy egy kategóriához már el van-e készítve a kollázs
+    (azaz van-e _kollazs_*.png fájl a megfelelő mappában).
+    """
+    tiszta_kat_id = kat_id.replace(" (Összesítő)", "")
+    kat_utvonal = tiszta_kat_id.split(" > ")
+    mappa_path = os.path.join("kollazs_kepek", *[tiszta_nev(p) for p in kat_utvonal])
+
+    if os.path.exists(mappa_path):
+        for f in os.listdir(mappa_path):
+            if f.startswith("_kollazs") and f.lower().endswith('.png'):
+                return True
+    return False
+
+
+# ==============================================================================
 # --- 1. FÁZIS: CSAK LETÖLTÉS (CORE MAG) ---
 # ==============================================================================
 def letoltes_vegrehajtasa_fajl_visszaadas(page, p_url, mappa_path, fallback_idx, base_url):
@@ -126,6 +192,9 @@ def termek_letolto_fázis1(page, url, kategoria_utvonal, letoltendo_db, eloszlas
     mappa_path = os.path.join("kollazs_kepek", *tiszta_utvonal)
     os.makedirs(mappa_path, exist_ok=True)
 
+    if not biztonsagos_oldalbetoltes(page, url):
+        return [], []
+
     try:
         page.goto(url, timeout=60000)
         time.sleep(2.5)
@@ -160,8 +229,6 @@ def termek_letolto_fázis1(page, url, kategoria_utvonal, letoltendo_db, eloszlas
     print(f"   ⚙️ Képek letöltése ide: {kat_azonosito}")
     cel_indexek = indexek_kiszamitasa(osszes_termek, letoltendo_db, eloszlas_mod)
 
-    # --- ÚJ LOGIKA: Dinamikus pótlás (Nincs retry_list spam) ---
-    # Létrehozunk egy listát a még ki nem próbált termékek indexeiből
     kiprobalatlan_indexek = [i for i in range(osszes_termek) if i not in cel_indexek]
     if eloszlas_mod == "random":
         random.shuffle(kiprobalatlan_indexek)
@@ -179,14 +246,17 @@ def termek_letolto_fázis1(page, url, kategoria_utvonal, letoltendo_db, eloszlas
             if fajl_ut:
                 lokalis_fajlok.append(fajl_ut)
             else:
-                # Nincs kép: Azonnal pótoljuk egy másikkal a maradékból!
                 print("      🔄 Nincs kép, pótlás egy másik termékkel...")
                 if kiprobalatlan_indexek:
                     uj_idx = kiprobalatlan_indexek.pop(0)
                     vonal.append(osszes_termek_link[uj_idx])
         except Exception as e:
-            # Hiba volt (pl. timeout): Azonnal pótoljuk egy másikkal!
-            print(f"      ❌ Hiba (1. FÁZIS): {e} -> Termék kihagyása, keresünk másikat...")
+            print(f"      ❌ Hiba (1. FÁZIS): {e} -> Kép mentése a javító listára (Retry List)!")
+            retry_list.append({
+                "kategoria_utvonal": kategoria_utvonal,
+                "url": p_url,
+                "fallback_idx": probalkozas_szam
+            })
             if kiprobalatlan_indexek:
                 uj_idx = kiprobalatlan_indexek.pop(0)
                 vonal.append(osszes_termek_link[uj_idx])
@@ -205,6 +275,9 @@ def kategoria_bejaro_fázis1(page, url, kategoria_utvonal, alap_letoltendo_db, e
     print(f"\n📂 Bejárás: {' > '.join(kategoria_utvonal)}")
 
     image_map = {}
+
+    if not biztonsagos_oldalbetoltes(page, url):
+        return 1, [], image_map
 
     try:
         page.goto(url, timeout=60000)
@@ -259,8 +332,10 @@ def kategoria_bejaro_fázis1(page, url, kategoria_utvonal, alap_letoltendo_db, e
                                                                       eloszlas_mod, progress_file,
                                                                       befejezett_kategoriak, retry_list, base_url)
                 max_gyerek_melyseg = max(max_gyerek_melyseg, 1)
-                if gyerek_linkek: osszes_osszegujtott_link.extend(gyerek_linkek)
-                if lokalis_fajlok: image_map[" > ".join(uj_utvonal)] = lokalis_fajlok
+                if gyerek_linkek:
+                    osszes_osszegujtott_link.extend(gyerek_linkek)
+                if lokalis_fajlok:
+                    image_map[" > ".join(uj_utvonal)] = lokalis_fajlok
 
         sajat_melyseg = max_gyerek_melyseg + 1
 
@@ -272,7 +347,8 @@ def kategoria_bejaro_fázis1(page, url, kategoria_utvonal, alap_letoltendo_db, e
                                                                            alap_letoltendo_db, eloszlas_mod,
                                                                            progress_file, befejezett_kategoriak,
                                                                            retry_list, base_url)
-                if kozvetlen_linkek: osszes_osszegujtott_link.extend(kozvetlen_linkek)
+                if kozvetlen_linkek:
+                    osszes_osszegujtott_link.extend(kozvetlen_linkek)
                 if kozvetlen_fajlok:
                     kat_id = " > ".join(kategoria_utvonal)
                     if kat_id in image_map:
@@ -282,9 +358,10 @@ def kategoria_bejaro_fázis1(page, url, kategoria_utvonal, alap_letoltendo_db, e
         except:
             pass
 
-        if letolt_koztes and osszes_osszegujtott_link:
+        egyedi_linkek = list(set(osszes_osszegujtott_link))
+
+        if letolt_koztes and egyedi_linkek:
             aktualis_db = alap_letoltendo_db * sajat_melyseg
-            egyedi_linkek = list(set(osszes_osszegujtott_link))
             tiszta_utvonal = [tiszta_nev(p) for p in kategoria_utvonal]
             mappa_path = os.path.join("kollazs_kepek", *tiszta_utvonal)
 
@@ -294,7 +371,6 @@ def kategoria_bejaro_fázis1(page, url, kategoria_utvonal, alap_letoltendo_db, e
                 print(f"\n   📦 [Összesítő szint] Gyűjtemény letöltése ide: {' > '.join(kategoria_utvonal)}")
                 os.makedirs(mappa_path, exist_ok=True)
 
-                # --- ÚJ LOGIKA: Dinamikus pótlás az összesítőnél is ---
                 cel_indexek = indexek_kiszamitasa(len(egyedi_linkek), aktualis_db, eloszlas_mod)
                 kiprobalatlan_indexek = [i for i in range(len(egyedi_linkek)) if i not in cel_indexek]
                 if eloszlas_mod == "random":
@@ -324,7 +400,8 @@ def kategoria_bejaro_fázis1(page, url, kategoria_utvonal, alap_letoltendo_db, e
                             uj_idx = kiprobalatlan_indexek.pop(0)
                             vonal.append(egyedi_linkek[uj_idx])
 
-                if lokalis_osszesito_fajlok: image_map[kat_azonosito_full] = lokalis_osszesito_fajlok
+                if lokalis_osszesito_fajlok:
+                    image_map[kat_azonosito_full] = lokalis_osszesito_fajlok
                 befejezett_kategoriak.append(kat_azonosito_full)
                 allapot_mentese_scraper(progress_file, befejezett_kategoriak, retry_list)
             else:
@@ -334,7 +411,8 @@ def kategoria_bejaro_fázis1(page, url, kategoria_utvonal, alap_letoltendo_db, e
                     for f in os.listdir(mappa_path):
                         if f.lower().endswith(('.jpg', '.jpeg', '.png')) and not f.startswith('_kollazs'):
                             meglevo_fajlok.append(os.path.join(mappa_path, f))
-                if meglevo_fajlok: image_map[kat_azonosito_full] = meglevo_fajlok
+                if meglevo_fajlok:
+                    image_map[kat_azonosito_full] = meglevo_fajlok
 
         return sajat_melyseg, egyedi_linkek, image_map
 
@@ -342,7 +420,8 @@ def kategoria_bejaro_fázis1(page, url, kategoria_utvonal, alap_letoltendo_db, e
         gyerek_linkek, lokalis_fajlok = termek_letolto_fázis1(page, url, kategoria_utvonal, alap_letoltendo_db,
                                                               eloszlas_mod, progress_file, befejezett_kategoriak,
                                                               retry_list, base_url)
-        if lokalis_fajlok: image_map[" > ".join(kategoria_utvonal)] = lokalis_fajlok
+        if lokalis_fajlok:
+            image_map[" > ".join(kategoria_utvonal)] = lokalis_fajlok
         return 1, (gyerek_linkek if gyerek_linkek else []), image_map
 
 
@@ -359,9 +438,26 @@ def interaktiv_kollazs_fázis2(ctx: Context, image_map_full, collage_progress_fi
     print("=" * 50)
     print(f"Összesen {len(image_map_full)} kategóriát kell feldolgozni.")
 
+    # Progress betöltése
     befejezett_kollazsok = allapot_betoltese_egyszeru(collage_progress_file)
-    page = ctx.new_page()
 
+    # JAVÍTÁS: Automatikus kész-jelölés a fájlrendszer alapján (újraindításkor is működik)
+    for kat_id in list(image_map_full.keys()):
+        if kat_id not in befejezett_kollazsok and kollazs_kesz_e(kat_id):
+            print(f"   🔍 Kollázs megtalálva a lemezen (automatikus észlelés): {kat_id}")
+            befejezett_kollazsok.append(kat_id)
+
+    allapot_mentese_egyszeru(collage_progress_file, befejezett_kollazsok)
+
+    # Ha minden kész, ki sem nyitjuk a böngészőt
+    meg_hianyzok = [k for k in image_map_full.keys() if k not in befejezett_kollazsok]
+    if not meg_hianyzok:
+        print("\n✅ Minden kollázs már el van készítve! Kollázskészítési fázis átugorva.")
+        return
+
+    print(f"   ℹ️ {len(befejezett_kollazsok)} db már kész, {len(meg_hianyzok)} db még hiányzik.")
+
+    page = ctx.new_page()
     current_download_dir = ["kollazs_kepek"]
 
     def handle_download(download):
@@ -395,34 +491,33 @@ def interaktiv_kollazs_fázis2(ctx: Context, image_map_full, collage_progress_fi
 
             try:
                 page.evaluate("""
-                                () => {
-                                    const theme = localStorage.getItem('kp-theme');
-                                    localStorage.clear();
-                                    sessionStorage.clear();
-                                    if (theme) localStorage.setItem('kp-theme', theme);
-                                    if (window.indexedDB && window.indexedDB.databases) {
-                                        window.indexedDB.databases().then(dbs => {
-                                            dbs.forEach(db => window.indexedDB.deleteDatabase(db.name));
-                                        }).catch(() => {});
-                                    }
-                                }
-                            """)
+                    () => {
+                        const theme = localStorage.getItem('kp-theme');
+                        localStorage.clear();
+                        sessionStorage.clear();
+                        if (theme) localStorage.setItem('kp-theme', theme);
+                        if (window.indexedDB && window.indexedDB.databases) {
+                            window.indexedDB.databases().then(dbs => {
+                                dbs.forEach(db => window.indexedDB.deleteDatabase(db.name));
+                            }).catch(() => {});
+                        }
+                    }
+                """)
 
                 page.reload()
                 time.sleep(1.5)
 
                 page.evaluate("""
-                                () => {
-                                    const html = document.documentElement;
-                                    html.setAttribute('data-theme', 'light');
-                                    localStorage.setItem('kp-theme', 'light');
-
-                                    const lightIcon = document.getElementById('themeIconLight');
-                                    const darkIcon  = document.getElementById('themeIconDark');
-                                    if (lightIcon) lightIcon.style.display = 'none';
-                                    if (darkIcon)  darkIcon.style.display = 'block';
-                                }
-                            """)
+                    () => {
+                        const html = document.documentElement;
+                        html.setAttribute('data-theme', 'light');
+                        localStorage.setItem('kp-theme', 'light');
+                        const lightIcon = document.getElementById('themeIconLight');
+                        const darkIcon  = document.getElementById('themeIconDark');
+                        if (lightIcon) lightIcon.style.display = 'none';
+                        if (darkIcon)  darkIcon.style.display = 'block';
+                    }
+                """)
                 time.sleep(0.5)
 
                 file_input = page.locator('input[type="file"]').first
@@ -433,54 +528,53 @@ def interaktiv_kollazs_fázis2(ctx: Context, image_map_full, collage_progress_fi
                 print(f"   ⚠️ Automatikus feltöltés hiba: {e}. Kérlek húzd be kézzel a képeket.")
 
             header_js = f"""
-                            () => {{
-                                const oldHeader = document.getElementById('bot-header');
-                                if (oldHeader) oldHeader.remove();
+                () => {{
+                    const oldHeader = document.getElementById('bot-header');
+                    if (oldHeader) oldHeader.remove();
 
-                                const header = document.createElement('div');
-                                header.id = 'bot-header';
-                                header.style.position = 'fixed';
-                                header.style.top = '50%'; /* FÜGGŐLEGESEN KÖZÉPRE */
-                                header.style.left = '20px'; /* BAL OLDALRA */
-                                header.style.transform = 'translateY(-50%)'; /* PONTOS KÖZÉPRE IGAZÍTÁS */
-                                header.style.background = '#FFD700'; 
-                                header.style.color = '#000'; 
-                                header.style.zIndex = '999999';
-                                header.style.padding = '20px 15px'; 
-                                header.style.fontFamily = 'Arial, sans-serif';
-                                header.style.boxShadow = '0 8px 25px rgba(0,0,0,0.5)';
-                                header.style.display = 'flex'; 
-                                header.style.flexDirection = 'column'; /* EGYMÁS ALÁ RENDEZÉS */
-                                header.style.alignItems = 'center';
-                                header.style.gap = '15px';
-                                header.style.borderRadius = '20px'; /* Modern kerekített kinézet */
-                                header.style.maxWidth = '220px'; /* Max szélesség, hogy ne lógjon be nagyon */
+                    const header = document.createElement('div');
+                    header.id = 'bot-header';
+                    header.style.position = 'fixed';
+                    header.style.top = '50%';
+                    header.style.left = '20px';
+                    header.style.transform = 'translateY(-50%)';
+                    header.style.background = '#FFD700';
+                    header.style.color = '#000';
+                    header.style.zIndex = '999999';
+                    header.style.padding = '20px 15px';
+                    header.style.fontFamily = 'Arial, sans-serif';
+                    header.style.boxShadow = '0 8px 25px rgba(0,0,0,0.5)';
+                    header.style.display = 'flex';
+                    header.style.flexDirection = 'column';
+                    header.style.alignItems = 'center';
+                    header.style.gap = '15px';
+                    header.style.borderRadius = '20px';
+                    header.style.maxWidth = '220px';
 
-                                header.innerHTML = `
-                                    <div style="text-align:center; line-height:1.3;">
-                                        <span style="font-size:12px; font-weight:normal;">Aktuális kategória:</span><br>
-                                        <span style="font-size:15px; font-weight:bold;">{kat_id}</span>
-                                    </div>
-                                    <div style="font-size:14px; font-weight:bold; text-align:center;">
-                                        1. Rendezd el<br>⬇<br>2. Mentsd le<br>⬇
-                                    </div>
-                                    <button id="bot-tovabb-btn" style="padding:12px 15px; font-size:14px; font-weight:bold; background:#e74c3c; color:white; border:none; border-radius:25px; cursor:pointer; text-transform:uppercase; width:100%; box-sizing:border-box;">
-                                        Következő >
-                                    </button>
-                                `;
-                                document.body.appendChild(header);
+                    header.innerHTML = `
+                        <div style="text-align:center; line-height:1.3;">
+                            <span style="font-size:12px; font-weight:normal;">Aktuális kategória:</span><br>
+                            <span style="font-size:15px; font-weight:bold;">{kat_id}</span>
+                        </div>
+                        <div style="font-size:14px; font-weight:bold; text-align:center;">
+                            1. Rendezd el<br>⬇<br>2. Mentsd le<br>⬇
+                        </div>
+                        <button id="bot-tovabb-btn" style="padding:12px 15px; font-size:14px; font-weight:bold; background:#e74c3c; color:white; border:none; border-radius:25px; cursor:pointer; text-transform:uppercase; width:100%; box-sizing:border-box;">
+                            Következő >
+                        </button>
+                    `;
+                    document.body.appendChild(header);
 
-                                document.getElementById('bot-tovabb-btn').addEventListener('click', () => {{
-                                    document.getElementById('bot-header').setAttribute('data-clicked', 'true');
-                                    document.getElementById('bot-tovabb-btn').innerText = 'Kérem várjon...';
-                                    document.getElementById('bot-tovabb-btn').style.background = '#95a5a6';
-                                }});
-                            }}
-                            """
+                    document.getElementById('bot-tovabb-btn').addEventListener('click', () => {{
+                        document.getElementById('bot-header').setAttribute('data-clicked', 'true');
+                        document.getElementById('bot-tovabb-btn').innerText = 'Kérem várjon...';
+                        document.getElementById('bot-tovabb-btn').style.background = '#95a5a6';
+                    }});
+                }}
+            """
             page.evaluate(header_js)
 
-            print(
-                "   ⏳ Várakozás rád... Készítsd el a kollázst, mentsd le, majd kattints a piros 'KÖVETKEZŐ' gombra a fejlécen!")
+            print("   ⏳ Várakozás rád... Készítsd el a kollázst, mentsd le, majd kattints a piros 'KÖVETKEZŐ' gombra!")
             page.wait_for_selector("#bot-header[data-clicked='true']", timeout=0)
 
             befejezett_kollazsok.append(kat_id)
@@ -566,12 +660,10 @@ def feltoltes_falis3(ctx: Context, image_map_full, base_url):
                     sikertelen_kollazsok[kat_id] = file_path
                     continue
 
-                # KÉPEK FÜL
                 page.locator("label[for='kepek']").wait_for(state="visible", timeout=10000)
                 page.locator("label[for='kepek']").click()
                 time.sleep(1.5)
 
-                # TÖRLÉS
                 def handle_dialog(dialog):
                     try:
                         dialog.accept()
@@ -586,29 +678,33 @@ def feltoltes_falis3(ctx: Context, image_map_full, base_url):
                         time.sleep(1.5)
                 page.remove_listener("dialog", handle_dialog)
 
-                # FELTÖLTÉS
                 page.locator("input#newImage").set_input_files(file_path)
                 print("   ⏳ Új kollázs feltöltése a szerverre folyamatban...")
                 time.sleep(5)
 
-                # MENTÉS
-                try:
-                    page.wait_for_selector("a#save_close:not([disabled])", timeout=20000)
-                except:
-                    pass
-
-                time.sleep(1)
+                print("   💾 Mentés és bezárás...")
+                page.locator("a#save_close").wait_for(state="visible", timeout=15000)
                 page.locator("a#save_close").click(force=True)
-                page.locator("table#categoriesList:not(.fixedHeader)").first.wait_for(state="visible", timeout=15000)
+
+                try:
+                    page.wait_for_url(lambda url: "view=store" in url, timeout=20000)
+                    print("   ✅ Mentés sikeres, visszatértünk a listára.")
+                except:
+                    print("   ⚠️ Mentés utáni átirányítás lassú, manuális ellenőrzés...")
+
+                time.sleep(3)
+
+                if not page.locator("table#categoriesList:not(.fixedHeader)").first.is_visible():
+                    print("   ⚠️ A táblázat még nem látszik, egy kis ráhagyás...")
+                    time.sleep(3)
 
                 print(f"   ✅ Kép sikeresen kicserélve ehhez: {kat_id}!")
 
             except Exception as e:
                 print(f"   ❌ Hiba a feltöltés során ({kat_id}): {e}")
                 print("   🔄 Hozzáadva a következő körhöz...")
-                sikertelen_kollazsok[kat_id] = file_path  # Elmentjük a hibásat a következő körre
+                sikertelen_kollazsok[kat_id] = file_path
 
-        # Ciklus vége: felkészülés a következő körre
         feltoltendo_kollazsok = sikertelen_kollazsok
         aktualis_kor += 1
 
@@ -617,12 +713,10 @@ def feltoltes_falis3(ctx: Context, image_map_full, base_url):
             time.sleep(3)
 
     if feltoltendo_kollazsok:
-        print(
-            f"\n⚠️ {len(feltoltendo_kollazsok)} db kollázst {max_feltoltesi_kor} kör alatt sem sikerült feltölteni. Ezeket kézzel kell javítani.")
+        print(f"\n⚠️ {len(feltoltendo_kollazsok)} db kollázst {max_feltoltesi_kor} kör alatt sem sikerült feltölteni.")
 
     page.close()
     print("\n✅ Képcsere fázis lezárva.")
-
 
 
 # ==============================================================================
@@ -700,26 +794,66 @@ if __name__ == "__main__":
     kivan_db = 10
     kivalasztott_mod = "random"
 
-    if os.path.exists(scr_prog_f):
-        print(f"\n⚠️ Találtam egy mentett állapotot a(z) '{fokategoria}' kategóriához.")
-        print("  1: Folytatás a LETÖLTÉSTŐL (A pók átugorja a kész képeket, és befejezi a maradékot)")
-        print("  2: Ugrás egyenesen a KOLLÁZSOKHOZ (Ha a letöltés már teljesen befejeződött)")
-        print("  3: ÚJRAKEZDÉS (Régi mentések törlése, tiszta lap)")
-        valasz_folytat = input("Választás (1-3): ").strip()
+    # ==============================================================================
+    # JAVÍTÁS: Induláskor MINDIG megvizsgáljuk a fájlrendszer állapotát,
+    # hogy meghatározzuk, hol tart a folyamat.
+    # ==============================================================================
+    kepek_vannak = os.path.exists("kollazs_kepek") and any(
+        f.lower().endswith(('.jpg', '.jpeg', '.png'))
+        for root, dirs, files in os.walk("kollazs_kepek")
+        for f in files
+        if not f.startswith('_kollazs')
+    )
+
+    kollazsok_vannak = os.path.exists("kollazs_kepek") and any(
+        f.startswith('_kollazs') and f.lower().endswith('.png')
+        for root, dirs, files in os.walk("kollazs_kepek")
+        for f in files
+    )
+
+    scraper_progress_letezik = os.path.exists(scr_prog_f)
+    collage_progress_letezik = os.path.exists(coll_prog_f)
+
+    # Automatikus állapotfelismerés induláskor
+    if kepek_vannak or scraper_progress_letezik:
+        print(f"\n⚠️ Találtam egy korábbi munkamenet nyomait a(z) '{fokategoria}' kategóriához.")
+
+        if kollazsok_vannak:
+            print("  ✅ Letöltött képek: MEGVANNAK")
+            print("  ✅ Kész kollázsok: TALÁLHATÓK (részben vagy teljesen kész)")
+        elif kepek_vannak:
+            print("  ✅ Letöltött képek: MEGVANNAK")
+            print("  ❌ Kész kollázsok: MÉG NINCSENEK")
+        else:
+            print("  ⚠️ Folyamatban lévő letöltés (menetfájl megvan, mappák részben üresek)")
+
+        print("\n  1: Folytatás a LETÖLTÉSTŐL (átugorja a kész képeket)")
+        print("  2: Ugrás a KOLLÁZSOKHOZ (letöltés már teljesen kész)")
+        print("  3: Ugrás a FELTÖLTÉSHEZ (kollázsok is el vannak készítve)")
+        print("  4: ÚJRAKEZDÉS (Régi mentések törlése, tiszta lap)")
+        valasz_folytat = input("Választás (1-4): ").strip()
 
         if valasz_folytat == '1':
             folytatas = True
             letoltes_szukseges = True
-            print("   ⏩ Letöltés folytatása kiválasztva. (A program emlékszik a beállításokra)")
+            print("   ⏩ Letöltés folytatása kiválasztva.")
         elif valasz_folytat == '2':
             folytatas = True
             letoltes_szukseges = False
-            print("   ⏩ Ugrás a kollázsokhoz és feltöltéshez.")
+            print("   ⏩ Ugrás a kollázsokhoz.")
+        elif valasz_folytat == '3':
+            folytatas = True
+            letoltes_szukseges = False
+            print("   ⏩ Ugrás a feltöltési fázishoz.")
         else:
-            os.remove(scr_prog_f)
-            if os.path.exists(coll_prog_f):
+            # Mindent törlünk
+            if scraper_progress_letezik:
+                os.remove(scr_prog_f)
+            if collage_progress_letezik:
                 os.remove(coll_prog_f)
-            print("   🗑️ Régi mentések törölve. Tiszta lappal indulunk.")
+            print("   🗑️ Régi menetfájlok törölve. Tiszta lappal indulunk.")
+            print("   ℹ️ (A már letöltött képek megmaradnak a mappában)")
+            folytatas = False
 
     if not folytatas:
         db_input = input("\nMax hány képet letölteni alap kategóriánként? (Alap: 10): ").strip()
@@ -744,21 +878,21 @@ if __name__ == "__main__":
         print("=" * 50)
 
         with sync_playwright() as p:
-            # ITT VAN A LÉNYEG: headless=True
             browser = p.chromium.launch(headless=True, args=['--start-maximized'])
             ctx = bejelentkezes_kezelese(browser, F_NEV, J_SZO, BASE_URL, STATE_F)
 
             if ctx:
                 page = ctx.new_page()
 
-                if not os.path.exists(scr_prog_f):
+                if not scraper_progress_letezik:
                     print("   (Új munkamenet indítása)")
                 else:
                     print(f"   (Folytatás... {len(befejezett_kategoriak)} kategória kész, {len(retry_list)} hiba)")
 
                 try:
                     page.goto(f"{BASE_URL}/administrator/index.php?view=store", timeout=60000)
-                    cel_sor = page.locator(f"table#categoriesList tbody tr td a b:has-text('{fokategoria}')").first
+                    cel_sor = page.locator(
+                        f"table#categoriesList tbody tr td a b:has-text('{fokategoria}')").first
 
                     if cel_sor.count() > 0:
                         kezdo_link = cel_sor.locator("..").get_attribute("href")
@@ -766,13 +900,15 @@ if __name__ == "__main__":
 
                         print(f"✅ Főkategória megvan. Indul a pók...\n")
 
-                        _, _, final_image_map = kategoria_bejaro_fázis1(page, full_kezdo_link, [fokategoria], kivan_db,
-                                                                        kivalasztott_mod, scr_prog_f,
-                                                                        befejezett_kategoriak, retry_list,
-                                                                        letolt_koztes, BASE_URL)
+                        _, _, final_image_map = kategoria_bejaro_fázis1(
+                            page, full_kezdo_link, [fokategoria], kivan_db,
+                            kivalasztott_mod, scr_prog_f,
+                            befejezett_kategoriak, retry_list,
+                            letolt_koztes, BASE_URL
+                        )
 
                         if retry_list:
-                            max_letoltesi_kor = 5  # Maximum 5-ször fut neki a hibás képeknek
+                            max_letoltesi_kor = 5
                             aktualis_let_kor = 2
 
                             while retry_list and aktualis_let_kor <= max_letoltesi_kor:
@@ -781,7 +917,6 @@ if __name__ == "__main__":
                                     f" ♻️ {aktualis_let_kor}. KÖR: Hibás letöltések javítása ({len(retry_list)} db maradék)")
                                 print("-" * 30)
 
-                                # Egy ideiglenes lista az ebben a körben is elhasaló elemeknek
                                 uj_retry_list = []
 
                                 for item in retry_list:
@@ -790,26 +925,27 @@ if __name__ == "__main__":
                                         mappa_path = os.path.join("kollazs_kepek", *tiszta_utvonal)
                                         os.makedirs(mappa_path, exist_ok=True)
 
-                                        fajl_ut = letoltes_vegrehajtasa_fajl_visszaadas(page, item["url"], mappa_path,
-                                                                                        item["fallback_idx"], BASE_URL)
+                                        fajl_ut = letoltes_vegrehajtasa_fajl_visszaadas(
+                                            page, item["url"], mappa_path, item["fallback_idx"], BASE_URL)
 
                                         if fajl_ut:
                                             kat_id = " > ".join(item["kategoria_utvonal"])
-                                            if kat_id in final_image_map: final_image_map[kat_id].append(fajl_ut)
+                                            if kat_id in final_image_map:
+                                                final_image_map[kat_id].append(fajl_ut)
+                                            else:
+                                                final_image_map[kat_id] = [fajl_ut]
                                         else:
-                                            uj_retry_list.append(item)  # Nem sikerült, megy a köv körbe
-
+                                            uj_retry_list.append(item)
                                     except Exception as e:
                                         print(f"      ❌ Újabb hiba: {e}")
-                                        uj_retry_list.append(item)  # Hiba volt, megy a köv körbe
+                                        uj_retry_list.append(item)
 
-                                # Lista frissítése és mentése
                                 retry_list = uj_retry_list
                                 allapot_mentese_scraper(scr_prog_f, befejezett_kategoriak, retry_list)
                                 aktualis_let_kor += 1
 
                                 if retry_list and aktualis_let_kor <= max_letoltesi_kor:
-                                    time.sleep(3)  # Pihentetjük a szervert picit a köv kör előtt
+                                    time.sleep(3)
 
                             if retry_list:
                                 print(
@@ -824,7 +960,6 @@ if __name__ == "__main__":
 
                 except Exception as e:
                     import traceback
-
                     traceback.print_exc()
                     print(f"\n⚠️ Hiba az 1. fázisban: {e}")
                     print("💡 Mentve, honnan folytassa.")
@@ -832,67 +967,61 @@ if __name__ == "__main__":
                     sys.exit()
                 finally:
                     page.close()
-            browser.close()  # Letöltő böngésző bezárása
+            browser.close()
+
+    # ==============================================================================
+    # JAVÍTÁS: final_image_map MINDIG a lemezről van rekonstruálva a fázisok között.
+    # Ez biztosítja, hogy újraindítás után (bármely opciónál) a térkép teljes legyen.
+    # Korábban ez csak az else ágban volt definiálva (indentálási hiba),
+    # és a letöltési fázis után sosem futott le.
+    # ==============================================================================
+    if os.path.exists("kollazs_kepek"):
+        print("\n🔄 Kép-térkép szinkronizálása a lemezzel...")
+        rekurziv_image_map_betoltes("kollazs_kepek", [], final_image_map)
+        print(f"   ✅ {len(final_image_map)} kategória betöltve/frissítve a lemezről.")
     else:
-        print("\n✅ 1. Fázis (Letöltés) átugorva, adatok betöltése a mappákból...")
+        print("\n⚠️ Nincs 'kollazs_kepek' mappa. Letöltés még nem futott?")
 
-        # Belső fájl-térkép rekonstruálása Playwright nélkül
-        if not final_image_map and befejezett_kategoriak:
-            print("🔄 Belső fájl-térkép rekonstruálása a kollazs_kepek mappából...")
+    if not final_image_map:
+        print("⚠️ Nem találtam egyetlen képet sem. Ellenőrizd a kollazs_kepek mappát!")
+        sys.exit(1)
 
-            if os.path.exists("kollazs_kepek"):
-                for f_id in befejezett_kategoriak:
-                    tiszta_id = f_id.replace(" (Összesítő)", "")
-                    utvonal = tiszta_id.split(" > ")
-
-                    tiszta_utvonal = [tiszta_nev(p) for p in utvonal]
-                    mappa_path = os.path.join("kollazs_kepek", *tiszta_utvonal)
-
-                    if os.path.exists(mappa_path):
-                        image_files = []
-                        for filename in os.listdir(mappa_path):
-                            if filename.lower().endswith(('.jpg', '.jpeg', '.png')) and not filename.startswith(
-                                    '_kollazs'):
-                                image_files.append(os.path.join(mappa_path, filename))
-
-                        if image_files: final_image_map[f_id] = image_files
-            print(f"   ({len(final_image_map)} kategória rekonstruálva)")
-
-    kollazs_valasz = input("\n🎨 Szeretnéd most elkészíteni a kollázsokat? (i/n): ").strip().lower()
-
-    # ==============================================================================
-    # 2. FÁZIS: KOLLÁZS (LÁTHATÓ - HEADLESS: FALSE)
-    # ==============================================================================
-    if kollazs_valasz == 'i':
-        with sync_playwright() as p:
-            # Böngésző indítása maximalizálva
-            browser = p.chromium.launch(headless=False, args=['--start-maximized'])
-
-            # ITT A JAVÍTÁS: no_viewport=True engedi, hogy kitöltse a teljes képernyőt!
-            ctx = browser.new_context(no_viewport=True)
-
-            interaktiv_kollazs_fázis2(ctx, final_image_map, coll_prog_f)
-            browser.close()  # Kollázskészítő böngésző bezárása
-
-        if os.path.exists(scr_prog_f) and not os.path.exists(coll_prog_f):
-            os.remove(scr_prog_f)
-            print("🗑️ Letöltési menetfájl törölve (Minden kész).")
-
-        valasz = input("\nSzeretnéd most automatikusan feltölteni az elkészült kollázsokat? (i/n): ").strip().lower()
+    # Ha a felhasználó a "3: Ugrás a feltöltéshez" opciót választotta, átugorjuk a kollázsokat
+    if folytatas and valasz_folytat == '3':
+        print("\n⏭️ Kollázskészítési fázis átugorva (felhasználói kérésre).")
+    else:
+        kollazs_valasz = input("\n🎨 Szeretnéd most elkészíteni/folytatni a kollázsokat? (i/n): ").strip().lower()
 
         # ==============================================================================
-        # 3. FÁZIS: FELTÖLTÉS (LÁTHATATLAN - HEADLESS: TRUE)
+        # 2. FÁZIS: KOLLÁZS (LÁTHATÓ - HEADLESS: FALSE)
         # ==============================================================================
-        if valasz == 'i':
+        if kollazs_valasz == 'i':
             with sync_playwright() as p:
-                # ITT VAN A LÉNYEG: headless=True
-                browser = p.chromium.launch(headless=True, args=['--start-maximized'])
-                # Újra betöltjük a korábbi bejelentkezést a feltöltéshez
-                ctx = bejelentkezes_kezelese(browser, F_NEV, J_SZO, BASE_URL, STATE_F)
-                if ctx:
-                    feltoltes_falis3(ctx, final_image_map, BASE_URL)
-                browser.close()  # Feltöltő böngésző bezárása
+                browser = p.chromium.launch(headless=False, args=['--start-maximized'])
+                ctx = browser.new_context(no_viewport=True)
+
+                interaktiv_kollazs_fázis2(ctx, final_image_map, coll_prog_f)
+                browser.close()
+
+            if os.path.exists(scr_prog_f) and not os.path.exists(coll_prog_f):
+                os.remove(scr_prog_f)
+                print("🗑️ Letöltési menetfájl törölve (Minden kész).")
+        else:
+            print("\n⏭️ Kollázskészítés kihagyva.")
+
+    valasz = input("\nSzeretnéd most automatikusan feltölteni az elkészült kollázsokat? (i/n): ").strip().lower()
+
+    # ==============================================================================
+    # 3. FÁZIS: FELTÖLTÉS (LÁTHATATLAN - HEADLESS: TRUE)
+    # ==============================================================================
+    if valasz == 'i':
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True, args=['--start-maximized'])
+            ctx = bejelentkezes_kezelese(browser, F_NEV, J_SZO, BASE_URL, STATE_F)
+            if ctx:
+                feltoltes_falis3(ctx, final_image_map, BASE_URL)
+            browser.close()
     else:
-        print("\n⏭️ Kollázskészítés és feltöltés kihagyva.")
+        print("\n⏭️ Feltöltés kihagyva.")
 
     print("\n🎉 Program befejeződött!")

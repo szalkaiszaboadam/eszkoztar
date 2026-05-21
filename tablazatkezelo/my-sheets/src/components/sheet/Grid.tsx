@@ -20,7 +20,7 @@ export default function Grid() {
   const rowHeights = useSheetStore(s => s.rowHeights);
   const selectedRows = useSheetStore(s => s.selectedRows);
   const selectedCols = useSheetStore(s => s.selectedCols);
-  
+
   const selectRow = useSheetStore(s => s.selectRow);
   const selectCol = useSheetStore(s => s.selectCol);
   const selectRowRange = useSheetStore(s => s.selectRowRange);
@@ -33,17 +33,25 @@ export default function Grid() {
   const setColWidth = useSheetStore(s => s.setColWidth);
   const setRowHeight = useSheetStore(s => s.setRowHeight);
 
-  // --- ÚJ: Az aktív cella lekérése a fejlécek kiemeléséhez ---
-  const selectedCell = useSheetStore(s => s.selectedCell);
+  // --- JAVÍTÁS: Az aktív vonal mindig a kijelölés kiinduló cellájára (selectedCell vagy dragStart) vetül ---
+  const selectedCell = useSheetStore(s => s.selectedCell || s.dragStart);
   const activeCol = selectedCell ? parseCell(selectedCell)[0] : null;
   const activeRow = selectedCell ? parseCell(selectedCell)[1] : null;
+
+  const dragSelection = useSheetStore(s => s.dragSelection);
+  const dragCols = useMemo(() => new Set(dragSelection.map(id => id.match(/[A-Z]+/)?.[0] ?? "")), [dragSelection]);
+  const dragRows = useMemo(() => new Set(dragSelection.map(id => parseInt(id.match(/\d+/)?.[0] ?? "0"))), [dragSelection]);
+
+  // --- JAVÍTÁS: Érinti-e a kijelölés a legfelső sort vagy a legelső oszlopot? ---
+  const isTopEdgeTouched = dragRows.has(1) || (dragSelection.length === 0 && activeRow === 1);
+  const isLeftEdgeTouched = dragCols.has("A") || (dragSelection.length === 0 && activeCol === "A");
 
   const gridRef = useRef<HTMLDivElement>(null);
   const [ctxMenu, setCtxMenu] = useState<CtxMenu | null>(null);
   const resizingCol = useRef<{ col: string; startX: number; startW: number } | null>(null);
   const resizingRow = useRef<{ row: number; startY: number; startH: number } | null>(null);
   const headerDrag = useRef<{ type: 'col' | 'row' | null; start: any }>({ type: null, start: null });
-  
+
   // ── VIRTUALIZÁCIÓS LOGIKA ──────────────────────────────
   const [scrollTop, setScrollTop] = useState(0);
   const [clientHeight, setClientHeight] = useState(800);
@@ -81,7 +89,7 @@ export default function Grid() {
 
   const topSpacerHeight = positions[startIndex - 1] || 0;
   const bottomSpacerHeight = totalHeight - (positions[endIndex] || 0);
-  
+
   // ── Resize event listenrek ─────────────────────────────
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
@@ -110,14 +118,14 @@ export default function Grid() {
 
   // ── Drag kijelölés vége ────────────────────────────────
   useEffect(() => {
-    const onUp = () => { 
-        const state = useSheetStore.getState();
-        if (state.isDragging) state.endDrag(); 
-        if (state.fillDragStart) state.endFillDrag();
-        
-        resizingCol.current = null;
-        resizingRow.current = null;
-        headerDrag.current = { type: null, start: null };
+    const onUp = () => {
+      const state = useSheetStore.getState();
+      if (state.isDragging) state.endDrag();
+      if (state.fillDragStart) state.endFillDrag();
+
+      resizingCol.current = null;
+      resizingRow.current = null;
+      headerDrag.current = { type: null, start: null };
     };
     window.addEventListener("mouseup", onUp);
     return () => window.removeEventListener("mouseup", onUp);
@@ -150,9 +158,9 @@ export default function Grid() {
     else if (dir === "left") newCol = COLS[Math.max(0, colIdx - 1)];
     else if (dir === "right" || dir === "tab") newCol = COLS[Math.min(COLS.length - 1, colIdx + 1)];
     const newId = `${newCol}${newRow}`;
-    
+
     useSheetStore.getState().setSelectedCell(newId);
-    
+
     setTimeout(() => {
       (gridRef.current?.querySelector(`[data-cell="${newId}"]`) as HTMLElement)?.focus();
     }, 0);
@@ -171,13 +179,13 @@ export default function Grid() {
       items: [
         { label: "Oszlop beszúrása balra", icon: "insert-before", onClick: () => insertColAt(col, true) },
         { label: "Oszlop beszúrása jobbra", icon: "insert-after", onClick: () => insertColAt(col, false) },
-        { 
-          label, 
+        {
+          label,
           icon: "delete",
           onClick: () => {
             if (!isSelected) useSheetStore.getState().selectCol(col, false);
             setTimeout(() => useSheetStore.getState().deleteSelectedCols(), 0);
-          } 
+          }
         },
       ],
     });
@@ -195,13 +203,13 @@ export default function Grid() {
       items: [
         { label: "Sor beszúrása fölé", icon: "insert-before", onClick: () => insertRowAt(row, true) },
         { label: "Sor beszúrása alá", icon: "insert-after", onClick: () => insertRowAt(row, false) },
-        { 
-          label, 
+        {
+          label,
           icon: "delete",
           onClick: () => {
             if (!isSelected) useSheetStore.getState().selectRow(row, false);
             setTimeout(() => useSheetStore.getState().deleteSelectedRows(), 0);
-          } 
+          }
         },
       ],
     });
@@ -225,16 +233,25 @@ export default function Grid() {
           {COLS.map((col) => {
             const isSelected = selectedCols.includes(col);
             const isActive = col === activeCol;
+            const isInRange = dragCols.has(col); // Kijelölésben szereplő oszlop
             const width = colWidths[col] ?? DEFAULT_COL_WIDTH;
+
+            // Profi fejléc stílusok
+            // Profi fejléc stílusok (Oszlopok)
+            let headerClass = "bg-gray-100 text-gray-500 hover:bg-gray-200";
+            if (isSelected) {
+              headerClass = "bg-blue-100 text-blue-700";
+            } else if (isActive || isInRange) {
+              headerClass = "bg-[#e9f0fd] text-blue-700";
+              // KIVETTÜK innen a border-b-4 osztályt!
+            }
+
+
             return (
               <div
                 key={col}
                 data-header="col"
-                className={`relative border-b border-r border-gray-300 flex items-center justify-center text-xs font-semibold select-none sticky top-0 z-10 cursor-pointer transition-colors ${
-                  isSelected ? "bg-blue-100 text-blue-700" : 
-                  isActive ? "bg-gray-300 text-blue-800" : 
-                  "bg-gray-100 text-gray-500 hover:bg-gray-200"
-                }`}
+                className={`relative border-b border-r border-gray-300 flex items-center justify-center text-xs font-semibold select-none sticky top-0 z-10 cursor-pointer transition-colors box-border ${headerClass}`}
                 style={{ height: 28 }}
                 onMouseDown={(e) => {
                   if (e.button !== 0) return;
@@ -250,13 +267,18 @@ export default function Grid() {
               >
                 {col}
                 <div
-                  className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-blue-400 z-20"
+                  className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-blue-400 z-30"
                   onMouseDown={(e) => {
                     e.stopPropagation();
                     e.preventDefault();
                     resizingCol.current = { col, startX: e.clientX, startW: width };
                   }}
                 />
+                
+                {/* ÚJ: Kijelöléshez tartozó 2px-es profi kék vonal (mint a cellánál) */}
+                {!isTopEdgeTouched && (isActive || isInRange) && (
+                  <div className="absolute bottom-[-1px] left-0 right-0 h-[2px] bg-[#2563eb] z-20 pointer-events-none" />
+                )}
               </div>
             );
           })}
@@ -270,17 +292,24 @@ export default function Grid() {
           {VISIBLE_ROWS.map((row) => {
             const isRowSelected = selectedRows.includes(row);
             const isActiveRow = row === activeRow;
+            const isInRangeRow = dragRows.has(row); // Kijelölésben szereplő sor
             const height = rowHeights[row] ?? DEFAULT_ROW_HEIGHT;
+
+            // Profi fejléc stílusok (Sorok)
+            let headerClass = "bg-gray-100 text-gray-500 hover:bg-gray-200";
+            if (isRowSelected) {
+              headerClass = "bg-blue-100 text-blue-700";
+            } else if (isActiveRow || isInRangeRow) {
+              headerClass = "bg-[#e9f0fd] text-blue-700";
+              // KIVETTÜK innen a border-r-4 osztályt!
+            }
+
             return (
               <React.Fragment key={row}>
                 {/* Sor fejléc */}
                 <div
                   data-header="row"
-                  className={`relative border-b border-r border-gray-300 flex items-center justify-center text-xs font-semibold select-none sticky left-0 z-10 cursor-pointer transition-colors ${
-                    isRowSelected ? "bg-blue-100 text-blue-700" : 
-                    isActiveRow ? "bg-gray-300 text-blue-800" : 
-                    "bg-gray-100 text-gray-500 hover:bg-gray-200"
-                  }`}
+                  className={`relative border-b border-r border-gray-300 flex items-center justify-center text-xs font-semibold select-none sticky left-0 z-10 cursor-pointer transition-colors box-border ${headerClass}`}
                   style={{ height }}
                   onMouseDown={(e) => {
                     if (e.button !== 0) return;
@@ -296,13 +325,18 @@ export default function Grid() {
                 >
                   {row}
                   <div
-                    className="absolute bottom-0 left-0 w-full h-1.5 cursor-row-resize hover:bg-blue-400 z-20"
+                    className="absolute bottom-0 left-0 w-full h-1.5 cursor-row-resize hover:bg-blue-400 z-30"
                     onMouseDown={(e) => {
                       e.stopPropagation();
                       e.preventDefault();
                       resizingRow.current = { row, startY: e.clientY, startH: height };
                     }}
                   />
+
+                  {/* ÚJ: Kijelöléshez tartozó 2px-es profi kék vonal (mint a cellánál) */}
+                  {!isLeftEdgeTouched && (isActiveRow || isInRangeRow) && (
+                    <div className="absolute right-[-1px] top-0 bottom-0 w-[2px] bg-[#2563eb] z-20 pointer-events-none" />
+                  )}
                 </div>
 
                 {/* Cellák */}
