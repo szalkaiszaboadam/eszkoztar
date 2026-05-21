@@ -59,14 +59,15 @@ function SheetContent({ onToggleSplit, isSplit }: { onToggleSplit: () => void, i
 
                     // ZSENIÁLIS: Bárhonnan nyílik meg a tábla, a szerkesztő azonnal bejegyzi a legutóbbiakhoz!
                     try {
-                        const recentItem = {
-                            id: current.id,
-                            title: current.title,
-                            folderId: current.folderId || null,
-                            openedAt: Date.now()
-                        };
-                        localStorage.setItem("mysheets_recent", JSON.stringify([recentItem]));
-                    } catch (e) { console.error(e); }
+                    const recentItem = {
+                        id: current.id,
+                        title: current.title,
+                        folderId: current.folderId || null,
+                        openedAt: Date.now()
+                    };
+                    // FIX: user.uid alapján mentjük!
+                    localStorage.setItem(`mysheets_recent_${user.uid}`, JSON.stringify([recentItem]));
+                } catch (e) { console.error(e); }
                 }
 
                 setAllTabData(data);
@@ -102,7 +103,7 @@ function SheetContent({ onToggleSplit, isSplit }: { onToggleSplit: () => void, i
         return () => window.removeEventListener("beforeunload", handleBeforeUnload);
     }, [handleSave]);
 
-    const handleTitleSave = async () => {
+const handleTitleSave = async () => {
         if (!user || !id || !title.trim()) return;
         await renameSheet(user.uid, id, title.trim());
         setEditingTitle(false);
@@ -115,7 +116,8 @@ function SheetContent({ onToggleSplit, isSplit }: { onToggleSplit: () => void, i
                 folderId: folderId || null,
                 openedAt: Date.now()
             };
-            localStorage.setItem("mysheets_recent", JSON.stringify([recentItem]));
+            // FIX: user.uid alapján mentjük!
+            localStorage.setItem(`mysheets_recent_${user.uid}`, JSON.stringify([recentItem]));
         } catch (e) { console.error(e); }
     };
 

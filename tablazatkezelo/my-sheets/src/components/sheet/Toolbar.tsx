@@ -4,294 +4,316 @@ import { useState, useRef } from "react";
 import { useSheetStore } from "@/lib/sheetStore";
 import {
   Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight,
-  PaintBucket, Type, Plus, Grid3X3, Square, X, Eraser, ChevronDown
+  PaintBucket, Type, Plus, Grid3X3, Square, X, Eraser, ChevronDown,
+  Upload, Download
 } from "lucide-react";
 import ImportButton from "./ImportButton";
 import ExportButton from "./ExportButton";
 
 const COLS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
-const FONT_SIZES = [8, 9, 10, 11, 12, 14, 16, 18, 24, 36];
+const FONT_SIZES = [8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 36, 48, 72];
+
+// ─── Kis segéd: tooltip wrapper ──────────────────────────────────────────────
+function Tip({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="relative group shrink-0">
+      {children}
+      <div className="pointer-events-none absolute top-full left-1/2 -translate-x-1/2 mt-1.5 px-2 py-0.5 rounded bg-gray-800 text-white text-[11px] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity delay-300 z-50 shadow-md">
+        {label}
+      </div>
+    </div>
+  );
+}
+
+// ─── Vékony elválasztó ────────────────────────────────────────────────────────
+function Sep() {
+  return <div className="w-px h-5 bg-gray-200 mx-0.5 shrink-0" />;
+}
 
 export default function Toolbar() {
-
   const [activeTab, setActiveTab] = useState("Kezdőlap");
   const [borderMenuOpen, setBorderMenuOpen] = useState(false);
   const borderBtnRef = useRef<HTMLButtonElement>(null);
-
-  // Szegély stílus és szín állapotok
   const [borderLineColor, setBorderLineColor] = useState("#000000");
   const [borderLineStyle, setBorderLineStyle] = useState("thin");
-  
-  const formatCells = useSheetStore(s => s.formatCells);
-  const insertRowAt = useSheetStore(s => s.insertRowAt);
-  const insertColAt = useSheetStore(s => s.insertColAt);
 
+  const formatCells = useSheetStore(s => s.formatCells);
+  const insertRowAt  = useSheetStore(s => s.insertRowAt);
+  const insertColAt  = useSheetStore(s => s.insertColAt);
+
+  // ─── Aktív cella ID ──────────────────────────────────────────────────────
+  // SZABÁLY: a toolbar KIZÁRÓLAG az aktív cella (selectedCell, vagy a drag
+  // kijelölés első eleme, stb.) formázását tükrözi – soha nem pásztázza
+  // a teljes kijelölést.
   const activeCellId = useSheetStore(s => {
-    if (s.selectedCell) return s.selectedCell;
-    if (s.dragSelection.length > 0) return s.dragSelection[0];
-    if (s.selectedCols.length > 0) return `${s.selectedCols[0]}1`;
-    if (s.selectedRows.length > 0) return `A${s.selectedRows[0]}`;
+    if (s.selectedCell)           return s.selectedCell;
+    if (s.dragSelection.length)   return s.dragSelection[0];
+    if (s.selectedCols.length)    return `${s.selectedCols[0]}1`;
+    if (s.selectedRows.length)    return `A${s.selectedRows[0]}`;
     return null;
   });
 
-  const rawFormat = useSheetStore(s => activeCellId ? s.cells[activeCellId]?.format : undefined);
-  const fmt = rawFormat ?? {};
+  // ─── Az AKTÍV CELLA formázása ─────────────────────────────────────────────
+  // Ez az egyetlen forrás, amit a toolbar mutat – pont mint Excel / GSheets.
+  // FONTOS: selector soha ne adjon vissza új {}-t → végtelen loop!
+  // A fallback csak a selectoron kívül kerül alkalmazásra.
+  const rawFmt = useSheetStore(s =>
+    activeCellId ? s.cells[activeCellId]?.format : undefined
+  );
+  const fmt = rawFmt ?? {};
 
   const activeRow = activeCellId ? parseInt(activeCellId.match(/\d+/)?.[0] ?? "1") : 1;
   const activeCol = activeCellId ? activeCellId.match(/[A-Z]+/)?.[0] ?? "A" : "A";
 
-  const apply = (format: any) => {
+  // ─── Formázás alkalmazása a TELJES kijelölésre ───────────────────────────
+  const apply = (format: Record<string, unknown>) => {
     const state = useSheetStore.getState();
     let ids: string[] = [];
-
-    if (state.selectedCols.length > 0) {
-      state.selectedCols.forEach(col => { for (let r = 1; r <= state.rowCount; r++) ids.push(`${col}${r}`); });
-    } else if (state.selectedRows.length > 0) {
-      state.selectedRows.forEach(row => { COLS.forEach(col => ids.push(`${col}${row}`)); });
-    } else if (state.dragSelection.length > 0) {
+    if (state.selectedCols.length) {
+      state.selectedCols.forEach(col => {
+        for (let r = 1; r <= state.rowCount; r++) ids.push(`${col}${r}`);
+      });
+    } else if (state.selectedRows.length) {
+      state.selectedRows.forEach(row => COLS.forEach(col => ids.push(`${col}${row}`)));
+    } else if (state.dragSelection.length) {
       ids = state.dragSelection;
     } else if (state.selectedCell) {
       ids = [state.selectedCell];
     }
-    if (ids.length === 0) return;
-    formatCells(ids, format);
+    if (ids.length) formatCells(ids, format);
   };
 
-  const toggle = (key: "bold" | "italic" | "underline") => apply({ [key]: !fmt[key] });
+  const toggle = (key: "bold" | "italic" | "underline") =>
+    apply({ [key]: !fmt[key] });
 
-  // ÚJ: Formázás "leradírozása"
-  const clearFormatting = () => {
-    apply({
-      bold: false,
-      italic: false,
-      underline: false,
-      color: undefined,
-      bgColor: undefined,
-      fontSize: 14,
-      align: "left",
-      border: undefined // Ha a Cell.tsx támogatja a kerettörlést
-    });
-  };
+  const clearFormatting = () =>
+    apply({ bold: false, italic: false, underline: false,
+            color: undefined, bgColor: undefined, fontSize: 14,
+            align: "left", border: undefined });
 
-  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
-    if (e.deltaY !== 0) e.currentTarget.scrollLeft += e.deltaY;
-  };
-
-  // --- PROFI SZEGÉLY LOGIKA ---
-  const applyBorders = (type: "all" | "none" | "outside" | "bottom" | "top" | "left" | "right") => {
+  // ─── Szegély alkalmazás ───────────────────────────────────────────────────
+  const applyBorders = (type: "all"|"none"|"outside"|"bottom"|"top"|"left"|"right") => {
     const state = useSheetStore.getState();
-    let ids = state.dragSelection.length > 0 ? state.dragSelection : (state.selectedCell ? [state.selectedCell] : []);
-    if (ids.length === 0) return;
+    let ids = state.dragSelection.length
+      ? state.dragSelection
+      : state.selectedCell ? [state.selectedCell] : [];
+    if (!ids.length) return;
 
-    const parse = (id: string) => ({ c: id.match(/[A-Z]+/)?.[0]??"A", r: parseInt(id.match(/\d+/)?.[0]??"1") });
-    const cells = ids.map(parse);
-    const minR = Math.min(...cells.map(x => x.r));
-    const maxR = Math.max(...cells.map(x => x.r));
-    const minC = Math.min(...cells.map(x => COLS.indexOf(x.c)));
-    const maxC = Math.max(...cells.map(x => COLS.indexOf(x.c)));
+    const parse = (id: string) => ({
+      c: id.match(/[A-Z]+/)?.[0] ?? "A",
+      r: parseInt(id.match(/\d+/)?.[0] ?? "1"),
+    });
 
+    const cells  = ids.map(parse);
+    const minR   = Math.min(...cells.map(x => x.r));
+    const maxR   = Math.max(...cells.map(x => x.r));
+    const minC   = Math.min(...cells.map(x => COLS.indexOf(x.c)));
+    const maxC   = Math.max(...cells.map(x => COLS.indexOf(x.c)));
+    const bd     = { style: borderLineStyle, color: borderLineColor };
     const newCells = { ...state.cells };
-    let hasChanges = false;
 
     ids.forEach(id => {
       const { c, r } = parse(id);
-      const cIdx = COLS.indexOf(c);
-      const existing = newCells[id] || { value: "", formula: "" };
-      const prevBorder = existing.format?.border || {};
-      let newBorder = { ...prevBorder };
+      const cIdx    = COLS.indexOf(c);
+      const existing = newCells[id] ?? { value: "", formula: "" };
+      type BorderSide = { style: string; color: string };
+      const existingBorder = (existing.format?.border ?? {}) as Record<string, BorderSide>;
+      let brd: Record<string, BorderSide> = { ...existingBorder };
 
-      const borderDef = { style: borderLineStyle, color: borderLineColor };
-
-      if (type === "none") { newBorder = {}; }
-      else if (type === "all") { newBorder = { top: borderDef, bottom: borderDef, left: borderDef, right: borderDef }; }
+      if      (type === "none")    { brd = {}; }
+      else if (type === "all")     { brd = { top: bd, bottom: bd, left: bd, right: bd }; }
       else if (type === "outside") {
-        if (r === minR) newBorder.top = borderDef;
-        if (r === maxR) newBorder.bottom = borderDef;
-        if (cIdx === minC) newBorder.left = borderDef;
-        if (cIdx === maxC) newBorder.right = borderDef;
+        if (r === minR) brd.top    = bd;
+        if (r === maxR) brd.bottom = bd;
+        if (cIdx === minC) brd.left  = bd;
+        if (cIdx === maxC) brd.right = bd;
       }
-      else if (type === "bottom") newBorder.bottom = borderDef;
-      else if (type === "top") newBorder.top = borderDef;
-      else if (type === "left") newBorder.left = borderDef;
-      else if (type === "right") newBorder.right = borderDef;
+      else if (type === "bottom") brd.bottom = bd;
+      else if (type === "top")    brd.top    = bd;
+      else if (type === "left")   brd.left   = bd;
+      else if (type === "right")  brd.right  = bd;
 
-      Object.keys(newBorder).forEach(k => !newBorder[k as keyof typeof newBorder] && delete newBorder[k as keyof typeof newBorder]);
+      // Üres kulcsok takarítása
+      (Object.keys(brd) as (keyof typeof brd)[]).forEach(k => { if (!brd[k]) delete brd[k]; });
 
       newCells[id] = {
         ...existing,
         format: {
           ...existing.format,
-          border: Object.keys(newBorder).length > 0 ? newBorder : undefined
-        }
+          border: Object.keys(brd).length ? brd : undefined,
+        },
       };
-      hasChanges = true;
     });
 
-if (hasChanges) {
-      state.setCells(newCells);
-    }
+    state.setCells(newCells);
   };
 
-  // --- ÚJ: Ellenőrizzük, hogy az aktuális cellán van-e egyedi formázás ---
-  const hasCustomColor = !!fmt.color;
-  const hasCustomBg = !!fmt.bgColor;
-  const hasCustomBorder = !!(fmt.border && Object.keys(fmt.border).length > 0);
+  // ─── Megjelenítési értékek (kizárólag az aktív cellából!) ─────────────────
+  const displayColor   = fmt.color   ?? "#1a1a1a";
+  const displayBgColor = fmt.bgColor ?? "#ffffff";
+  const hasBorder      = !!(fmt.border && Object.keys(fmt.border).length > 0);
+
+  // ─── Görgős toolbar ───────────────────────────────────────────────────────
+  const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
+    if (e.deltaY !== 0) e.currentTarget.scrollLeft += e.deltaY;
+  };
+
+  // ─── Gomb stílusok ────────────────────────────────────────────────────────
+  const btnBase   = "inline-flex items-center justify-center h-7 w-7 rounded text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors";
+  const btnActive = "bg-blue-50 text-blue-700 ring-1 ring-blue-200";
 
   return (
-    <div className="flex flex-col bg-[#f9fafb] border-b border-gray-200 w-full overflow-hidden">
-       <div 
+    <div className="flex flex-col bg-white border-b border-gray-200 w-full select-none shadow-sm">
+
+      {/* ── Fül sor ── */}
+      <div
         onWheel={handleWheel}
-        className="flex items-center px-2 pt-1 gap-1 border-b border-gray-200 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']"
+        className="flex items-end px-3 gap-0.5 border-b border-gray-100 overflow-x-auto scrollbar-hide"
       >
-        {["Fájl", "Kezdőlap", "Beszúrás"].map(tab => (
+        {(["Fájl", "Kezdőlap", "Beszúrás"] as const).map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-3 py-1.5 text-sm transition shrink-0 border-b-2 ${
-              activeTab === tab
-                ? "border-blue-600 text-blue-700 font-medium bg-white rounded-t-md"
-                : "border-transparent text-gray-600 hover:bg-gray-200 rounded-t-md"
-            }`}
+            className={`
+              px-3.5 py-1.5 text-xs font-medium tracking-wide rounded-t transition-colors shrink-0
+              ${activeTab === tab
+                ? "bg-white border border-b-white border-gray-200 text-gray-900 -mb-px shadow-sm"
+                : "text-gray-500 hover:text-gray-700 hover:bg-gray-50 border border-transparent"}
+            `}
           >
             {tab}
           </button>
         ))}
       </div>
 
-      <div 
+      {/* ── Eszközök sora ── */}
+      <div
         onWheel={handleWheel}
-        className="flex items-center gap-1 px-3 py-1.5 bg-white min-h-[44px] overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']"
+        className="flex items-center gap-0.5 px-2 py-1 min-h-[40px] overflow-x-auto scrollbar-hide"
       >
+
+        {/* ══ FÁJL ══ */}
         {activeTab === "Fájl" && (
-          <>
+          <div className="flex items-center gap-1">
             <ImportButton />
-            <div className="w-px h-5 bg-gray-300 mx-2 shrink-0" />
+            <Sep />
             <ExportButton />
-          </>
+          </div>
         )}
 
+        {/* ══ KEZDŐLAP ══ */}
         {activeTab === "Kezdőlap" && (
           <>
-            {/* 1. BETŰMÉRET VÁLASZTÓ - Formázott */}
-            <div className="flex items-center bg-gray-50 border border-gray-200 rounded hover:border-gray-300 transition px-1.5 shrink-0">
-              <select
-                value={fmt.fontSize || 14}
-                onChange={(e) => apply({ fontSize: Number(e.target.value) })}
-                className="bg-transparent text-sm text-gray-700 outline-none cursor-pointer py-1 appearance-none pr-2"
-                title="Betűméret"
-              >
-                {FONT_SIZES.map(size => (
-                  <option key={size} value={size}>{size}</option>
-                ))}
-              </select>
-              <ChevronDown className="w-3 h-3 text-gray-400 pointer-events-none" />
-            </div>
+            {/* 1 · Betűméret */}
+            <Tip label="Betűméret">
+              <div className="flex items-center h-7 bg-gray-50 border border-gray-200 rounded hover:border-gray-300 transition-colors pl-2 pr-1 gap-0.5">
+                <select
+                  value={fmt.fontSize ?? 14}
+                  onChange={e => apply({ fontSize: Number(e.target.value) })}
+                  className="bg-transparent text-xs text-gray-700 outline-none cursor-pointer appearance-none w-7"
+                >
+                  {FONT_SIZES.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+                <ChevronDown className="w-3 h-3 text-gray-400 pointer-events-none shrink-0" />
+              </div>
+            </Tip>
 
-            <div className="w-px h-5 bg-gray-300 mx-1 shrink-0" />
+            <Sep />
 
-            {/* 2. ALAP FORMÁZÁS (Félkövér, Dőlt, Aláhúzott) */}
+            {/* 2 · Félkövér / Dőlt / Aláhúzott */}
             <div className="flex items-center gap-0.5">
-              <button className={`p-1.5 rounded transition ${fmt.bold ? "bg-blue-100 text-blue-700" : "text-gray-700 hover:bg-gray-200"}`} onClick={() => toggle("bold")} title="Félkövér (Ctrl+B)"><Bold className="w-4 h-4" /></button>
-              <button className={`p-1.5 rounded transition ${fmt.italic ? "bg-blue-100 text-blue-700" : "text-gray-700 hover:bg-gray-200"}`} onClick={() => toggle("italic")} title="Dőlt (Ctrl+I)"><Italic className="w-4 h-4" /></button>
-              <button className={`p-1.5 rounded transition ${fmt.underline ? "bg-blue-100 text-blue-700" : "text-gray-700 hover:bg-gray-200"}`} onClick={() => toggle("underline")} title="Aláhúzott (Ctrl+U)"><Underline className="w-4 h-4" /></button>
+              <Tip label="Félkövér (Ctrl+B)">
+                <button className={`${btnBase} ${fmt.bold ? btnActive : ""}`} onClick={() => toggle("bold")}>
+                  <Bold className="w-3.5 h-3.5" />
+                </button>
+              </Tip>
+              <Tip label="Dőlt (Ctrl+I)">
+                <button className={`${btnBase} ${fmt.italic ? btnActive : ""}`} onClick={() => toggle("italic")}>
+                  <Italic className="w-3.5 h-3.5" />
+                </button>
+              </Tip>
+              <Tip label="Aláhúzott (Ctrl+U)">
+                <button className={`${btnBase} ${fmt.underline ? btnActive : ""}`} onClick={() => toggle("underline")}>
+                  <Underline className="w-3.5 h-3.5" />
+                </button>
+              </Tip>
             </div>
 
-            <div className="w-px h-5 bg-gray-300 mx-1 shrink-0" />
+            <Sep />
 
-{/* 3. SZÍNEK (Feltételes X gombbal és profi hitbox-szal) */}
-            <div className="flex items-center gap-1 shrink-0">
-              
-              {/* Szövegszín */}
-              <div className={`flex items-center transition h-8 ${hasCustomColor ? 'bg-gray-50 border border-gray-200 rounded hover:border-gray-300' : 'rounded hover:bg-gray-200'}`}>
-                <label className={`relative flex items-center justify-center h-full cursor-pointer ${hasCustomColor ? 'w-8 rounded-l hover:bg-gray-200' : 'w-8 rounded'}`} title="Szöveg színe">
-                  <Type className="w-4 h-4 text-gray-700" />
-                  <div className="absolute bottom-1.5 left-1.5 right-1.5 h-[3px] rounded-sm" style={{ backgroundColor: fmt.color ?? "#000000" }} />
-                  <input type="color" className="absolute inset-0 opacity-0 cursor-pointer" value={fmt.color ?? "#000000"} onChange={(e) => apply({ color: e.target.value })} />
-                </label>
-                {hasCustomColor && (
-                  <>
-                    <div className="w-px h-5 bg-gray-200" />
-                    <button 
-                      onClick={() => apply({ color: undefined })} 
-                      className="w-7 h-full flex items-center justify-center text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-r transition" 
-                      title="Betűszín visszaállítása"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </>
-                )}
-              </div>
+            {/* 3 · Szövegszín */}
+            <Tip label="Szöveg színe">
+              <label className={`${btnBase} relative cursor-pointer`}>
+                <Type className="w-3.5 h-3.5" />
+                <span
+                  className="absolute bottom-[5px] left-[5px] right-[5px] h-[3px] rounded-full"
+                  style={{ backgroundColor: displayColor }}
+                />
+                <input
+                  type="color"
+                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                  value={displayColor}
+                  onChange={e => apply({ color: e.target.value })}
+                />
+              </label>
+            </Tip>
 
-              {/* Háttérszín Kombinált Gomb */}
-              <div className={`flex items-center transition h-8 ${hasCustomBg ? 'bg-gray-50 border border-gray-200 rounded hover:border-gray-300' : 'rounded hover:bg-gray-200'}`}>
-                <label className={`relative flex items-center justify-center h-full cursor-pointer ${hasCustomBg ? 'w-8 rounded-l hover:bg-gray-200' : 'w-8 rounded'}`} title="Kitöltőszín">
-                  <PaintBucket className="w-4 h-4 text-gray-700" />
-                  <div className="absolute bottom-1.5 left-1.5 right-1.5 h-[3px] rounded-sm border border-gray-300" style={{ backgroundColor: fmt.bgColor ?? "#ffffff" }} />
-                  <input type="color" className="absolute inset-0 opacity-0 cursor-pointer" value={fmt.bgColor ?? "#ffffff"} onChange={(e) => apply({ bgColor: e.target.value })} />
-                </label>
-                {hasCustomBg && (
-                  <>
-                    <div className="w-px h-5 bg-gray-200" />
-                    <button 
-                      onClick={() => apply({ bgColor: undefined })} 
-                      className="w-7 h-full flex items-center justify-center text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-r transition" 
-                      title="Kitöltés törlése"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
+            {/* 4 · Háttérszín */}
+            <Tip label="Kitöltőszín">
+              <label className={`${btnBase} relative cursor-pointer`}>
+                <PaintBucket className="w-3.5 h-3.5" />
+                <span
+                  className="absolute bottom-[5px] left-[5px] right-[5px] h-[3px] rounded-full border border-gray-300"
+                  style={{ backgroundColor: displayBgColor }}
+                />
+                <input
+                  type="color"
+                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                  value={displayBgColor}
+                  onChange={e => apply({ bgColor: e.target.value })}
+                />
+              </label>
+            </Tip>
 
-            <div className="w-px h-5 bg-gray-300 mx-1 shrink-0" />
+            <Sep />
 
-            {/* 4. SZEGÉLYEK (Feltételes X gombbal) */}
+            {/* 5 · Szegélyek */}
             <div className="relative shrink-0">
-              <div className={`flex items-center transition h-8 ${hasCustomBorder ? 'bg-gray-50 border border-gray-200 rounded hover:border-gray-300' : ''}`}>
+              <Tip label="Szegélyek">
                 <button
                   ref={borderBtnRef}
-                  onClick={() => setBorderMenuOpen(!borderMenuOpen)}
-                  className={`flex items-center justify-center h-full gap-1 transition ${hasCustomBorder ? 'px-2 rounded-l hover:bg-gray-200' : 'px-2 rounded hover:bg-gray-200'} ${borderMenuOpen ? "bg-blue-100 text-blue-700" : "text-gray-700"}`}
-                  title="Szegélyek menü"
+                  onClick={() => setBorderMenuOpen(v => !v)}
+                  className={`${btnBase} gap-0.5 w-auto px-1.5 ${hasBorder ? btnActive : ""} ${borderMenuOpen ? btnActive : ""}`}
                 >
-                  <Grid3X3 className="w-4 h-4" />
-                  <ChevronDown className="w-3 h-3 opacity-50" />
+                  <Grid3X3 className="w-3.5 h-3.5" />
+                  <ChevronDown className="w-2.5 h-2.5 opacity-60" />
                 </button>
-
-                {hasCustomBorder && (
-                  <>
-                    <div className="w-px h-5 bg-gray-200" />
-                    <button 
-                      onClick={() => applyBorders("none")} 
-                      className="w-7 h-full flex items-center justify-center text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-r transition" 
-                      title="Szegélyek törlése"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </>
-                )}
-              </div>
+              </Tip>
 
               {borderMenuOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setBorderMenuOpen(false)} />
                   <div
-                    className="fixed mt-1 bg-white border border-gray-200 rounded-lg shadow-xl p-2 z-50 grid grid-cols-4 gap-1 w-36"
+                    className="fixed z-50 mt-1 bg-white border border-gray-200 rounded-xl shadow-2xl p-3 w-44"
                     style={{
-                      top: borderBtnRef.current ? borderBtnRef.current.getBoundingClientRect().bottom : 0,
-                      left: borderBtnRef.current ? borderBtnRef.current.getBoundingClientRect().left : 0,
+                      top:  borderBtnRef.current?.getBoundingClientRect().bottom ?? 0,
+                      left: borderBtnRef.current?.getBoundingClientRect().left   ?? 0,
                     }}
                   >
-                    <button onClick={() => { applyBorders("all"); setBorderMenuOpen(false); }} title="Minden szegély" className="p-1.5 flex justify-center hover:bg-gray-100 rounded border border-gray-200"><Grid3X3 className="w-4 h-4 text-gray-700" /></button>
-                    <button onClick={() => { applyBorders("outside"); setBorderMenuOpen(false); }} title="Külső szegély" className="p-1.5 flex justify-center hover:bg-gray-100 rounded border border-gray-200"><Square className="w-4 h-4 text-gray-700" /></button>
-                    <button onClick={() => { applyBorders("none"); setBorderMenuOpen(false); }} title="Nincs szegély" className="p-1.5 flex justify-center hover:bg-gray-100 rounded border border-gray-200 text-red-500"><X className="w-4 h-4" /></button>
-
-                    <div className="col-span-4 h-px bg-gray-200 my-1" />
-                    
-                    <div className="col-span-4 flex items-center gap-2 px-1 pb-1">
-                      <input type="color" value={borderLineColor} onChange={e => setBorderLineColor(e.target.value)} className="w-6 h-6 p-0 border-0 rounded cursor-pointer shrink-0" title="Szegély színe" />
-                      <select value={borderLineStyle} onChange={e => setBorderLineStyle(e.target.value)} className="text-xs border border-gray-300 rounded p-1 outline-none flex-1 text-gray-700 bg-white">
+                    {/* Szín + stílus */}
+                    <div className="flex items-center gap-2 mb-2">
+                      <input
+                        type="color"
+                        value={borderLineColor}
+                        onChange={e => setBorderLineColor(e.target.value)}
+                        className="w-6 h-6 rounded cursor-pointer border border-gray-200 shrink-0"
+                        title="Szegély színe"
+                      />
+                      <select
+                        value={borderLineStyle}
+                        onChange={e => setBorderLineStyle(e.target.value)}
+                        className="flex-1 text-xs border border-gray-200 rounded-md px-1.5 py-1 outline-none text-gray-700 bg-white"
+                      >
                         <option value="thin">Vékony</option>
                         <option value="medium">Közepes</option>
                         <option value="thick">Vastag</option>
@@ -300,56 +322,119 @@ if (hasChanges) {
                       </select>
                     </div>
 
-                    <div className="col-span-4 h-px bg-gray-200 my-1" />
-                    
-                    <button onClick={() => { applyBorders("top"); setBorderMenuOpen(false); }} title="Felső szegély" className="p-1.5 flex justify-center hover:bg-gray-100 rounded border border-gray-200"><div className="w-4 h-4 border-t-2 border-black" /></button>
-                    <button onClick={() => { applyBorders("bottom"); setBorderMenuOpen(false); }} title="Alsó szegély" className="p-1.5 flex justify-center hover:bg-gray-100 rounded border border-gray-200"><div className="w-4 h-4 border-b-2 border-black" /></button>
-                    <button onClick={() => { applyBorders("left"); setBorderMenuOpen(false); }} title="Bal szegély" className="p-1.5 flex justify-center hover:bg-gray-100 rounded border border-gray-200"><div className="w-4 h-4 border-l-2 border-black" /></button>
-                    <button onClick={() => { applyBorders("right"); setBorderMenuOpen(false); }} title="Jobb szegély" className="p-1.5 flex justify-center hover:bg-gray-100 rounded border border-gray-200"><div className="w-4 h-4 border-r-2 border-black" /></button>
+                    <div className="h-px bg-gray-100 mb-2" />
+
+                    {/* Gyors szegélyek */}
+                    <div className="grid grid-cols-4 gap-1 mb-2">
+                      {[
+                        { type: "all",     icon: <Grid3X3 className="w-3.5 h-3.5" />,   title: "Minden szegély" },
+                        { type: "outside", icon: <Square  className="w-3.5 h-3.5" />,   title: "Külső szegély"  },
+                        { type: "none",    icon: <X       className="w-3.5 h-3.5 text-red-500" />, title: "Törlés" },
+                      ].map(({ type, icon, title }) => (
+                        <button
+                          key={type}
+                          onClick={() => { applyBorders(type as never); setBorderMenuOpen(false); }}
+                          title={title}
+                          className="flex items-center justify-center h-7 w-full rounded-md border border-gray-200 hover:bg-gray-50 transition-colors text-gray-700"
+                        >
+                          {icon}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="h-px bg-gray-100 mb-2" />
+
+                    {/* Egyedi oldalak */}
+                    <div className="grid grid-cols-4 gap-1">
+                      {[
+                        { type: "top",    el: <div className="w-3.5 h-3.5 border-t-2 border-current" /> },
+                        { type: "bottom", el: <div className="w-3.5 h-3.5 border-b-2 border-current" /> },
+                        { type: "left",   el: <div className="w-3.5 h-3.5 border-l-2 border-current" /> },
+                        { type: "right",  el: <div className="w-3.5 h-3.5 border-r-2 border-current" /> },
+                      ].map(({ type, el }) => (
+                        <button
+                          key={type}
+                          onClick={() => { applyBorders(type as never); setBorderMenuOpen(false); }}
+                          className="flex items-center justify-center h-7 w-full rounded-md border border-gray-200 hover:bg-gray-50 transition-colors text-gray-700"
+                        >
+                          {el}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </>
               )}
             </div>
 
-            <div className="w-px h-5 bg-gray-300 mx-1 shrink-0" />
+            <Sep />
 
-            {/* 5. IGAZÍTÁS (Csoportosított "Toggle" dizájn) */}
-            <div className="flex items-center bg-gray-100 rounded p-0.5 shrink-0">
-              <button className={`p-1.5 rounded-sm transition ${fmt.align === "left" || !fmt.align ? "bg-white shadow-sm text-blue-600" : "text-gray-600 hover:bg-gray-200"}`} onClick={() => apply({ align: "left" })} title="Balra igazítás"><AlignLeft className="w-4 h-4" /></button>
-              <button className={`p-1.5 rounded-sm transition ${fmt.align === "center" ? "bg-white shadow-sm text-blue-600" : "text-gray-600 hover:bg-gray-200"}`} onClick={() => apply({ align: "center" })} title="Középre igazítás"><AlignCenter className="w-4 h-4" /></button>
-              <button className={`p-1.5 rounded-sm transition ${fmt.align === "right" ? "bg-white shadow-sm text-blue-600" : "text-gray-600 hover:bg-gray-200"}`} onClick={() => apply({ align: "right" })} title="Jobbra igazítás"><AlignRight className="w-4 h-4" /></button>
+            {/* 6 · Igazítás */}
+            <div className="flex items-center bg-gray-100 rounded-md p-0.5 gap-0.5 shrink-0">
+              {(["left","center","right"] as const).map((dir, i) => {
+                const Icon = [AlignLeft, AlignCenter, AlignRight][i];
+                const active = fmt.align === dir || (!fmt.align && dir === "left");
+                return (
+                  <Tip key={dir} label={["Balra", "Középre", "Jobbra"][i]}>
+                    <button
+                      onClick={() => apply({ align: dir })}
+                      className={`inline-flex items-center justify-center h-6 w-6 rounded transition-colors ${active ? "bg-white shadow-sm text-blue-600" : "text-gray-500 hover:text-gray-700"}`}
+                    >
+                      <Icon className="w-3.5 h-3.5" />
+                    </button>
+                  </Tip>
+                );
+              })}
             </div>
 
-            <div className="w-px h-5 bg-gray-300 mx-1 shrink-0" />
+            <Sep />
 
-            {/* 6. EXTRA: Formázás Törlése */}
-            <button 
-              className="p-1.5 rounded text-gray-600 hover:text-red-600 hover:bg-red-50 transition shrink-0" 
-              onClick={clearFormatting} 
-              title="Formázás törlése"
-            >
-              <Eraser className="w-4 h-4" />
-            </button>
+            {/* 7 · Formázás törlése */}
+            <Tip label="Formázás törlése">
+              <button
+                onClick={clearFormatting}
+                className={`${btnBase} hover:text-red-600 hover:bg-red-50`}
+              >
+                <Eraser className="w-3.5 h-3.5" />
+              </button>
+            </Tip>
           </>
         )}
 
+        {/* ══ BESZÚRÁS ══ */}
         {activeTab === "Beszúrás" && (
-          <>
-            <button onClick={() => insertRowAt(activeRow, true)} className="flex items-center gap-1.5 text-sm text-gray-700 hover:bg-gray-100 px-2 py-1.5 rounded shrink-0 transition">
-              <Plus className="w-4 h-4 text-green-600" /> Sor fölé
-            </button>
-            <button onClick={() => insertRowAt(activeRow, false)} className="flex items-center gap-1.5 text-sm text-gray-700 hover:bg-gray-100 px-2 py-1.5 rounded shrink-0 transition">
-              <Plus className="w-4 h-4 text-green-600" /> Sor alá
-            </button>
-            <div className="w-px h-5 bg-gray-300 mx-2 shrink-0" />
-            <button onClick={() => insertColAt(activeCol, true)} className="flex items-center gap-1.5 text-sm text-gray-700 hover:bg-gray-100 px-2 py-1.5 rounded shrink-0 transition">
-              <Plus className="w-4 h-4 text-blue-600" /> Oszlop balra
-            </button>
-            <button onClick={() => insertColAt(activeCol, false)} className="flex items-center gap-1.5 text-sm text-gray-700 hover:bg-gray-100 px-2 py-1.5 rounded shrink-0 transition">
-              <Plus className="w-4 h-4 text-blue-600" /> Oszlop jobbra
-            </button>
-          </>
+          <div className="flex items-center gap-1">
+            {[
+              { label: "Sor fölé",       icon: <Plus className="w-3.5 h-3.5 text-emerald-500" />, action: () => insertRowAt(activeRow, true)  },
+              { label: "Sor alá",        icon: <Plus className="w-3.5 h-3.5 text-emerald-500" />, action: () => insertRowAt(activeRow, false) },
+            ].map(({ label, icon, action }) => (
+              <button
+                key={label}
+                onClick={action}
+                className="inline-flex items-center gap-1.5 h-7 px-2.5 text-xs font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded hover:bg-white hover:border-gray-300 transition-colors"
+              >
+                {icon}
+                {label}
+              </button>
+            ))}
+
+            <Sep />
+
+            {[
+              { label: "Oszlop balra",  icon: <Plus className="w-3.5 h-3.5 text-blue-500" />, action: () => insertColAt(activeCol, true)  },
+              { label: "Oszlop jobbra", icon: <Plus className="w-3.5 h-3.5 text-blue-500" />, action: () => insertColAt(activeCol, false) },
+            ].map(({ label, icon, action }) => (
+              <button
+                key={label}
+                onClick={action}
+                className="inline-flex items-center gap-1.5 h-7 px-2.5 text-xs font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded hover:bg-white hover:border-gray-300 transition-colors"
+              >
+                {icon}
+                {label}
+              </button>
+            ))}
+          </div>
         )}
+
       </div>
     </div>
   );

@@ -18,40 +18,44 @@ import {
 } from "lucide-react";
 
 // ── Legutóbb megnyitott táblák kezelése LocalStorage-ban ──
-const RECENT_KEY = "mysheets_recent";
 const MAX_RECENT = 1;
 
 interface RecentSheet { id: string; title: string; folderId?: string | null; openedAt: number; }
 
-function getRecent(): RecentSheet[] {
+// ÚJ: A userId alapján generáljuk a kulcsot
+function getRecentKey(userId: string) {
+  return `mysheets_recent_${userId}`;
+}
+
+function getRecent(userId: string): RecentSheet[] {
   try {
-    const items = JSON.parse(localStorage.getItem(RECENT_KEY) || "[]");
-    // SZIGORÚAN LEVÁGJUK 1-RE (ha a korábbi verzióból több maradt volna bent)
+    const items = JSON.parse(localStorage.getItem(getRecentKey(userId)) || "[]");
     return items.slice(0, MAX_RECENT);
   } catch { return []; }
 }
 
-function saveRecent(sheet: RecentSheet) {
+function saveRecent(userId: string, sheet: RecentSheet) {
   try {
-    const prev = getRecent().filter(r => r.id !== sheet.id);
+    const prev = getRecent(userId).filter(r => r.id !== sheet.id);
     const next = [sheet, ...prev].slice(0, MAX_RECENT);
-    localStorage.setItem(RECENT_KEY, JSON.stringify(next));
+    localStorage.setItem(getRecentKey(userId), JSON.stringify(next));
   } catch (e) { console.error(e); }
 }
 
-function removeRecentById(ids: string[]) {
+function removeRecentById(userId: string, ids: string[]) {
   try {
-    const next = getRecent().filter(r => !ids.includes(r.id));
-    localStorage.setItem(RECENT_KEY, JSON.stringify(next));
+    const next = getRecent(userId).filter(r => !ids.includes(r.id));
+    localStorage.setItem(getRecentKey(userId), JSON.stringify(next));
   } catch (e) { console.error(e); }
 }
 
-function removeRecentByFolder(folderId: string) {
+function removeRecentByFolder(userId: string, folderId: string) {
   try {
-    const next = getRecent().filter(r => r.folderId !== folderId);
-    localStorage.setItem(RECENT_KEY, JSON.stringify(next));
+    const next = getRecent(userId).filter(r => r.folderId !== folderId);
+    localStorage.setItem(getRecentKey(userId), JSON.stringify(next));
   } catch (e) { console.error(e); }
 }
+
 
 function DashboardContent() {
   const { user } = useAuthStore();
@@ -100,10 +104,13 @@ function DashboardContent() {
     catch { toast.error("Hiba a mentéskor."); setFolders(prev => prev.map(f => f.id === folder.id ? { ...f, isFavorite: !newValue } : f)); }
   };
 
-  // JAVÍTVA: A refreshTrigger változása is újra le fogja futtatni az adatletöltést!
   useEffect(() => {
-    setRecentSheets(getRecent());
-    if (user) loadData();
+    if (user) {
+      setRecentSheets(getRecent(user.uid));
+      loadData();
+    } else {
+      setRecentSheets([]); // Ha nincs user, ürítjük az állapotot
+    }
   }, [user, refreshTrigger]);
 
 
@@ -112,17 +119,17 @@ function DashboardContent() {
     const handleRestore = () => {
       // Ez a sor garantálja, hogy a React a legfrissebb user adatokkal ébred fel!
       setRefreshTrigger(prev => prev + 1);
-      
-      if (typeof getRecent === "function" && typeof setRecentSheets === "function") {
-        setRecentSheets(getRecent());
+
+      if (typeof getRecent === "function" && typeof setRecentSheets === "function" && user) {
+        setRecentSheets(getRecent(user.uid));
       }
-      
+
       router.refresh();
     };
 
     // Amikor a history-ban lépünk (egér oldalsó gomb vagy böngésző vissza gomb)
     window.addEventListener("popstate", handleRestore);
-    
+
     // Amikor a böngésző a memóriájából (BFCache) húzza elő az oldalt
     window.addEventListener("pageshow", (e) => {
       if (e.persisted) handleRestore();
@@ -162,9 +169,8 @@ function DashboardContent() {
   };
 
   const openSheet = (sheet: Sheet) => {
-    saveRecent({ id: sheet.id, title: sheet.title, folderId: sheet.folderId, openedAt: Date.now() });
+    if (user) saveRecent(user.uid, { id: sheet.id, title: sheet.title, folderId: sheet.folderId, openedAt: Date.now() });
     const path = `/sheet/${sheet.id}${currentFolder ? `?folder=${currentFolder}` : ""}`;
-    // 1. JAVÍTÁS: A router.push helyett ezt használjuk a stabilitás és memória ürítés érdekében
     window.location.href = path;
   };
 
@@ -172,7 +178,8 @@ function DashboardContent() {
     if (!user) return;
     const id = await createSheet(user.uid, "Névtelen táblázat", currentFolder);
     toast.success("Táblázat létrehozva!");
-    saveRecent({ id, title: "Névtelen táblázat", folderId: currentFolder, openedAt: Date.now() });
+    saveRecent(user.uid, { id, title: "Névtelen táblázat", folderId: currentFolder, openedAt: Date.now() });
+    // ...
     const path = `/sheet/${id}${currentFolder ? `?folder=${currentFolder}` : ""}`;
     // 2. JAVÍTÁS
     window.location.href = path;
@@ -219,10 +226,10 @@ function DashboardContent() {
         result.colWidthsByTab,    // <-- ÚJ SOR
         result.rowHeightsByTab    // <-- ÚJ SOR
       );
-
+      // ...
       toast.success(`Importálva! ${Object.keys(result.cellsByTab[0] || {}).length} cella betöltve.`, { id: toastId });
-      saveRecent({ id, title: sheetTitle, folderId: currentFolder, openedAt: Date.now() });
-
+      saveRecent(user.uid, { id, title: sheetTitle, folderId: currentFolder, openedAt: Date.now() });
+      // ...
       const path = `/sheet/${id}${currentFolder ? `?folder=${currentFolder}` : ""}`;
       window.location.href = path;
     } catch (err) {
@@ -249,8 +256,8 @@ function DashboardContent() {
     if (!user || !confirm("Biztosan törlöd?")) return;
     await deleteSheet(user.uid, id);
     setSheets(prev => prev.filter(s => s.id !== id));
-    removeRecentById([id]);
-    setRecentSheets(getRecent());
+    removeRecentById(user.uid, [id]);
+    setRecentSheets(getRecent(user.uid));
     toast.success("Törölve!");
   };
 
@@ -267,8 +274,8 @@ function DashboardContent() {
     if (!user || !confirm("Biztosan törlöd a mappát? (A tartalma is törlődik!)")) return;
     try {
       await deleteFolder(user.uid, id);
-      removeRecentByFolder(id);
-      setRecentSheets(getRecent());
+      removeRecentByFolder(user.uid, id);
+      setRecentSheets(getRecent(user.uid));
       loadData();
       toast.success("Mappa törölve!");
     } catch { toast.error("Hiba a törléskor."); }
@@ -432,8 +439,7 @@ function DashboardContent() {
 
               <div
                 onClick={() => {
-                  // Frissítjük a kártyát a legújabb időbélyeggel megnyitáskor!
-                  saveRecent({ ...recentSheets[0], openedAt: Date.now() });
+                  if (user) saveRecent(user.uid, { ...recentSheets[0], openedAt: Date.now() });
                   router.push(`/sheet/${recentSheets[0].id}${recentSheets[0].folderId ? `?folder=${recentSheets[0].folderId}` : ""}`);
                 }}
                 style={{
@@ -703,36 +709,121 @@ function DashboardContent() {
                       >
                         {viewMode === "grid" ? (
                           <>
-                            {/* Előnézet terület */}
+
+                          {/* src/app/(app)/dashboard/page.tsx (keresd meg az előnézet renderelő részét) */}
+
+{/* Előnézet terület */}
                             <div style={{ height: 110, background: "#f9fafb", borderBottom: "1px solid #f3f4f6", padding: "10px 10px 0", overflow: "hidden", position: "relative" }}>
-                              {[0, 1, 2, 3, 4].map(ri => (
-                                <div key={ri} style={{ display: "flex", gap: 2, marginBottom: 2 }}>
-                                  {[0, 1, 2, 3, 4].map(ci => {
-                                    const val = sheet.previewData ? sheet.previewData[ri * 5 + ci] : "";
+                              
+                              {/* HTML table helyett CSS Grid, ami pont úgy viselkedik, mint a valódi szerkesztő */}
+                              <div style={{ 
+                                display: "grid", 
+                                gridTemplateColumns: "24px repeat(4, 1fr)", 
+                                borderTop: "1px solid #d1d5db", 
+                                borderLeft: "1px solid #d1d5db", 
+                                background: "#fff" 
+                              }}>
+                                {[0, 1, 2, 3, 4].map(ri => (
+                                  [0, 1, 2, 3, 4].map(ci => {
+                                    const isHeader = ri === 0 || ci === 0;
+                                    
+                                    let cellValue = "";
+                                    let cellFormat: any = null;
+
+                                    if (!isHeader && sheet.previewData) {
+                                      const dataIndex = (ri - 1) * 4 + (ci - 1);
+                                      const rawData = sheet.previewData[dataIndex];
+
+                                      if (rawData) {
+                                        try {
+                                          if (rawData.startsWith("{")) {
+                                            const parsed = JSON.parse(rawData);
+                                            cellValue = parsed.v || "";
+                                            cellFormat = parsed.f;
+                                          } else {
+                                            cellValue = rawData;
+                                          }
+                                        } catch {
+                                          cellValue = rawData;
+                                        }
+                                      }
+                                    }
+
+                                    let label = "";
+                                    if (ri === 0 && ci > 0) label = ["", "A", "B", "C", "D"][ci];
+                                    if (ci === 0 && ri > 0) label = String(ri);
+
+                                    const alignClass = cellFormat?.align === "center" ? "center" : cellFormat?.align === "right" ? "right" : "left";
+                                    
+                                    // Itt a varázslat: KIVETTÜK az 'overflow: "hidden"'-t a cella konténeréből!
+                                    const cellStyle: React.CSSProperties = isHeader 
+                                      ? {
+                                          background: "#f3f4f6", color: "#9ca3af", fontWeight: "600", fontSize: 8,
+                                          textAlign: "center", height: 18, borderBottom: "1px solid #d1d5db", borderRight: "1px solid #d1d5db",
+                                          position: "relative", display: "flex", alignItems: "center", justifyContent: "center", boxSizing: "border-box"
+                                        }
+                                      : {
+                                          background: cellFormat?.bgColor || "#fff", color: cellFormat?.color || "#374151",
+                                          fontWeight: cellFormat?.bold ? "bold" : "normal", fontStyle: cellFormat?.italic ? "italic" : "normal",
+                                          textDecoration: cellFormat?.underline ? "underline" : "none", textAlign: alignClass as any,
+                                          fontSize: 8, height: 18, borderBottom: "1px solid #e5e7eb", borderRight: "1px solid #e5e7eb",
+                                          position: "relative", boxSizing: "border-box"
+                                        };
+
+                                    // Hajszálpontosan A TE Cell.tsx kódod a tökéletes szegélyekhez:
+                                    const renderPreviewBorder = (b: any, side: string) => {
+                                      if (!b) return null;
+                                      let w = 1; let style = "solid";
+                                      if (b !== true) {
+                                        if (b.style === "thick") w = 3;
+                                        else if (b.style === "medium") w = 2;
+                                        if (b.style?.includes("dash")) style = "dashed";
+                                        else if (b.style?.includes("dot")) style = "dotted";
+                                      }
+                                      const color = b.color || '#000000';
+                                      const shift = Math.floor((w - 1) / 2);
+                                      const offset = `-${1 + shift}px`;
+                                      const common: React.CSSProperties = { position: "absolute", zIndex: 11, pointerEvents: "none" };
+                                      
+                                      if (side === "top") return <div style={{ ...common, top: offset, left: offset, right: offset, borderTop: `${w}px ${style} ${color}` }} />;
+                                      if (side === "bottom") return <div style={{ ...common, top: `calc(100% - ${1 + shift}px)`, left: offset, right: offset, borderTop: `${w}px ${style} ${color}` }} />;
+                                      if (side === "left") return <div style={{ ...common, left: offset, top: offset, bottom: offset, borderLeft: `${w}px ${style} ${color}` }} />;
+                                      if (side === "right") return <div style={{ ...common, left: `calc(100% - ${1 + shift}px)`, top: offset, bottom: offset, borderLeft: `${w}px ${style} ${color}` }} />;
+                                    };
+
                                     return (
-                                      <div key={ci} style={{
-                                        background: ri === 0 || ci === 0 ? "#f3f4f6" : "#fff",
-                                        border: "1px solid #e5e7eb", borderRadius: 2, overflow: "hidden",
-                                        display: "flex", alignItems: "center", padding: "0 3px",
-                                        height: 16, flex: ci === 0 ? "0 0 24px" : 1
-                                      }}>
-                                        <span style={{ fontSize: 7, color: ri === 0 || ci === 0 ? "#9ca3af" : "#374151", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                                          {val}
+                                      <div key={`${ri}-${ci}`} style={cellStyle}>
+                                        {/* A szöveget egy belső span-be zárjuk, így CSAK a szöveg lesz levágva, nem a szegély! */}
+                                        <span style={{ 
+                                          display: "block", padding: "0 4px", lineHeight: "17px", 
+                                          whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                                          position: "relative", zIndex: 10, width: "100%", boxSizing: "border-box"
+                                        }}>
+                                          {isHeader ? label : cellValue}
                                         </span>
+                                        
+                                        {/* Szegélyek (immár szabadon kinyúlhatnak a div-ből) */}
+                                        {!isHeader && cellFormat?.border?.top && renderPreviewBorder(cellFormat.border.top, "top")}
+                                        {!isHeader && cellFormat?.border?.bottom && renderPreviewBorder(cellFormat.border.bottom, "bottom")}
+                                        {!isHeader && cellFormat?.border?.left && renderPreviewBorder(cellFormat.border.left, "left")}
+                                        {!isHeader && cellFormat?.border?.right && renderPreviewBorder(cellFormat.border.right, "right")}
                                       </div>
                                     );
-                                  })}
-                                </div>
-                              ))}
-                              <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 40, background: "linear-gradient(to top, #f9fafb, transparent)" }} />
+                                  })
+                                ))}
+                              </div>
+                              
+                              <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 40, background: "linear-gradient(to top, #f9fafb, transparent)", pointerEvents: "none", zIndex: 15 }} />
+                              
                               {/* Hover akció gombok */}
-                              <div style={{ position: "absolute", top: 8, right: 8, display: "flex", gap: 4, opacity: sheet.isFavorite ? 1 : 0, transition: "opacity 0.15s" }} className={sheet.isFavorite ? "" : "sheet-actions"}>
+                              <div style={{ position: "absolute", top: 8, right: 8, display: "flex", gap: 4, opacity: sheet.isFavorite ? 1 : 0, transition: "opacity 0.15s", zIndex: 20 }} className={sheet.isFavorite ? "" : "sheet-actions"}>
                                 <button onClick={e => handleToggleFavoriteSheet(e, sheet)} style={{ background: "rgba(255,255,255,0.9)", border: "1px solid #e5e7eb", borderRadius: 6, padding: "4px 7px", cursor: "pointer", display: "flex" }}><Star size={13} color={sheet.isFavorite ? "#eab308" : "#6b7280"} fill={sheet.isFavorite ? "#eab308" : "none"} /></button>
-                                {/* Itt marad a Pencil és a Trash2 gombod */}
                                 <button onClick={e => { e.stopPropagation(); setEditingId(sheet.id); setEditTitle(sheet.title); }} style={{ background: "rgba(255,255,255,0.9)", border: "1px solid #e5e7eb", borderRadius: 6, padding: "4px 7px", cursor: "pointer", display: "flex" }}><Pencil size={13} color="#6b7280" /></button>
                                 <button onClick={e => { e.stopPropagation(); handleDelete(sheet.id); }} style={{ background: "rgba(255,255,255,0.9)", border: "1px solid #e5e7eb", borderRadius: 6, padding: "4px 7px", cursor: "pointer", display: "flex" }}><Trash2 size={13} color="#ef4444" /></button>
                               </div>
                             </div>
+
+
                             {/* Cím + dátum */}
                             <div style={{ padding: "12px 14px", display: "flex", alignItems: "center", gap: 10 }}>
                               <div style={{ background: "#f0fdf4", borderRadius: 8, padding: "7px", display: "flex", flexShrink: 0 }}>

@@ -174,6 +174,9 @@ if (isSelected) {
   }, [isInFillSelection, fillSelection, row, col]);
 
   // Személyre szabott szegélyek (változatlan)
+// src/components/sheet/Cell.tsx (részlet, keresd meg a renderBorder függvényt)
+
+// src/components/sheet/Cell.tsx (részlet)
   const renderBorder = (b: any, side: "top" | "bottom" | "left" | "right") => {
     if (!b) return null;
     let w = 1; let style = "solid";
@@ -184,14 +187,13 @@ if (isSelected) {
       else if (b.style?.toLowerCase().includes("dot")) style = "dotted";
     }
     const color = b.color || '#000000';
-    const shift = Math.floor((w - 1) / 2);
-    const offset = `-${1 + shift}px`;
     const common: React.CSSProperties = { position: "absolute", zIndex: 11, pointerEvents: "none" };
     
-    if (side === "top") return <div style={{ ...common, top: offset, left: offset, right: offset, borderTop: `${w}px ${style} ${color}` }} />;
-    if (side === "bottom") return <div style={{ ...common, top: `calc(100% - ${1 + shift}px)`, left: offset, right: offset, borderTop: `${w}px ${style} ${color}` }} />;
-    if (side === "left") return <div style={{ ...common, left: offset, top: offset, bottom: offset, borderLeft: `${w}px ${style} ${color}` }} />;
-    if (side === "right") return <div style={{ ...common, left: `calc(100% - ${1 + shift}px)`, top: offset, bottom: offset, borderLeft: `${w}px ${style} ${color}` }} />;
+    // Nincs több "calc"! Fixált túlnyúlásokkal hajszálpontosan fedik egymást, és lezárják a sarkokat.
+    if (side === "top") return <div style={{ ...common, top: "-1px", left: "-1px", right: `-${w}px`, borderTop: `${w}px ${style} ${color}` }} />;
+    if (side === "bottom") return <div style={{ ...common, bottom: `-${w}px`, left: "-1px", right: `-${w}px`, borderBottom: `${w}px ${style} ${color}` }} />;
+    if (side === "left") return <div style={{ ...common, left: "-1px", top: "-1px", bottom: `-${w}px`, borderLeft: `${w}px ${style} ${color}` }} />;
+    if (side === "right") return <div style={{ ...common, right: `-${w}px`, top: "-1px", bottom: `-${w}px`, borderRight: `${w}px ${style} ${color}` }} />;
   };
 
   // ÚJ ÉS JAVÍTOTT: KÜLSŐ KERET RENDERELÉSE (Sima kijelölés ÉS Szaggatott kitöltés)
