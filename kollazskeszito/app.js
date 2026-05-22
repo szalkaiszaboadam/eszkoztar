@@ -596,8 +596,8 @@ document.addEventListener('mousedown', (e) => {
     if (!canvas) return;
 
     const rect = canvas.getBoundingClientRect();
-    const mx = (e.clientX - rect.left) * (800 / rect.width);
-    const my = (e.clientY - rect.top) * (800 / rect.height);
+    const mx = (e.clientX - rect.left) * (2000 / rect.width);
+    const my = (e.clientY - rect.top) * (2000 / rect.height);
 
     // 1. ELLENŐRZÉS: Fogantyút találtunk-e? (Vásznon kívül is!)
     const box = renderHitBoxes.find(b => b.index === activeImageIndex);
@@ -1740,7 +1740,7 @@ function updateVisualSelection() {
     }
 
     layer.innerHTML = '';
-    const scale = wrapper.clientWidth / 800;
+    const scale = wrapper.clientWidth / 2000;
 
     selectedIndices.forEach(idx => {
         const box = renderHitBoxes.find(b => b.index === idx);
@@ -1814,7 +1814,7 @@ function renderCollage(shouldUpdateLink = true, isExport = false) {
     //if (count === 0) return;
 
     renderHitBoxes = [];
-    const CANVAS_SIZE = 800;
+    const CANVAS_SIZE = 2000;
     const canvas = document.getElementById('collageCanvas');
     if (!canvas) return;
 
@@ -2051,8 +2051,8 @@ function setupCanvasInteractions() {
         // ---------------------------------------
 
         const rect = canvas.getBoundingClientRect();
-        const mx = (e.clientX - rect.left) * (800 / rect.width);
-        const my = (e.clientY - rect.top) * (800 / rect.height);
+        const mx = (e.clientX - rect.left) * (2000 / rect.width);
+        const my = (e.clientY - rect.top) * (2000 / rect.height);
 
 
         // A. Fogantyú kezelése (BÁRHOL a képernyőn, ha az egyszerűsített mód ki van kapcsolva)
@@ -2119,8 +2119,8 @@ function setupCanvasInteractions() {
     workspace.onmousemove = (e) => {
         if (isDraggingCanvas || isDraggingHandle) return;
         const rect = canvas.getBoundingClientRect();
-        const mx = (e.clientX - rect.left) * (800 / rect.width);
-        const my = (e.clientY - rect.top) * (800 / rect.height);
+        const mx = (e.clientX - rect.left) * (2000 / rect.width);
+        const my = (e.clientY - rect.top) * (2000 / rect.height);
 
         const { index } = getHitFromCoords(mx, my);
         const box = renderHitBoxes.find(b => b.index === activeImageIndex);
@@ -2152,8 +2152,8 @@ function globalMouseMove(e) {
 
     const canvas = document.getElementById('collageCanvas');
     const rect = canvas.getBoundingClientRect();
-    const mx = (e.clientX - rect.left) * (800 / rect.width);
-    const my = (e.clientY - rect.top) * (800 / rect.height);
+    const mx = (e.clientX - rect.left) * (2000 / rect.width);
+    const my = (e.clientY - rect.top) * (2000 / rect.height);
 
     if (isDraggingHandle && activeImageIndex !== -1) {
         // ... (A transzformációs kód - forgatás/méretezés - maradjon változatlan) ...
@@ -2203,8 +2203,8 @@ function globalMouseMove(e) {
                 const vT = virtualCY - box.h / 2;
                 const vB = virtualCY + box.h / 2;
 
-                const targetsX = [0, 400, 800];
-                const targetsY = [0, 400, 800];
+                const targetsX = [0, 1000, 2000];
+                const targetsY = [0, 1000, 2000];
 
                 renderHitBoxes.forEach(other => {
                     if (!selectedIndices.has(other.index)) {
@@ -2636,7 +2636,7 @@ function updateGridSettings() {
     // --- 2. INTELLIGENS ILLESZTÉS VONALAI (Piros vonalak) ---
     // Akkor is rajzoljuk, ha a rács ki van kapcsolva, de a snapping aktív!
     if (isSnapEnabled && (activeSnapLines.x !== null || activeSnapLines.y !== null)) {
-        const scale = overlayCanvas.width / 800; // Belső 800-as koordináta átszámítása pixelre
+        const scale = overlayCanvas.width / 2000; 
 
         ctx.save();
         ctx.strokeStyle = '#06b6d4';
@@ -3149,7 +3149,7 @@ function getAutoPartitions(n) {
 
 
 function computeAutoLayouts(images, gap, externalMargin) {
-    const TARGET = 1000;
+    const TARGET = 2000;
     const allCandidates = [];
 
 const keepOrder = document.getElementById('auto-keep-order')?.checked;
@@ -3282,16 +3282,16 @@ function scoreAutoLayout(dims, totalH, totalW) {
 
 // ── CANVAS RAJZOLÁS ──────────────────────────────────────
 function renderAutoCanvas(canvas, layout) {
-    canvas.width = 1000; canvas.height = 1000;
+    canvas.width = 2000; canvas.height = 2000;
     const ctx = canvas.getContext('2d');
     ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, 1000, 1000);
+    ctx.fillRect(0, 0, 2000, 2000);
 
     const { gap, externalMargin, totalH, totalW, perm } = layout;
-    const maxDrawArea = 1000 - externalMargin * 2;
+    const maxDrawArea = 2000 - externalMargin * 2;
     const finalScale = Math.min(maxDrawArea / totalW, maxDrawArea / totalH);
-    const offsetX = (1000 - totalW * finalScale) / 2;
-    const offsetY = (1000 - totalH * finalScale) / 2;
+    const offsetX = (2000 - totalW * finalScale) / 2;
+    const offsetY = (2000 - totalH * finalScale) / 2;
 
     if (layout.type === 'cols') {
         let currentX = offsetX;
@@ -3329,7 +3329,7 @@ function editAutoCollage() {
     const layout = autoSelectedLayout;
     const gap = layout.gap;
     const externalMargin = layout.externalMargin;
-    const AUTO_SIZE = 1000;
+    const AUTO_SIZE = 2000;
     const EDITOR_SIZE = 800;
     const scaleFactor = EDITOR_SIZE / AUTO_SIZE;
 
@@ -3368,8 +3368,8 @@ function editAutoCollage() {
         const prodOffY = (imgItem.cropOffsetY + imgItem.cropH / 2 - img.height / 2) * baseScale * Z;
 
         imageOffsets[permIdx] = {
-            x: Math.round(editorCX - 400 - prodOffX),
-            y: Math.round(editorCY - 400 - prodOffY)
+            x: Math.round(editorCX - 1000 - prodOffX),
+            y: Math.round(editorCY - 1000 - prodOffY)
         };
         permIdx++;
     };
