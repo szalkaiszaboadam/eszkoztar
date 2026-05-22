@@ -109,18 +109,24 @@ padding: 10px 0 32px;
 
 
             <!-- ÚJ: Képek előkészítése (Mini Gallery) -->
-<div id="auto-mini-gallery-container" style="width: 100%; max-width: 820px; display: none; flex-direction: column; gap: 8px; margin-bottom: 4px; background: var(--bg-panel); padding: 12px 20px; border-radius: var(--radius-lg); border: 1px solid var(--border-subtle); box-shadow: var(--shadow-sm);">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-        <span style="font-size: 10px; font-weight: 800; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.05em;">1. Előkészítés (Húzd a sorrendhez)</span>
-        <label style="display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: var(--text-secondary); cursor: pointer;">
-            <input type="checkbox" id="auto-keep-order" onchange="regenerateAutoLayouts()" style="accent-color: var(--accent-color); width: 14px; height: 14px;">
-            Sorrend megtartása
-        </label>
-    </div>
-    <div id="auto-mini-gallery" style="display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; scrollbar-color: var(--border-medium) transparent;">
-        <!-- JavaScript tölti fel -->
-    </div>
-</div>
+            <div id="auto-mini-gallery-container"
+                style="width: 100%; max-width: 820px; display: none; flex-direction: column; gap: 8px; margin-bottom: 4px; background: var(--bg-panel); padding: 12px 20px; border-radius: var(--radius-lg); border: 1px solid var(--border-subtle); box-shadow: var(--shadow-sm);">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span
+                        style="font-size: 10px; font-weight: 800; text-transform: uppercase; color: var(--text-muted); letter-spacing: 0.05em;">1.
+                        Előkészítés (Húzd a sorrendhez)</span>
+                    <label
+                        style="display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: var(--text-secondary); cursor: pointer;">
+                        <input type="checkbox" id="auto-keep-order" onchange="regenerateAutoLayouts()"
+                            style="accent-color: var(--accent-color); width: 14px; height: 14px;">
+                        Sorrend megtartása
+                    </label>
+                </div>
+                <div id="auto-mini-gallery"
+                    style="display: flex; gap: 10px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; scrollbar-color: var(--border-medium) transparent;">
+                    <!-- JavaScript tölti fel -->
+                </div>
+            </div>
 
             <!-- Csúszkák -->
             <div id="auto-controls" style="
@@ -339,25 +345,26 @@ padding: 10px 0 32px;
                                     <select id="exportFormatSelect" onchange="updateExportSettings()"
                                         style="background: var(--bg-sunken); color: var(--text-main); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 2px 5px; font-size: 11px; font-weight: 600; outline: none; cursor: pointer;">
                                         <option value="image/png">PNG</option>
-                                        <option value="image/jpeg">JPG</option>
+                                        <option value="image/jpeg" selected>JPG</option>
                                         <option value="image/webp">WebP</option>
                                     </select>
                                 </div>
                             </label>
 
                             <label class="popover-item" id="exportQualityContainer"
-                                style="flex-direction: column; align-items: flex-start; gap: 8px; display: none;">
+                                style="flex-direction: column; align-items: flex-start; gap: 8px; display: flex;">
                                 <div class="item-info" style="width: 100%; justify-content: space-between;">
                                     <div style="display: flex; align-items: center; gap: 9px;">
                                         <i data-lucide="sliders-horizontal"></i>
                                         <span>Minőség</span>
                                     </div>
                                     <span id="exportQualityVal"
-                                        style="font-size: 11px; font-weight: 700; color: var(--accent-color);">90%</span>
+                                        style="font-size: 11px; font-weight: 700; color: var(--accent-color);">80%</span>
                                 </div>
-                                <input type="range" id="exportQualitySlider" min="0.1" max="1.0" step="0.05" value="0.9"
+                                <input type="range" id="exportQualitySlider" min="0.1" max="1.0" step="0.05" value="0.8"
                                     style="width: 100%; accent-color: var(--accent-color); cursor: pointer;"
                                     oninput="updateExportSettings()">
+                            </label>
                             </label>
 
                         </div>
@@ -489,17 +496,21 @@ padding: 10px 0 32px;
             </div>
 
 
-                <!-- --- ÚJ: KUKA (TÖRÖLT KÉPEK) SZEKCIÓ --- -->
-                <div id="trash-section" style="display: none; flex-direction: column; gap: 8px; margin-top: 10px; border-top: 1px solid var(--border-subtle); padding-top: 10px; flex-shrink: 0;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div class="sidebar-label" style="margin:0;"><i data-lucide="trash-2" style="width: 12px; height: 12px; margin-right: 4px;"></i>Kuka</div>
-                        <button class="shuffle-btn" onclick="emptyTrash()" style="color: var(--danger); border-color: transparent;">Ürítés</button>
-                    </div>
-                    <div id="trash-items-container" style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; scrollbar-color: var(--border-medium) transparent;">
-                        <!-- JS tölti fel -->
-                    </div>
+            <!-- --- ÚJ: KUKA (TÖRÖLT KÉPEK) SZEKCIÓ --- -->
+            <div id="trash-section"
+                style="display: none; flex-direction: column; gap: 8px; margin-top: 10px; border-top: 1px solid var(--border-subtle); padding-top: 10px; flex-shrink: 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div class="sidebar-label" style="margin:0;"><i data-lucide="trash-2"
+                            style="width: 12px; height: 12px; margin-right: 4px;"></i>Kuka</div>
+                    <button class="shuffle-btn" onclick="emptyTrash()"
+                        style="color: var(--danger); border-color: transparent;">Ürítés</button>
                 </div>
-                <!-- --------------------------------------- -->
+                <div id="trash-items-container"
+                    style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; scrollbar-color: var(--border-medium) transparent;">
+                    <!-- JS tölti fel -->
+                </div>
+            </div>
+            <!-- --------------------------------------- -->
         </aside>
 
     </div><!-- /#app-container -->

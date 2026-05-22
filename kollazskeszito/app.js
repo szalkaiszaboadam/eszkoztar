@@ -124,8 +124,8 @@ let rotations = [];
 let visibilities = [];
 let renderHitBoxes = [];
 let deletedImagesTrash = []; // <--- ÚJ: Kuka memóriája
-let exportFormat = 'image/png';
-let exportQuality = 0.9;
+let exportFormat = 'image/jpeg'; // Átállítva JPG-re
+let exportQuality = 0.8;        // Átállítva 80%-ra
 let isGridVisible = false;
 let isSnapEnabled = true; // Alapértelmezés szerint bekapcsolva
 
@@ -1841,7 +1841,8 @@ function renderCollage(shouldUpdateLink = true, isExport = false) {
     if (shouldUpdateLink && !isExport) {
         const dlLink = document.getElementById('downloadLink');
         if (dlLink) {
-            dlLink.href = canvas.toDataURL("image/png");
+            // "image/png" HELYETT az aktuálisan beállított formátumot és minőséget használjuk:
+            dlLink.href = canvas.toDataURL(exportFormat, exportQuality);
         }
     }
     updateVisualSelection();
