@@ -2833,7 +2833,7 @@ function downloadImage(event) {
     const timeStr = String(now.getHours()).padStart(2, '0') + '-' + String(now.getMinutes()).padStart(2, '0');
 
     // Fájlkiterjesztés meghatározása
-    const ext = exportFormat === 'image/jpeg' ? 'jpg' : (exportFormat === 'image/webp' ? 'webp' : 'png');
+    const ext = exportFormat === 'image/jpeg' ? 'jpg' : 'png';
 
     const tempLink = document.createElement('a');
     tempLink.download = `termek_kollazs_${dateStr}_${timeStr}.${ext}`;
@@ -3562,7 +3562,7 @@ function downloadAutoCollage() {
     const ts = String(now.getHours()).padStart(2, '0') + '-' + String(now.getMinutes()).padStart(2, '0');
 
     // Fájlkiterjesztés meghatározása itt is
-    const ext = exportFormat === 'image/jpeg' ? 'jpg' : (exportFormat === 'image/webp' ? 'webp' : 'png');
+    const ext = exportFormat === 'image/jpeg' ? 'jpg' : 'png';
 
     const link = document.createElement('a');
     link.download = `auto_kollazs_${ds}_${ts}.${ext}`;
