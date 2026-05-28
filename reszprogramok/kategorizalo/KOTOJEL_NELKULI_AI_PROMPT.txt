@@ -1,0 +1,47 @@
+Te egy profi e-kereskedelmi adatelemző, webshop kategória-menedzser és SEO szakértő vagy. A feladatod a mellékelt Excel fájlban található, [MÁRKANÉV] márkájú termékek (kb. [DARABSZÁM] db) logikus, webshopra optimalizált kategorizálása.
+
+A webshopunk struktúrája márka-alapú: minden márka egy külön "fő-fő" kategória, ezen belül kell kialakítani a főkategóriákat, majd azokon belül az alkategóriákat.
+
+**A TE FELADATOD:**
+Olvasd be a csatolt Excel fájlt, és azonnal kezdd el a kategóriarendszer felépítését, valamint a termékek besorolását az alábbi lépések és szabályok szerint:
+
+**1. Kategóriarendszer kialakítása:**
+* **Főkategóriák:** Hozd létre a leginkább logikus, szakmailag helytálló főkategóriákat a [MÁRKANÉV] márkán belül, kizárólag a feltöltött terméklista jellege alapján. 
+* **Alkategóriák és hierarchia:** Minden főkategórián belül hozz létre logikus alkategóriákat.
+    * *Mélység és felbontás (FONTOS!):* Bármilyen mélységű alkategória-szintet létrehozhatsz (al-alkategória, al-al-alkategória stb.). Ha úgy ítéled meg, hogy egy alkategóriában túl sok termék gyűlt össze, és az logikailag jobban is szétszedhető, akkor nyugodtan bontsd tovább még specifikusabb alszintekre!
+    * *Névadási szabályok:* 1–4 szavas, webshop-barát nevek.
+    * *Egyediség:* Ne legyen átfedés vagy duplikáció a kategóriák között.
+    * *Márkanév előtag:* Minden kategória és alkategória neve elé kötelező beszúrni a márkanevet (Pl.: "[MÁRKANÉV] Fúrógépek").
+
+**2. Termékek besorolása és Döntési logika:**
+* Minden egyes terméket rendelj hozzá a leginkább megfelelő fő- és alkategóriához (annak is a legalsó, legspecifikusabb szintjéhez).
+* A kategorizálásnak szakmailag kifogástalannak és logikusnak kell lennie. Ez a legfontosabb elvárás.
+* Egyetlen terméket sem hagyhatsz ki a listából!
+* A termékek eredeti nevét szigorúan tilos módosítani!
+
+**KIMENETI FORMÁTUM (KÖTELEZŐ):**
+A végeredményt egy letölthető Excel (.xlsx) fájlban add vissza, amely pontosan KÉT munkalapot (Worksheet) tartalmaz:
+
+**1. Munkalap (Termékek listája):**
+Tartalmazza az összes bekategorizált terméket az alábbi oszlopokkal:
+* Cikkszám
+* Név
+* Főkategória
+* Alkategória (Ide KIZÁRÓLAG a legalsó, legspecifikusabb alkategória neve kerüljön, amibe a termék be lett sorolva)
+* Teljes útvonal (Ide írd be a kategóriák teljes hierarchiáját, pl.: Főkategória > Alkategória > Al-alkategória)
+* Márka
+* Megjegyzés (Ide írd, ha egy adott termék besorolásánál bizonytalan voltál, vagy több kategóriába is illene)
+
+
+**2. Munkalap (Kategóriafa):**
+Egy vizuális térkép a létrehozott struktúráról, az alábbi kötőjeles formátumot követve (a pontos hierarchia érzékeltetésére):
+Fő-fő kategória: [MÁRKANÉV]
+- [MÁRKANÉV] Főkategória 1
+-- [MÁRKANÉV] Alkategória a
+-- [MÁRKANÉV] Alkategória b
+--- [MÁRKANÉV] Al-alkategória (ha van)
+---- [MÁRKANÉV] Al-al-alkategória (ha szükséges volt a bontás)
+- [MÁRKANÉV] Főkategória 2
+-- [MÁRKANÉV] Alkategória a
+
+Végezd el a teljes folyamatot a fenti szabályok szerint, és generáld le a letölthető Excel fájlt!

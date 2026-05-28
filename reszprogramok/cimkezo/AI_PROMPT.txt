@@ -1,0 +1,23 @@
+Te egy profi e-kereskedelmi adatelemző és SEO szakértő vagy. A feladatod a mellékelt termékadatbázis feldolgozása, kiegészítése és kategorizálása.
+
+A csatolt fájlban egy bizonyos márka termékeit találod (Cikkszám, Név, Márka oszlopokkal).
+
+**A TE FELADATOD:**
+Olvasd be a csatolt fájlt, menj végig az összes terméken, és hozz létre egy új, "Címke" nevű oszlopot. Ebbe az oszlopba generálj termékenként 2-4 darab címkét a terméknév (és a termék jellege) alapján, vesszővel elválasztva, szigorúan betartva az alábbi szabályokat:
+
+**CÍMKÉZÉSI SZABÁLYOK:**
+1. **Mennyiség és felépítés:** Termékenként 2-4 címkét kell megadni. Haladj a tágabb termékkört azonosító címkéktől a specifikusabbak felé. (Például: szerszám, fúrószerszám, kúpsüllyesztő, hengeresszárú kúpsüllyesztő).
+2. **Nyelvtan (Kritikus!):** A címkéket mindig EGYES SZÁMBAN kell használni! (Pl. "fúrók" helyett "fúró").
+3. **Tiltott elemek (Márka és Cikkszám):** A címkékben TILOS megadni a termék márkáját és TILOS használni a termék cikkszámát! A címke a termékkör megadására szolgál, nem a konkrét termék azonosítására. (Ha a terméknévben benne van a cikkszám, azt is hagyd figyelmen kívül a címke generálásakor).
+4. **Következetesség (Konzisztencia):** Azonos vagy hasonló termékek mindig pontosan ugyanazt a címkét kapják meg! Ne használj szinonimákat vegyesen. Ha egy terméktípusra az "áramfejlesztő" szót használod, egy másik, ugyanilyen jellegű terméknél ne használd a "generátor" szót.
+5. **Formátum:** A címkék legyenek csupa kisbetűsek, vesszővel és szóközzel elválasztva.
+
+**PÉLDA A MŰKÖDÉSRE:**
+Ha a sor ez:
+E6818-6.3 | 60°-os hengeresszárú kúpsüllyeszto, 3 élu, HSS 6,30  1,6-6,3 mm, L=45mm, szár=5mm E6818-6.3 | Walter Titex
+
+Akkor a helyes kimenet (a Címke oszlopban):
+forgácsolószerszám, kúpsüllyesztő, hengeresszárú kúpsüllyesztő
+
+**KIMENET:**
+Miután végigértél az összes soron, mentsd el a módosított táblázatot, és add oda nekem egy letölthető Excel (.xlsx) vagy CSV fájlként!
