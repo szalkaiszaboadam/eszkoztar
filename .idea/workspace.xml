@@ -5,7 +5,50 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="f4d015ee-e875-4790-906f-59e82f48dfe6" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/reszprogramok/kepkinyero/kepkinyero.py" beforeDir="false" afterPath="$PROJECT_DIR$/reszprogramok/kepkinyero/kepkinyero.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/tablazatkezelo/my-sheets/.env.local.example" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tablazatkezelo/my-sheets/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tablazatkezelo/my-sheets/AGENTS.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tablazatkezelo/my-sheets/CLAUDE.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tablazatkezelo/my-sheets/README.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tablazatkezelo/my-sheets/eslint.config.mjs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tablazatkezelo/my-sheets/next.config.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tablazatkezelo/my-sheets/package-lock.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tablazatkezelo/my-sheets/package.json" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tablazatkezelo/my-sheets/postcss.config.mjs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tablazatkezelo/my-sheets/public/file.svg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tablazatkezelo/my-sheets/public/globe.svg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tablazatkezelo/my-sheets/public/next.svg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tablazatkezelo/my-sheets/public/vercel.svg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tablazatkezelo/my-sheets/public/window.svg" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tablazatkezelo/my-sheets/src/app/(app)/dashboard/page.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tablazatkezelo/my-sheets/src/app/(app)/sheet/[id]/page.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tablazatkezelo/my-sheets/src/app/(auth)/login/page.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tablazatkezelo/my-sheets/src/app/(auth)/register/page.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tablazatkezelo/my-sheets/src/app/favicon.ico" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tablazatkezelo/my-sheets/src/app/globals.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tablazatkezelo/my-sheets/src/app/layout.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tablazatkezelo/my-sheets/src/app/page.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tablazatkezelo/my-sheets/src/components/auth/AuthProvider.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tablazatkezelo/my-sheets/src/components/sheet/Cell.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tablazatkezelo/my-sheets/src/components/sheet/ContextMenu.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tablazatkezelo/my-sheets/src/components/sheet/ExportButton.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tablazatkezelo/my-sheets/src/components/sheet/FormulaBar.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tablazatkezelo/my-sheets/src/components/sheet/Grid.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tablazatkezelo/my-sheets/src/components/sheet/ImportButton.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tablazatkezelo/my-sheets/src/components/sheet/SheetTabs.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tablazatkezelo/my-sheets/src/components/sheet/Toolbar.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tablazatkezelo/my-sheets/src/lib/constants.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tablazatkezelo/my-sheets/src/lib/firebase.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tablazatkezelo/my-sheets/src/lib/formulaEngine.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tablazatkezelo/my-sheets/src/lib/sheetStore.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tablazatkezelo/my-sheets/src/lib/sheetsService.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tablazatkezelo/my-sheets/src/lib/store.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tablazatkezelo/my-sheets/src/lib/useAuth.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tablazatkezelo/my-sheets/src/middleware.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/tablazatkezelo/my-sheets/tsconfig.json" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -204,7 +247,7 @@
       <workItem from="1779017519565" duration="5838000" />
       <workItem from="1779291987186" duration="16186000" />
       <workItem from="1779474402448" duration="61000" />
-      <workItem from="1779474503469" duration="14985000" />
+      <workItem from="1779474503469" duration="16087000" />
     </task>
     <servers />
   </component>

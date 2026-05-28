@@ -36,6 +36,24 @@ def tiszta_nev(nev):
     return re.sub(r'[\\/*?:"<>|]', "", nev).strip()
 
 
+def bizonylatkeszito_nezet(page):
+    """
+    Megvizsgalja, hogy Bizonylatkeszito (mode=2) nezetben van-e az oldal.
+    Ha nem, egy kattintassal atvaltja, es megvarja az ujratoltodest.
+    Hivd meg minden store-navigacio utan, mielott a tablazatokkal dolgozol.
+    """
+    try:
+        nezet_valto = page.locator("li.modeSwitch[onclick*=\'switchMode(2)\']")
+        if nezet_valto.is_visible(timeout=3000):
+            print("   \U0001f504 Rossz nezet eszlelve! Bizonylatkeszitore valtas...")
+            nezet_valto.click()
+            time.sleep(3)
+            page.locator("#searchField_all").wait_for(state="visible", timeout=10000)
+            print("   \u2705 Bizonylatkeszito nezet aktiv.")
+    except Exception:
+        pass  # Mar jo nezetben vagyunk, vagy a gomb nem talalhato
+
+
 # ==============================================================================
 # --- STATE MANAGEMENT ---
 # Mindhárom fázishoz külön progress fájl van.
@@ -153,7 +171,7 @@ def kollazs_kesz_e(kat_id):
 
     if os.path.exists(mappa_path):
         for f in os.listdir(mappa_path):
-            if f.startswith("_kollazs") and f.lower().endswith('.png'):
+            if f.startswith("_kollazs") and f.lower().endswith(('.png', '.jpg', '.jpeg')):
                 return True
     return False
 
@@ -179,18 +197,31 @@ def letoltes_vegrehajtasa_fajl_visszaadas(page, p_url, mappa_path, fallback_idx,
         if kep_url:
             if not kep_url.startswith("http"):
                 kep_url = "https:" + kep_url if kep_url.startswith("//") else base_url + kep_url
-            fajl_utvonal = os.path.join(mappa_path, f"{fajlnev}.jpg")
+            # Kiterjesztes az URL-bol, majd Content-Type alapjan pontositva
+            url_ext = os.path.splitext(kep_url.split("?")[0])[1].lower()
+            ext = url_ext if url_ext in ('.jpg', '.jpeg', '.png', '.webp') else '.jpg'
 
-            if os.path.exists(fajl_utvonal):
-                print(f"      ⏩ Kép már létezik: {fajlnev}.jpg")
-                return fajl_utvonal
+            # Letezik-e mar valamelyik formatumban?
+            for meglevo_ext in ('.jpg', '.jpeg', '.png', '.webp'):
+                meglevo_ut = os.path.join(mappa_path, f"{fajlnev}{meglevo_ext}")
+                if os.path.exists(meglevo_ut):
+                    print(f"      ⏩ Kép már létezik: {fajlnev}{meglevo_ext}")
+                    return meglevo_ut
 
             response = requests.get(kep_url, stream=True, timeout=10)
             if response.status_code == 200:
+                ct = response.headers.get("Content-Type", "")
+                if "png" in ct:
+                    ext = ".png"
+                elif "jpeg" in ct or "jpg" in ct:
+                    ext = ".jpg"
+                elif "webp" in ct:
+                    ext = ".webp"
+                fajl_utvonal = os.path.join(mappa_path, f"{fajlnev}{ext}")
                 with open(fajl_utvonal, 'wb') as f:
                     for chunk in response.iter_content(1024):
                         f.write(chunk)
-                print(f"      ✅ Kép letöltve: {fajlnev}.jpg")
+                print(f"      ✅ Kép letöltve: {fajlnev}{ext}")
                 return fajl_utvonal
             else:
                 raise Exception(f"Szerver hiba letöltéskor ({response.status_code}): {kep_url}")
@@ -299,6 +330,7 @@ def kategoria_bejaro_fázis1(page, url, kategoria_utvonal, alap_letoltendo_db, e
         print(f"   ❌ Oldal betöltési hiba: {e}")
         return 1, [], image_map
 
+    bizonylatkeszito_nezet(page)
     alkategoriak_vannak = page.locator("table#categoriesList tbody tr").count() > 0
     osszes_osszegujtott_link = []
     max_gyerek_melyseg = 0
@@ -649,7 +681,7 @@ def feltoltes_falis3(ctx: Context, image_map_full, base_url, upload_progress_fil
         mappa_path = os.path.join("kollazs_kepek", *[tiszta_nev(p) for p in kat_utvonal])
         if os.path.exists(mappa_path):
             for f in sorted(os.listdir(mappa_path)):
-                if f.startswith("_kollazs") and f.lower().endswith('.png'):
+                if f.startswith("_kollazs") and f.lower().endswith(('.png', '.jpg', '.jpeg')):
                     feltoltendo_kollazsok[tiszta_kat_id] = os.path.abspath(os.path.join(mappa_path, f))
                     break
 
@@ -676,6 +708,7 @@ def feltoltes_falis3(ctx: Context, image_map_full, base_url, upload_progress_fil
             try:
                 page.goto(f"{base_url}/administrator/index.php?view=store", timeout=30000)
                 time.sleep(2)
+                bizonylatkeszito_nezet(page)
 
                 sikeres_navigacio = True
                 for i, part in enumerate(kat_utvonal):
@@ -924,6 +957,7 @@ if __name__ == "__main__":
                 page = ctx.new_page()
                 try:
                     page.goto(f"{BASE_URL}/administrator/index.php?view=store", timeout=60000)
+                    bizonylatkeszito_nezet(page)
                     cel_sor = page.locator(
                         f"table#categoriesList tbody tr td a b:has-text('{fokategoria}')").first
 
