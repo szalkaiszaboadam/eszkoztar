@@ -1,0 +1,52 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #0f0f11;
+  --bg-panel: #17171a;
+  --bg-elevated: #1e1e22;
+  --bg-sunken: #0b0b0d;
+  --border: #2a2a30;
+  --border-medium: #3a3a44;
+  --text: #f0f0f2;
+  --text-secondary: #888892;
+  --accent: #6c63ff;
+  --accent-glow: rgba(108,99,255,0.35);
+  --accent-light: #8b84ff;
+  --radius: 12px;
+  --radius-sm: 8px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', system-ui, sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(20px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes pulse-ring {
+  0%   { box-shadow: 0 0 0 0 var(--accent-glow); }
+  70%  { box-shadow: 0 0 0 12px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes shimmer {
+  from { background-position: -400px 0; }
+  to   { background-position: 400px 0; }
+}
