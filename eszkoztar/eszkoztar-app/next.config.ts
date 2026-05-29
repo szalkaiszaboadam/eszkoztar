@@ -17,7 +17,7 @@ const nextConfig: NextConfig = {
       },
       {
         source: '/tablazatkezelo/:path*',
-        destination: 'https://tablazatkezelo-app.vercel.app/tablazatkezelos/:path*',
+        destination: 'https://tablazatkezelo-app.vercel.app/tablazatkezelo/:path*',
       },
       
     ];
