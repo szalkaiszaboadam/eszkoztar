@@ -5,7 +5,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="f4d015ee-e875-4790-906f-59e82f48dfe6" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/reszprogramok/kategoriaepito/kategoriaepito.py" beforeDir="false" afterPath="$PROJECT_DIR$/reszprogramok/kategoriaepito/kategoriaepito.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kollazskeszito/kollazskeszito-app/app/globals.css" beforeDir="false" afterPath="$PROJECT_DIR$/kollazskeszito/kollazskeszito-app/app/globals.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kollazskeszito/kollazskeszito-app/app/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/kollazskeszito/kollazskeszito-app/app/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/termekkezelo/cimkezo/cimkezo.py" beforeDir="false" afterPath="$PROJECT_DIR$/termekkezelo/cimkezo/cimkezo.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -204,7 +207,7 @@
       <workItem from="1779017519565" duration="5838000" />
       <workItem from="1779291987186" duration="16186000" />
       <workItem from="1779474402448" duration="61000" />
-      <workItem from="1779474503469" duration="16786000" />
+      <workItem from="1779474503469" duration="18196000" />
     </task>
     <servers />
   </component>
