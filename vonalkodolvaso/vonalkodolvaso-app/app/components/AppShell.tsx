@@ -6,7 +6,7 @@ import { db } from '@/app/lib/firebase';
 import {
   ScanLine, Layers, Settings, Plus, List, Download, Archive,
   Minus, Trash2, Edit2, Eraser, ChevronUp, ChevronRight,
-  PackageOpen, Keyboard, RefreshCw, Zap, Check,
+  PackageOpen, Keyboard, RefreshCw, Zap, Moon, Sun, Check,
 } from 'lucide-react';
 
 /* ── Types ── */
@@ -16,6 +16,7 @@ interface AllWorksheets { [id: string]: Worksheet; }
 type TabId = 'worksheets' | 'scanner' | 'settings';
 
 const QUICK_VALUES = [1, 2, 3, 4, 5, 10, 12, 20, 24, 50, 100];
+
 
 function playBeep(ctx: React.MutableRefObject<AudioContext | null>) {
   try {
@@ -35,6 +36,7 @@ function playBeep(ctx: React.MutableRefObject<AudioContext | null>) {
 export default function AppShell() {
 
   /* state */
+  const [theme, setTheme]             = useState<'light'|'dark'>('dark');
   const [activeTab, setActiveTab]     = useState<TabId>('worksheets');
   const [allWs, setAllWs]             = useState<AllWorksheets>({});
   const [currentId, setCurrentId]     = useState<string|null>(null);
@@ -83,6 +85,7 @@ export default function AppShell() {
   useEffect(() => { contRef.current = contMode;  }, [contMode]);
   useEffect(() => { dQtyRef.current = dQty;      }, [dQty]);
 
+
   /* ── mobile detect ── */
   useEffect(() => {
     setIsMobile(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
@@ -116,6 +119,7 @@ export default function AppShell() {
   }
 
   async function createWs() {
+    // Date-based name with Firebase counter for same-day duplicates
     const today = new Date();
     const yyyy  = today.getFullYear();
     const mm    = String(today.getMonth() + 1).padStart(2, '0');
@@ -123,13 +127,14 @@ export default function AppShell() {
     const dateKey = `${yyyy}-${mm}-${dd}`;
     const dateLabel = `${yyyy}. ${mm}. ${dd}.`;
 
+    // Atomic increment – works even if previous sheets were deleted
     const counterRef = ref(db, `counters/${dateKey}`);
     const result = await runTransaction(counterRef, (cur) => (cur || 0) + 1);
     const count: number = result.snapshot.val() ?? 1;
 
     const name = count === 1
-      ? `Vonalkódolvasó (${dateLabel})`
-      : `Vonalkódolvasó (${dateLabel} - ${count})`;
+      ? `Leltár (${dateLabel})`
+      : `Leltár (${dateLabel} - ${count})`;
 
     const id = 'ws_' + Date.now();
     await set(ref(db, `worksheets/${id}`), {
@@ -357,8 +362,8 @@ export default function AppShell() {
     const XLSX=await import('xlsx');
     const date=new Date().toISOString().slice(0,10);
     const safe=comment.replace(/[/\\?%*:|"<>]/g,'-').trim();
-    const fileName=`vonalkodolvaso_${date}${safe?'_'+safe:''}.xlsx`;
-    const sheetName=safe?safe.substring(0,31):'Vonalkódolvasó';
+    const fileName=`leltar_${date}${safe?'_'+safe:''}.xlsx`;
+    const sheetName=safe?safe.substring(0,31):'Leltár';
     const ws=XLSX.utils.json_to_sheet(Object.keys(inv).map(k=>({'Vonalkód':k,'Mennyiség':inv[k]})));
     const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,sheetName);
     XLSX.writeFile(wb,fileName);
@@ -382,7 +387,7 @@ export default function AppShell() {
       }
     });
     if(!hasData){alert('Minden munkalap üres.');return;}
-    XLSX.writeFile(wb,`TELJES_VONALKODOLVASO_${new Date().toISOString().slice(0,10)}.xlsx`);
+    XLSX.writeFile(wb,`TELJES_LELTAR_${new Date().toISOString().slice(0,10)}.xlsx`);
   };
 
   /* ── click outside ── */
@@ -408,17 +413,19 @@ export default function AppShell() {
     <div className="md:flex md:flex-row md:h-dvh md:overflow-hidden">
       {/* ─────────── NAV ─────────── */}
       <nav className={[
+        // mobile: fixed TOP bar
         'fixed top-0 left-0 w-full flex bg-surface border-b border-border z-[5000]',
         'pt-[env(safe-area-inset-top)]',
         'h-[calc(56px+env(safe-area-inset-top))]',
         'px-1 items-end',
+        // desktop: left sidebar
         'md:relative md:top-auto md:left-auto md:bottom-auto',
         'md:w-nav md:h-dvh',
         'md:flex-col md:border-b-0 md:border-r md:border-border',
         'md:px-0 md:pt-0 md:items-stretch md:justify-start',
       ].join(' ')}>
 
-        {/* Brand */}
+        {/* Brand (desktop only) */}
         <div className="hidden md:flex items-center gap-2 px-4 h-14 font-extrabold text-[15px] text-t1 tracking-tight border-b border-border shrink-0">
           <ScanLine size={18} className="text-accent" /> Vonalkódolvasó
         </div>
@@ -433,12 +440,14 @@ export default function AppShell() {
           </NavBtn>
         )}
 
+        {/* Spacer (desktop only) */}
         <div className="hidden md:block flex-1" />
 
         <NavBtn active={activeTab==='settings'} onClick={()=>showTab('settings')}>
           <Settings size={18} strokeWidth={1.8} /> <span>Beállítások</span>
         </NavBtn>
 
+        {/* Version (desktop only) */}
         <div className="hidden md:flex items-center justify-between px-4 py-3 border-t border-border">
           <span className="text-[11px] font-semibold text-t3">v2.0</span>
         </div>
@@ -447,6 +456,7 @@ export default function AppShell() {
       {/* ═════════════ WORKSHEETS ═════════════ */}
       <ContentArea id="worksheets" active={activeTab==='worksheets'}>
         {!hasWs ? (
+          /* Empty state */
           <div className="flex flex-1 flex-col items-center justify-center text-center p-10 gap-3">
             <div className="w-13 h-13 bg-s2 rounded-xl flex items-center justify-center border border-border mb-1">
               <Layers size={24} className="text-t3" strokeWidth={1.5} />
@@ -458,7 +468,10 @@ export default function AppShell() {
             </button>
           </div>
         ) : (
+          /* Worksheet view */
           <div className="absolute inset-0 flex flex-col">
+
+            {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 bg-surface border-b border-border shrink-0 md:px-5">
               <span className="text-[15px] font-bold text-t1 tracking-tight">{wsName}</span>
               <button onClick={exportSheet}
@@ -467,6 +480,7 @@ export default function AppShell() {
               </button>
             </div>
 
+            {/* Inventory list */}
             <div className="flex-1 overflow-y-auto">
               {invKeys.length === 0 ? (
                 <div className="text-center p-12">
@@ -500,6 +514,7 @@ export default function AppShell() {
               ))}
             </div>
 
+            {/* Bottom tab bar */}
             <div className="bg-surface flex items-stretch border-t border-border shrink-0 min-h-[42px]">
               <button onClick={createWs} title="Új munkalap"
                 className="bg-transparent border-none border-r border-border px-3 flex items-center justify-center text-t2 cursor-pointer hover:bg-s2 hover:text-t1 transition-colors shrink-0">
@@ -531,6 +546,7 @@ export default function AppShell() {
           </div>
         )}
 
+        {/* Tab context menu */}
         {ctxVis && (
           <div className="ctx-menu fixed z-[10000] bg-surface border border-border rounded-lg shadow-lg overflow-hidden min-w-[178px]"
             style={{top:ctxPos.top, left:ctxPos.left}}>
@@ -540,6 +556,7 @@ export default function AppShell() {
           </div>
         )}
 
+        {/* Worksheet list dropdown */}
         {wsDropVis && (
           <div className="ws-drop fixed z-[10000] bg-surface border border-border rounded-lg shadow-lg overflow-hidden min-w-[210px] max-h-[50vh] overflow-y-auto"
             style={{left:wsDropPos.left, bottom:wsDropPos.bottom}}>
@@ -566,11 +583,13 @@ export default function AppShell() {
       {/* ═════════════ SCANNER ═════════════ */}
       <ContentArea id="scanner" active={activeTab==="scanner"} className="bg-black md:bg-bg">
 
+        {/* Mode switcher (mobile only) */}
         <div className="md:hidden absolute top-4 left-1/2 -translate-x-1/2 flex bg-black/65 backdrop-blur p-0.5 rounded z-[4500] gap-0.5">
           <ModeBtn active={!contMode} onClick={()=>setScanMode(false)}><Layers size={13}/> Interaktív</ModeBtn>
           <ModeBtn active={contMode}  onClick={()=>setScanMode(true)}><Zap size={13}/> Gyors</ModeBtn>
         </div>
 
+        {/* Camera (mobile) – fills all space, ws-bar sits on top via absolute */}
         <div className="md:hidden relative flex-1 w-full">
           <div id="reader" />
           <div className={`scan-overlay${overlayOk?' success-flash':''}`} />
@@ -579,6 +598,7 @@ export default function AppShell() {
               {statusMsg}
             </div>
           )}
+          {/* Camera controls – above ws-bar (ws-bar ~42px) */}
           <div className="absolute left-1/2 -translate-x-1/2 flex gap-3.5 z-[4000]"
             style={{bottom:'calc(42px + 16px)'}}>
             <CamBtn onClick={openManual} title="Kézi bevitel"><Keyboard size={17} strokeWidth={1.8}/></CamBtn>
@@ -590,6 +610,7 @@ export default function AppShell() {
             )}
           </div>
 
+          {/* WsBar: mobile, inside the camera area at bottom */}
           <ScannerWsBar
             wsIds={wsIds}
             allWs={allWs}
@@ -600,7 +621,9 @@ export default function AppShell() {
           />
         </div>
 
+        {/* Desktop: flex column – input centered, ws-bar at bottom */}
         <div className="hidden md:flex flex-col flex-1 bg-bg overflow-hidden">
+          {/* Centered input area */}
           <div className="flex flex-col items-center justify-center flex-1 gap-3.5 p-10">
             <div className="w-16 h-16 bg-accent-lt border border-accent-mid rounded-lg flex items-center justify-center mb-1">
               <ScanLine size={28} className="text-accent" strokeWidth={1.5}/>
@@ -621,6 +644,7 @@ export default function AppShell() {
               ].join(' ')}
             />
           </div>
+          {/* WsBar: desktop, pinned to bottom */}
           <ScannerWsBar
             wsIds={wsIds}
             allWs={allWs}
@@ -660,12 +684,7 @@ export default function AppShell() {
             </button>
           </SettingsGroup>
 
-          <SettingsGroup label="Névjegy">
-            <div className="flex items-center justify-between px-4 py-3.5">
-              <div className="text-[14px] font-semibold text-t1">Vonalkódolvasó</div>
-              <span className="text-[13px] font-bold text-t2">v2.0</span>
-            </div>
-          </SettingsGroup>
+    
         </div>
       </ContentArea>
 
@@ -692,6 +711,7 @@ export default function AppShell() {
           </div>
           <div className="text-[13px] font-medium text-t2 mb-4">Készleten: {dCurQty} db</div>
 
+          {/* Qty chips */}
           <div className="overflow-x-auto py-3 mb-0.5 flex" style={{scrollbarWidth:'none'}}
             onScroll={cancelAC} onTouchStart={cancelAC}>
             <div className="flex gap-1.5" style={{padding:'0 38%'}}>
@@ -709,6 +729,7 @@ export default function AppShell() {
             </div>
           </div>
 
+          {/* Picker */}
           <div className="picker-container mb-1.5">
             <div className="picker-selection-frame"/>
             <div className="picker-wheel" ref={pickerRef} onScroll={handlePickerScroll}>
@@ -766,14 +787,18 @@ export default function AppShell() {
   );
 }
 
+/* ─────────────────── Sub-components ─────────────────── */
+
 function ContentArea({ id, active, children, className='' }: {
   id: string; active: boolean; children: React.ReactNode; className?: string;
 }) {
   return (
     <div id={id} className={[
+      // mobile: fixed, fills space below top nav to bottom of screen
       'fixed inset-x-0 bottom-0 flex-col overflow-hidden bg-bg',
       'top-[calc(56px+env(safe-area-inset-top))]',
       active ? 'flex' : 'hidden',
+      // desktop: static, flex-1 inside the flex-row wrapper
       'md:relative md:inset-auto md:bottom-auto md:top-auto',
       'md:h-dvh md:flex-1 md:overflow-hidden',
       active ? 'md:flex' : 'md:hidden',
@@ -789,13 +814,16 @@ function NavBtn({ active, onClick, children }: {
 }) {
   return (
     <button onClick={onClick} className={[
+      // mobile: flex-1, column, small uppercase
       'flex-1 flex flex-col items-center justify-center gap-1',
       'pt-2 pb-2.5 border-none bg-transparent cursor-pointer transition-colors',
       'text-[10px] font-bold uppercase tracking-[0.8px] relative',
       active ? 'text-accent' : 'text-t3',
+      // active indicator (mobile bottom line)
       'before:content-[""] before:absolute before:top-0 before:left-1/2 before:-translate-x-1/2',
       'before:w-5 before:h-0.5 before:bg-accent before:rounded-b before:transition-transform',
       active ? 'before:scale-x-100' : 'before:scale-x-0',
+      // desktop: full width row
       'md:flex-none md:w-[calc(100%-12px)] md:mx-1.5 md:flex-row md:justify-start md:gap-2.5',
       'md:py-2.5 md:px-4 md:text-[13px] md:normal-case md:tracking-[-0.1px] md:font-semibold md:rounded',
       'md:before:hidden',
@@ -873,6 +901,11 @@ function CtxItem({ icon, onClick, danger=false, children }: {
   );
 }
 
+/* ─────────────────────────────────────────
+   ScannerWsBar – mobileOnly vagy desktopOnly proppal hívva
+   Mobilon: absolute bottom-0 a kamera felett, világos bg
+   Desktopon: border-t bottom bar, mint a Munkalapok oldalon
+───────────────────────────────────────── */
 function ScannerWsBar({ wsIds, allWs, currentId, onSelect, onCreate, mobileOnly, desktopOnly }: {
   wsIds: string[];
   allWs: AllWorksheets;

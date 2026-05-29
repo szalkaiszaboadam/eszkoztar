@@ -2,8 +2,8 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Vonalkódolvasó',
-  description: 'Vonalkódolvasó alkalmazás',
+  title: 'LeltárPro',
+  description: 'Leltár alkalmazás vonalkód-szkennerrel',
 };
 
 export const viewport: Viewport = {
