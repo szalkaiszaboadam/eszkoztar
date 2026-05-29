@@ -11,17 +11,11 @@ from dotenv import load_dotenv
 
 # ==============================================================================
 # --- KÉP KONFIGURÁCIÓ ---
-# Ezt az EGY képet tölti fel a program MINDEN kategóriához.
-# Hozd létre a "feltoltes_alatt" mappát és tegyél bele egy képet ezzel a névvel.
-# Támogatott formátumok: .jpg, .jpeg, .png, .webp
-# ==============================================================================
 PLACEHOLDER_KEP = os.path.join("feltoltes_alatt", "feltoltes_alatt.jpg")
 
 
 # ==============================================================================
 # --- STATE MANAGEMENT ---
-# Atomic write: temp fájlba ír, majd os.replace-el cseréli le.
-# Ha a program crash közben áll le, a progress fájl soha nem sérül meg.
 # ==============================================================================
 def _json_betoltes(fajl, alapertelmezett):
     if os.path.exists(fajl):
@@ -45,12 +39,6 @@ def _json_mentes(fajl, adatok):
 
 
 def progress_betoltes(progress_fajl):
-    """
-    Betölti a mentett progress-t.
-    Visszatér: (completed_set, failed_list)
-    - completed_set: sikeresen létrehozott kategóriák raw neve (set a gyors kereséshez)
-    - failed_list: véglegesen meghiúsult kategóriák listája (exporthoz)
-    """
     data = _json_betoltes(progress_fajl, {"completed": [], "failed": []})
     return set(data.get("completed", [])), data.get("failed", [])
 
@@ -60,6 +48,24 @@ def progress_mentes(progress_fajl, completed_set, failed_list):
         "completed": list(completed_set),
         "failed": failed_list
     })
+
+
+# ==============================================================================
+# --- NÉZET HELPER ---
+# Ha nem Bizonylatkészítő nézetben van az oldal, egy kattintással átváltja.
+# Mindig hívd meg, mielőtt a store táblázataival dolgozol.
+# ==============================================================================
+def bizonylatkeszito_nezet(page):
+    try:
+        nezet_valto = page.locator("li.modeSwitch[onclick*='switchMode(2)']")
+        if nezet_valto.is_visible(timeout=3000):
+            print("   🔄 Rossz nézet észlelve! Bizonylatkészítőre váltás...")
+            nezet_valto.click()
+            time.sleep(3)
+            page.locator("#searchField_all").wait_for(state="visible", timeout=10000)
+            print("   ✅ Bizonylatkészítő nézet aktív.")
+    except Exception:
+        pass  # Már jó nézetben vagyunk, vagy a gomb nem látható
 
 
 # ==============================================================================
@@ -133,12 +139,7 @@ def kategoria_szulo_beallitasa(page, kategoria_nev):
 
 
 # ==============================================================================
-# --- 5. LÉPÉS: Fő Feldolgozó ---
-# Crash recovery: minden sikeres létrehozás után menti a progress-t.
-# Újraindításkor a completed_set alapján kihagyja a kész kategóriákat,
-# de a hierarchiát (utolso_kategoriak) helyesen rekonstruálja.
-# Retry: max 3 próba kategóriánként.
-# Láncreakció védelem: ha egy szülő elbukik, a gyerekei automatikusan átugrásra kerülnek.
+# --- 3. LÉPÉS: Fő Feldolgozó ---
 # ==============================================================================
 def run_category_builder(context: Context, struktura, base_url, bemeneti_fajl_neve,
                          progress_fajl, completed_set, failed_list,
@@ -150,11 +151,10 @@ def run_category_builder(context: Context, struktura, base_url, bemeneti_fajl_ne
         return
 
     utolso_kategoriak = {-1: "Felső szintű kategória"}
-    veglegesen_sikertelen_lista = list(failed_list)  # Másolat a korábbi hibákból
+    veglegesen_sikertelen_lista = list(failed_list)
     hibas_ag_szintje = None
     max_proba = 3
 
-    # Placeholder kép ellenőrzés
     placeholder_kep_ut = os.path.abspath(placeholder_kep) if os.path.exists(placeholder_kep) else None
     if placeholder_kep_ut:
         print(f"\n🖼️ Placeholder kép: '{placeholder_kep}' — minden kategóriához feltöltve.")
@@ -178,14 +178,12 @@ def run_category_builder(context: Context, struktura, base_url, bemeneti_fajl_ne
 
         print(f"\n[{i + 1}/{osszes}] {'›' * (szint + 1)} {nev}  (Szülő: {szulo_nev})")
 
-        # HIERARCHIA FRISSÍTÉS: mindig frissítjük, hogy az átugrott kategóriák
-        # gyerekeinek szülő-hivatkozása helyes maradjon újraindítás után is.
+        # Hierarchia mindig frissül, hogy az átugrott elemek után is helyes legyen a szülő
         utolso_kategoriak[szint] = nev
 
         # ── MÁR KÉSZ: kihagyás ──────────────────────────────────────────────
         if raw in completed_set:
             print(f"   ⏩ MÁR LÉTREHOZVA, kihagyás.")
-            # Ha egy kész kategória volt az aktív hibás ág szülője, töröljük a zárolást
             if hibas_ag_szintje is not None and szint <= hibas_ag_szintje:
                 hibas_ag_szintje = None
             continue
@@ -203,7 +201,7 @@ def run_category_builder(context: Context, struktura, base_url, bemeneti_fajl_ne
                 hibas_ag_szintje = None
                 print(f"   🔄 Hibás ág elhagyva, folytatás...")
 
-        # ── LÉTREHOZÁS + KÉP FELTÖLTÉS EGYSZERRE (max max_proba próba) ─────
+        # ── LÉTREHOZÁS + KÉP FELTÖLTÉS EGYSZERRE ────────────────────────────
         siker = False
         vegleges_hiba = ""
 
@@ -231,17 +229,19 @@ def run_category_builder(context: Context, struktura, base_url, bemeneti_fajl_ne
                     time.sleep(0.5)
                     page.locator("input#newImage").set_input_files(placeholder_kep_ut)
                     print(f"   🖼️ Kép csatolva.")
-                    time.sleep(3)  # Feltöltési idő
+                    time.sleep(3)
 
                 page.locator("a#save_close").click()
 
-                # Megvárjuk, hogy visszatérjünk a listára (mentés jele)
                 try:
                     page.wait_for_url(lambda url: "view=store" in url, timeout=20000)
                 except:
                     time.sleep(3)
 
+                # Mentés után nézet ellenőrzés, mielőtt továbblépünk
+                bizonylatkeszito_nezet(page)
                 time.sleep(1.5)
+
                 siker = True
                 print(f"   ✅ Kategória létrehozva{' + kép feltöltve' if placeholder_kep_ut else ''}.")
                 break
@@ -254,6 +254,7 @@ def run_category_builder(context: Context, struktura, base_url, bemeneti_fajl_ne
                         f"{base_url}/administrator/index.php?view=store&mode=2",
                         timeout=15000
                     )
+                    bizonylatkeszito_nezet(page)
                     time.sleep(2)
                 except:
                     pass
@@ -299,7 +300,6 @@ def run_category_builder(context: Context, struktura, base_url, bemeneti_fajl_ne
 
 # ==============================================================================
 # --- BEJELENTKEZÉS ---
-# Meglévő session újrafelhasználása, ha érvényes. Különben új login.
 # ==============================================================================
 def bejelentkezes_kezelese(browser: Browser, username, password, base_url, state_fajl):
     if os.path.exists(state_fajl):
@@ -347,7 +347,6 @@ if __name__ == "__main__":
     print(" 🌳 KATEGÓRIA STRUKTÚRA ÉPÍTŐ + KÉP FELTÖLTŐ 🌳")
     print("=" * 50)
 
-    # Webshop választás
     print("\n  1: SZVG Tools (szvgtoolsshop.hu)")
     print("  2: PTD Bolt (ptdbolt.hu)")
     v = ""
@@ -369,7 +368,6 @@ if __name__ == "__main__":
         print("❌ HIBA: Hiányoznak a bejelentkezési adatok a .env fájlból!")
         sys.exit(1)
 
-    # Excel fájl választás
     if not os.path.exists(MAPPA):
         print(f"\n❌ HIBA: Hozd létre az '{MAPPA}' mappát és tegyél bele Excel fájlt!")
         sys.exit(1)
@@ -391,11 +389,9 @@ if __name__ == "__main__":
         print("❌ Érvénytelen választás.")
         sys.exit(1)
 
-    # Progress fájl neve a bemeneti fájl neve alapján (mappánként különböző)
     clean_fajlnev = re.sub(r'[^\w]', '_', os.path.splitext(valasztott_fajl)[0])
     progress_fajl = f"progress_kategoriaepito_{clean_fajlnev}.json"
 
-    # ── ÁLLAPOT FELISMERÉS INDULÁSKOR ───────────────────────────────────────
     completed_set, failed_list = progress_betoltes(progress_fajl)
 
     struktura = adatok_beolvasasa(fajl_utvonal)
@@ -429,7 +425,6 @@ if __name__ == "__main__":
     else:
         print(f"\n✅ Új munkamenet: {osszes} kategória fog létrejönni.")
 
-    # Placeholder kép tájékoztató
     print(f"\n📁 Placeholder kép: '{PLACEHOLDER_KEP}'")
     if os.path.exists(PLACEHOLDER_KEP):
         print(f"   ✅ Kép megtalálva — minden kategóriához ez lesz feltöltve.")
@@ -439,20 +434,25 @@ if __name__ == "__main__":
 
     input("\n▶ ENTER a folyamat indításához...")
 
-    # ── BÖNGÉSZŐ INDÍTÁS ÉS FUTTATÁS ────────────────────────────────────────
     with sync_playwright() as p:
         print("\n🔄 Böngésző indítása...")
         browser = p.chromium.launch(headless=False)
         ctx = bejelentkezes_kezelese(browser, USER, PASS, URL, STATE)
 
         if ctx:
+            # Belépés után azonnal ellenőrizzük a nézetet
+            ellenorzo_page = ctx.new_page()
+            ellenorzo_page.goto(f"{URL}/administrator/index.php?view=store", timeout=30000)
+            time.sleep(2)
+            bizonylatkeszito_nezet(ellenorzo_page)
+            ellenorzo_page.close()
+
             try:
                 run_category_builder(
                     ctx, struktura, URL, valasztott_fajl,
                     progress_fajl, completed_set, failed_list
                 )
 
-                # Ha mindent sikeresen feldolgoztunk, a progress fájl törölhető
                 osszes_kesz = sum(1 for e in struktura if e['raw'] in completed_set)
                 if osszes_kesz == osszes and os.path.exists(progress_fajl):
                     os.remove(progress_fajl)

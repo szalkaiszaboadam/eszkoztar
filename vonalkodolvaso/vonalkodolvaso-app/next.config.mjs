@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // a beállításaid (hagyd meg az eddigieket)
+  basePath: '/vonalkodolvaso',
 };
 
 export default nextConfig;
