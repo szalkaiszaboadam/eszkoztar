@@ -2,6 +2,6 @@
 import { redirect } from "next/navigation";
 
 export default function Home() {
-  // A gyökér helyett az almappa alatti loginra irányítunk
-  redirect("/tablazatkezelo/login");
+  // Így maradjon: a Next.js automatikusan /tablazatkezelo/login-t csinál belőle!
+  redirect("/login");
 }

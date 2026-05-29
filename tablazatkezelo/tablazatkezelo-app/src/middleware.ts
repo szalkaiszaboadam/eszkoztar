@@ -12,20 +12,23 @@ export function middleware(request: NextRequest) {
   const isProtected = protectedRoutes.some((r) => pathname.startsWith(r));
   const isAuthRoute = authRoutes.some((r) => pathname.startsWith(r));
 
-  // HOZZÁADVA a /tablazatkezelo előtag az URL építéshez
   if (isProtected && !token) {
-    return NextResponse.redirect(new URL("/tablazatkezelo/login", request.url));
+    // KLÓNOZÁS: Biztonságos átirányítás a basePath megtartásával
+    const url = request.nextUrl.clone();
+    url.pathname = "/login";
+    return NextResponse.redirect(url);
   }
 
-  // HOZZÁADVA a /tablazatkezelo előtag az URL építéshez
   if (isAuthRoute && token) {
-    return NextResponse.redirect(new URL("/tablazatkezelo/dashboard", request.url));
+    // KLÓNOZÁS: Biztonságos átirányítás a basePath megtartásával
+    const url = request.nextUrl.clone();
+    url.pathname = "/dashboard";
+    return NextResponse.redirect(url);
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  // A matcher marad ugyanaz, a Next.js ezt okosan lekezeli a basePath ismeretében
   matcher: ["/dashboard/:path*", "/sheet/:path*", "/login", "/register"],
 };
