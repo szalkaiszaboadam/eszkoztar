@@ -5,6 +5,7 @@ type Action = {
   label: string;
   type: "open" | "download";
   href: string;
+  disabled?: boolean; // Ezt a sort add hozzá!
 };
 
 type Tool = {
@@ -23,10 +24,11 @@ const toolsData: Tool[] = [
     description: "Vonalkódok beolvasása és leltárkezelés — gyors rögzítés, áttekinthető nyilvántartás.",
     brandColor: "text-blue-600",
     bgHover: "hover:bg-blue-50",
-    borderHover: "hover:border-blue-200",
+    borderHover: "hover:border-blue-300",
     icon: Barcode,
     actions: [
-      { label: "Megnyitás", type: "open", href: "/vonalkodolvaso" }
+      { label: "Megnyitás", type: "open", href: "/vonalkodolvaso" },
+      { label: "Letöltés", type: "download", href: "/vonalkodolvaso/letoltes", disabled: true }
     ]
   },
   {
@@ -34,57 +36,58 @@ const toolsData: Tool[] = [
     description: "Képek szerkesztése, összeállítása és kollázsok létrehozása közvetlenül a böngészőből.",
     brandColor: "text-amber-600",
     bgHover: "hover:bg-amber-50",
-    borderHover: "hover:border-amber-200",
+    borderHover: "hover:border-amber-300",
     icon: ImageIcon,
     actions: [
       { label: "Megnyitás", type: "open", href: "/kollazskeszito" },
+      { label: "Letöltés", type: "download", href: "/kollazskeszito/letoltes", disabled: true }
     ]
   },
   {
     title: "Táblázatkezelő",
     description: "Adatok rendszerezése, szerkesztése és áttekinthető táblázatos megjelenítése.",
-    brandColor: "text-emerald-600",
+    brandColor: "text-emerald-700",
     bgHover: "hover:bg-emerald-50",
-    borderHover: "hover:border-emerald-200",
+    borderHover: "hover:border-emerald-300",
     icon: TableProperties,
     actions: [
-      { label: "Megnyitás", type: "open", href: "/tablazatkezelo" }
+      { label: "Megnyitás", type: "open", href: "/tablazatkezelo" },
+      { label: "Letöltés", type: "download", href: "/tablazatkezelo/letoltes", disabled: true }
     ]
   },
   {
     title: "Termékkezelő",
-    description: "Webshopos folyamatok tömeges gyorsítása: automatikus cikkszámozás, kategóriaépítés, címkézés és képkinyerés.",
+    description: "Webshopos folyamatok tömeges gyorsítása: automatikus cikkszámozás, kategóriaépítés és címkézés.",
     brandColor: "text-violet-600",
     bgHover: "hover:bg-violet-50",
-    borderHover: "hover:border-violet-200",
+    borderHover: "hover:border-violet-300",
     icon: Boxes,
     actions: [
-      { label: "Letöltés", type: "download", href: "/termekkezelo/letoltes" }
+      { label: "Megnyitás", type: "open", href: "/termekkezelo", disabled: true},
+      { label: "Letöltés", type: "download", href: "/termekkezelo/letoltes" , disabled: true}
     ]
   },
 ];
 
 export default function Home() {
   return (
-    /* JAVÍTÁS: min-h-[100dvh] a fix h-screen helyett, és levettük az overflow-hidden-t. 
-       Így mobilon görgethető, ha kilóg, de asztalon középre húzza görgetősáv nélkül! */
-    <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center font-sans bg-[#fafafa] py-12 md:py-8">
-      <main className="w-full max-w-4xl px-6">
+    <div className="min-h-[100dvh] w-full flex flex-col items-center justify-center font-sans bg-[#f4f4f5] py-8 md:py-4">
+      <main className="w-full max-w-4xl px-4 sm:px-6">
         
-        {/* Elkülönített fejléc rész */}
-        <div className="text-center mb-10 md:mb-14 flex flex-col items-center">
-          <span className="mb-2 md:mb-3 text-xs md:text-sm font-semibold tracking-widest uppercase text-slate-500">
+        {/* Fejléc: Kisebb alsó margóval, hogy spóroljunk a hellyel asztalon */}
+        <div className="text-center mb-8 md:mb-10 flex flex-col items-center">
+          <span className="mb-2 text-xs md:text-sm font-bold tracking-[0.15em] uppercase text-slate-500">
             Eszköztár
           </span>
-          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900">
             Válassz eszközt!
           </h1>
-          <p className="mt-3 text-slate-500 text-sm sm:text-base max-w-sm mx-auto">
+          <p className="mt-3 text-slate-600 text-sm md:text-base max-w-md mx-auto font-medium">
             Kattints az alábbi belső modulok egyikére a munka megkezdéséhez.
           </p>
         </div>
 
-        {/* 2x2-es Grid elrendezés - Mobilon 1 oszlop, Tablettől felfelé 2 oszlop */}
+        {/* 2x2-es Grid elrendezés - Feszesebb térközökkel */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-5">
           {toolsData.map((tool, index) => {
             const Icon = tool.icon;
@@ -92,37 +95,57 @@ export default function Home() {
             return (
               <div
                 key={index}
-                className={`group relative flex flex-col justify-between bg-white rounded-2xl p-5 md:p-6 min-h-[180px] md:min-h-[190px] border border-slate-200 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-md ${tool.borderHover}`}
+                className={`group relative flex flex-col justify-between bg-white rounded-2xl p-5 md:p-6 border-2 border-slate-200 shadow-sm transition-all duration-300 hover:shadow-lg ${tool.borderHover}`}
               >
                 <div>
-                  <div className={`w-10 h-10 md:w-11 md:h-11 rounded-xl flex items-center justify-center bg-slate-50 transition-colors duration-300 ${tool.bgHover} mb-4`}>
-                    <Icon className={`w-5 h-5 ${tool.brandColor}`} strokeWidth={1.5} />
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center bg-slate-100 transition-colors duration-300 ${tool.bgHover} mb-4`}>
+                    <Icon className={`w-6 h-6 ${tool.brandColor}`} strokeWidth={2} />
                   </div>
                   
-                  <h2 className="text-base md:text-lg font-semibold text-slate-900 mb-1.5 leading-tight">
+                  <h2 className="text-lg md:text-xl font-bold text-slate-900 mb-1.5 leading-tight">
                     {tool.title}
                   </h2>
-                  <p className="text-xs md:text-sm text-slate-500 leading-relaxed">
+                  <p className="text-sm md:text-base text-slate-600 leading-snug font-medium">
                     {tool.description}
                   </p>
                 </div>
 
-                {/* Akciók (Gombok) dinamikus megjelenítése */}
-                <div className="mt-5 md:mt-4 flex flex-wrap items-center gap-4 md:gap-5">
-                  {tool.actions.map((action, actionIdx) => (
-                    <Link 
-                      key={actionIdx} 
-                      href={action.href}
-                      className="flex items-center font-medium text-xs md:text-sm text-slate-400 transition-colors duration-300 hover:text-slate-900"
-                    >
-                      {action.label}
-                      {action.type === "open" ? (
-                        <ArrowRight className="w-3.5 h-3.5 md:w-4 md:h-4 ml-1.5 transition-transform duration-300 group-hover:translate-x-1" />
-                      ) : (
-                        <Download className="w-3.5 h-3.5 md:w-4 md:h-4 ml-1.5 transition-transform duration-300 group-hover:-translate-y-0.5" />
-                      )}
-                    </Link>
-                  ))}
+                {/* Gombok: Feszesebb felső margó, picit optimalizált padding */}
+                <div className="mt-5 flex flex-wrap items-center gap-3">
+                  {tool.actions.map((action, actionIdx) => {
+                    // Ha a gomb ki van kapcsolva (disabled), akkor egy szürke, kattinthatatlan taget rajzolunk
+                    if (action.disabled) {
+                      return (
+                        <span 
+                          key={actionIdx} 
+                          className="inline-flex items-center justify-center px-4 py-2.5 text-sm md:text-base font-bold text-slate-400 bg-slate-50 border border-slate-200 rounded-xl cursor-not-allowed opacity-70"
+                        >
+                          {action.label}
+                          {action.type === "open" ? (
+                            <ArrowRight className="w-4 h-4 ml-2" strokeWidth={2.5} />
+                          ) : (
+                            <Download className="w-4 h-4 ml-2" strokeWidth={2.5} />
+                          )}
+                        </span>
+                      );
+                    }
+
+                    // Egyébként marad a normál, kattintható gomb
+                    return (
+                      <Link 
+                        key={actionIdx} 
+                        href={action.href}
+                        className="inline-flex items-center justify-center px-4 py-2.5 text-sm md:text-base font-bold text-slate-700 bg-slate-100 border border-slate-200 rounded-xl transition-colors hover:bg-slate-200 hover:text-slate-900 active:bg-slate-300"
+                      >
+                        {action.label}
+                        {action.type === "open" ? (
+                          <ArrowRight className="w-4 h-4 ml-2" strokeWidth={2.5} />
+                        ) : (
+                          <Download className="w-4 h-4 ml-2" strokeWidth={2.5} />
+                        )}
+                      </Link>
+                    );
+                  })}
                 </div>
               </div>
             );
