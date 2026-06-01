@@ -430,7 +430,9 @@ def kategoria_bejaro_fázis1(page, url, kategoria_utvonal, alap_letoltendo_db, e
                             vonal.append(egyedi_linkek[kiprobalatlan_indexek.pop(0)])
 
                 if lokalis_osszesito_fajlok:
-                    image_map[kat_azonosito_full] = lokalis_osszesito_fajlok
+                    # JAVÍTÁS: Nem rakjuk mögé az "(Összesítő)" szöveget a térképben
+                    alap_kat_id = " > ".join(kategoria_utvonal)
+                    image_map.setdefault(alap_kat_id, []).extend(lokalis_osszesito_fajlok)
                 befejezett_kategoriak.append(kat_azonosito_full)
                 scraper_progress_mentes(progress_file, befejezett_kategoriak, retry_list)
             else:
@@ -441,7 +443,9 @@ def kategoria_bejaro_fázis1(page, url, kategoria_utvonal, alap_letoltendo_db, e
                         if f.lower().endswith(('.jpg', '.jpeg', '.png')) and not f.startswith('_kollazs'):
                             meglevo_fajlok.append(os.path.join(mappa_path, f))
                 if meglevo_fajlok:
-                    image_map[kat_azonosito_full] = meglevo_fajlok
+                    # JAVÍTÁS ITT IS:
+                    alap_kat_id = " > ".join(kategoria_utvonal)
+                    image_map.setdefault(alap_kat_id, []).extend(meglevo_fajlok)
 
         return sajat_melyseg, egyedi_linkek, image_map
 
@@ -506,13 +510,6 @@ def letoltes_retry_korök(page, retry_list, final_image_map, befejezett_kategori
 # --- 2. FÁZIS: INTERAKTÍV KOLLÁZSKÉSZÍTÉS ---
 # ==============================================================================
 def interaktiv_kollazs_fázis2(ctx: Context, image_map_full, collage_progress_file):
-    """
-    Felnyitja a kollázskészítő oldalt és végigvezet minden kategórián.
-    - Ha a program leáll: újraindításkor a kollazs_progress fájl + fájlrendszer
-      alapján automatikusan kihagyja az elkészült kollázsokat.
-    - Crash esetén: ha a PNG már le lett mentve (de a 'Következő' gombra
-      még nem kattintottak), a fájlrendszer-alapú detekció megmenti.
-    """
     if not image_map_full:
         print("\n⚠️ Nincs letöltött kép, kollázskészítés átugorva.")
         return
@@ -523,8 +520,6 @@ def interaktiv_kollazs_fázis2(ctx: Context, image_map_full, collage_progress_fi
 
     befejezett_kollazsok = kollazs_progress_betoltes(collage_progress_file)
 
-    # Fájlrendszer-alapú sync: ha a progress fájl hiányzik/sérült,
-    # de a PNG már megvan a lemezen, azt is késznek vesszük.
     for kat_id in list(image_map_full.keys()):
         if kat_id not in befejezett_kollazsok and kollazs_kesz_e(kat_id):
             print(f"   🔍 Kollázs lemezen megtalálva (auto-szinkron): {kat_id}")
@@ -540,15 +535,6 @@ def interaktiv_kollazs_fázis2(ctx: Context, image_map_full, collage_progress_fi
     print(f"\n   Kész: {len(befejezett_kollazsok)} db  |  Hiányzik: {len(meg_hianyzok)} db")
 
     page = ctx.new_page()
-    current_download_dir = ["kollazs_kepek"]
-
-    def handle_download(download):
-        mappa_path = os.path.join(*current_download_dir)
-        vegso_fajl = os.path.join(mappa_path, f"_kollazs_kesz_{int(time.time())}.png")
-        download.save_as(vegso_fajl)
-        print(f"   📥 KOLLÁZS ELMENTVE: {vegso_fajl}")
-
-    page.on("download", handle_download)
 
     try:
         page.goto("https://eszkoztar.vercel.app/kollazskeszito/", timeout=60000)
@@ -556,14 +542,13 @@ def interaktiv_kollazs_fázis2(ctx: Context, image_map_full, collage_progress_fi
 
         for kat_id, fajl_list in image_map_full.items():
             if kat_id in befejezett_kollazsok:
-                print(f"\n   ⏩ Már kész: {kat_id}")
                 continue
 
             print(f"\n🎨 Kollázs: {kat_id} ({len(fajl_list)} kép)")
 
             tiszta_kat_id = kat_id.replace(" (Összesítő)", "")
             kat_utvonal = tiszta_kat_id.split(" > ")
-            current_download_dir[0] = os.path.join("kollazs_kepek", *[tiszta_nev(p) for p in kat_utvonal])
+            mappa_path = os.path.join("kollazs_kepek", *[tiszta_nev(p) for p in kat_utvonal])
 
             abs_fajlok = [os.path.abspath(f) for f in fajl_list if os.path.exists(f)]
             if not abs_fajlok:
@@ -601,46 +586,66 @@ def interaktiv_kollazs_fázis2(ctx: Context, image_map_full, collage_progress_fi
             except Exception as e:
                 print(f"   ⚠️ Auto-feltöltési hiba: {e}. Húzd be kézzel a képeket.")
 
+            osszes_kollazs = len(image_map_full)
+            kesz_kollazs = len(befejezett_kollazsok)
+            hatralevo = max(0, osszes_kollazs - kesz_kollazs - 1)
+
             header_js = f"""() => {{
                 const oldHeader = document.getElementById('bot-header');
                 if (oldHeader) oldHeader.remove();
+
                 const h = document.createElement('div');
                 h.id = 'bot-header';
                 Object.assign(h.style, {{
-                    position:'fixed', top:'50%', left:'20px',
-                    transform:'translateY(-50%)', background:'#FFD700',
-                    color:'#000', zIndex:'999999', padding:'20px 15px',
-                    fontFamily:'Arial,sans-serif', boxShadow:'0 8px 25px rgba(0,0,0,.5)',
-                    display:'flex', flexDirection:'column', alignItems:'center',
-                    gap:'15px', borderRadius:'20px', maxWidth:'220px'
+                    position: 'fixed', bottom: '0', left: '0', width: '100%',
+                    background: 'rgba(44, 62, 80, 0.85)', color: '#ecf0f1',
+                    zIndex: '999999', padding: '12px 25px',
+                    fontFamily: 'Arial, sans-serif', boxShadow: '0 -4px 15px rgba(0,0,0,0.3)',
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    boxSizing: 'border-box', backdropFilter: 'blur(5px)'
                 }});
+
                 h.innerHTML = `
-                    <div style="text-align:center;line-height:1.3">
-                        <span style="font-size:12px">Aktuális kategória:</span><br>
-                        <span style="font-size:15px;font-weight:bold">{kat_id}</span>
+                    <div style="font-size: 15px; flex: 1;">
+                        <span style="opacity: 0.7;">Aktuális kategória:</span>
+                        <strong style="font-size: 17px; margin-left: 8px; color: #fff;">{kat_id}</strong>
                     </div>
-                    <div style="font-size:14px;font-weight:bold;text-align:center">
-                        1. Rendezd el<br>⬇<br>2. Mentsd le<br>⬇
+                    <div style="font-size: 15px; font-weight: bold; color: #f1c40f; flex: 1; text-align: center;">
+                        ⏳ Rendezd el, majd kattints a Mentés gombra!
                     </div>
-                    <button id="bot-tovabb-btn" style="padding:12px 15px;font-size:14px;
-                        font-weight:bold;background:#e74c3c;color:white;border:none;
-                        border-radius:25px;cursor:pointer;text-transform:uppercase;
-                        width:100%;box-sizing:border-box">Következő ></button>`;
+                    <div style="font-size: 14px; flex: 1; text-align: right;">
+                        Kész: <b style="color: #fff;">{kesz_kollazs} / {osszes_kollazs}</b>
+                        <span style="opacity: 0.7; margin-left: 15px;">Hátralévő: {hatralevo} db</span>
+                    </div>
+                `;
                 document.body.appendChild(h);
-                document.getElementById('bot-tovabb-btn').addEventListener('click', () => {{
-                    h.setAttribute('data-clicked','true');
-                    document.getElementById('bot-tovabb-btn').innerText = 'Kérem várjon...';
-                    document.getElementById('bot-tovabb-btn').style.background = '#95a5a6';
-                }});
             }}"""
             page.evaluate(header_js)
 
-            print("   ⏳ Rendezd el, mentsd le, majd kattints a 'KÖVETKEZŐ' gombra!")
-            page.wait_for_selector("#bot-header[data-clicked='true']", timeout=0)
+            print("   ⏳ Rendezd el, majd mentsd le a kollázst!")
+
+            # --- ITT TÖRTÉNIK A VARÁZSLAT ---
+            # A program itt teljesen megáll és vár, amíg a böngészőben el nem indítasz egy letöltést
+            download = page.wait_for_event("download", timeout=0)
+
+            # Amint rányomtál a letöltésre, a kód azonnal folytatódik: elmentjük a fájlt
+            vegso_fajl = os.path.join(mappa_path, f"_kollazs_kesz_{int(time.time())}.png")
+            download.save_as(vegso_fajl)
+            print(f"   📥 KOLLÁZS ELMENTVE: {vegso_fajl}")
+
+            # Zöld sávos vizuális megerősítés
+            page.evaluate("""() => {
+                const h = document.getElementById('bot-header');
+                if(h) {
+                    h.style.background = 'rgba(39, 174, 96, 0.95)';
+                    h.innerHTML = '<div style="width: 100%; text-align: center; font-size: 16px; font-weight: bold; color: white;">✅ Sikeresen lementve! Mindjárt jön a következő...</div>';
+                }
+            }""")
+
+            time.sleep(2.5)  # Kényelmes szünet, mielőtt töröl és betölti az újat
 
             befejezett_kollazsok.append(kat_id)
             kollazs_progress_mentes(collage_progress_file, befejezett_kollazsok)
-            time.sleep(1)
 
     except Exception as e:
         import traceback
@@ -651,7 +656,6 @@ def interaktiv_kollazs_fázis2(ctx: Context, image_map_full, collage_progress_fi
         if len(befejezett_kollazsok) >= len(image_map_full) and os.path.exists(collage_progress_file):
             os.remove(collage_progress_file)
             print("\n🗑️ Kollázs menetfájl törölve (minden kész).")
-
 
 # ==============================================================================
 # --- 3. FÁZIS: FELTÖLTÉS ---

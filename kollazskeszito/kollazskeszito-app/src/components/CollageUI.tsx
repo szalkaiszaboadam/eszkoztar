@@ -2,14 +2,7 @@
 
 import { useRef, useEffect } from "react";
 import { renderPreview, AutoLayout } from "@/src/lib/autoCollage";
-
-// Típus, amit a képekre használunk
-export interface LoadedImg {
-  el: HTMLImageElement;
-  src: string;
-  name: string;
-  uid: string;
-}
+import { LoadedImg } from "./CollageContext"; // <-- EZT FRISSÍTETTÜK
 
 export function LayoutCard({ layout, index, selected, onSelect }: {
   layout: AutoLayout; index: number; selected: boolean; onSelect: () => void;
