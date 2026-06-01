@@ -761,14 +761,15 @@ def feltoltes_falis3(ctx: Context, image_map_full, base_url, upload_progress_fil
                 page.locator("a#save_close").wait_for(state="visible", timeout=15000)
                 page.locator("a#save_close").click(force=True)
 
-                try:
-                    page.wait_for_url(lambda url: "view=store" in url, timeout=20000)
-                except:
-                    print("   ⚠️ Átirányítás lassú, várunk még...")
-                    time.sleep(3)
+                print("   ⏳ Kép feltöltése és mentése (ez lassú neten eltarthat egy darabig)...")
 
-                if not page.locator("table#categoriesList:not(.fixedHeader)").first.is_visible():
-                    time.sleep(3)
+                # Kivettük a belső try-exceptet!
+                # Felemeltük a várakozást 90 másodpercre. Ha ezen belül sem végez,
+                # akkor szabályosan hibára fut, és a program újra fogja próbálni a következő körben.
+                page.wait_for_url(lambda url: "view=store" in url, timeout=90000)
+
+                # Megvárjuk, hogy az átirányítás után a táblázat tényleg betöltsön
+                page.locator("table#categoriesList:not(.fixedHeader)").first.wait_for(state="visible", timeout=15000)
 
                 # ✅ SIKER: mentjük a progress fájlba, hogy crash esetén ne töltse fel újra
                 mar_feltoltott.append(kat_id)

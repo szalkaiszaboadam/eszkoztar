@@ -7,31 +7,9 @@
     <list default="true" id="f4d015ee-e875-4790-906f-59e82f48dfe6" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/kollazskeszito/kollazskeszito-app/src/app/automata/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/kollazskeszito/kollazskeszito-app/src/app/automata/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kollazskeszito/kollazskeszito-app/src/app/layout.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/kollazskeszito/kollazskeszito-app/src/app/layout.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/kollazskeszito/kollazskeszito-app/src/app/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/kollazskeszito/kollazskeszito-app/src/app/page.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/kollazskeszito/kollazskeszito-app/src/components/CollageUI.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/kollazskeszito/kollazskeszito-app/src/components/CollageUI.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/.env.example" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/README.md" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/cikkszamozo/cikkszamjavito.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/cikkszamozo/cikkszamozo.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/cikkszamozo/input_tablak/MINTA.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/cimkezo/AI_PROMPT.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/cimkezo/cimkezo.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/cimkezo/error_log.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/cimkezo/input_tablak/MINTA.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kategoriaepito/feltoltes_alatt/feltoltes_alatt.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kategoriaepito/input_tablak/MINTA.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kategoriaepito/kategoriaepito.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kategorizalo/KOTOJELES_AI_PROMPT.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kategorizalo/KOTOJEL_NELKULI_AI_PROMPT.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kategorizalo/input_tablak/KS_Tools_kategoriak_FINAL.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kategorizalo/input_tablak/MINTA.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kategorizalo/kategorizalo.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kepkinyero/kepkinyero.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/sorbarendezo/sorbarendezo.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/termekcsatolo/AI_PROMPT.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/termekcsatolo/termekcsatolo.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/termekkezelo-programok/kepkinyero/kepkinyero.py" beforeDir="false" afterPath="$PROJECT_DIR$/termekkezelo-programok/kepkinyero/kepkinyero.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -230,7 +208,7 @@
       <workItem from="1779017519565" duration="5838000" />
       <workItem from="1779291987186" duration="16186000" />
       <workItem from="1779474402448" duration="61000" />
-      <workItem from="1779474503469" duration="42863000" />
+      <workItem from="1779474503469" duration="45216000" />
     </task>
     <servers />
   </component>
@@ -239,7 +217,7 @@
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/eszkoztar$_kep_scraper_kollazsoloProgram.coverage" NAME="_kep-scraper_kollazsoloProgram Coverage Results" MODIFIED="1774519025292" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/kep-scraper" />
-    <SUITE FILE_PATH="coverage/sorbarendezo_py$kepkinyero.coverage" NAME="kepkinyero Coverage Results" MODIFIED="1780326372423" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/termekkezelo-programok/kepkinyero" />
+    <SUITE FILE_PATH="coverage/sorbarendezo_py$kepkinyero.coverage" NAME="kepkinyero Coverage Results" MODIFIED="1780327201577" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/termekkezelo-programok/kepkinyero" />
     <SUITE FILE_PATH="coverage/eszkoztar$_cimkezoProgram.coverage" NAME="_cimkezoProgram Coverage Results" MODIFIED="1772963438771" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/cimkezo" />
     <SUITE FILE_PATH="coverage/eszkoztar$kategoriaepito.coverage" NAME="kategoriaepito Coverage Results" MODIFIED="1779017955431" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/reszprogramok/kategoriaepito" />
     <SUITE FILE_PATH="coverage/eszkoztar$kategorizalo.coverage" NAME="kategorizalo Coverage Results" MODIFIED="1779022899777" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/reszprogramok/kategorizalo" />

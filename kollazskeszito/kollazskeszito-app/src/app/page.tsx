@@ -45,9 +45,13 @@ function ModeCard({ title, badge, desc, href, icon, disabled }: { title: string,
 // --- FŐALKALMAZÁS ---
 
 export default function HomePage() {
-  const { images, addFiles, removeImage, clearImages } = useCollage();
-  const [isDragOver, setIsDragOver] = useState(false);
+  const { images, addFiles, removeImage, rotateImage, reorderImages, clearImages } = useCollage();
+  const [isDragOverDropzone, setIsDragOverDropzone] = useState(false);
   const [previewImg, setPreviewImg] = useState<LoadedImg | null>(null);
+  
+  const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const hasImages = images.length > 0;
@@ -82,72 +86,98 @@ export default function HomePage() {
           <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
             {!hasImages ? (
               <div
-                onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
-                onDragLeave={() => setIsDragOver(false)}
-                onDrop={(e) => { e.preventDefault(); setIsDragOver(false); addFiles(e.dataTransfer.files); }}
+                onDragOver={(e) => { e.preventDefault(); setIsDragOverDropzone(true); }}
+                onDragLeave={() => setIsDragOverDropzone(false)}
+                onDrop={(e) => { e.preventDefault(); setIsDragOverDropzone(false); addFiles(e.dataTransfer.files); }}
                 onClick={() => fileInputRef.current?.click()}
                 style={{
                   width: "100%", height: "100%",
-                  border: `2px dashed ${isDragOver ? "var(--accent)" : "var(--border-medium)"}`, borderRadius: 12,
+                  border: `2px dashed ${isDragOverDropzone ? "var(--accent)" : "var(--border-medium)"}`, borderRadius: 12,
                   display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, cursor: "pointer",
-                  background: isDragOver ? "rgba(91,80,232,0.04)" : "var(--bg-elevated)", transition: "all 0.2s ease"
+                  background: isDragOverDropzone ? "rgba(91,80,232,0.04)" : "var(--bg-elevated)", transition: "all 0.2s ease"
                 }}
               >
-                <div style={{ fontSize: 32, color: isDragOver ? "var(--accent)" : "var(--text-secondary)", lineHeight: 1 }}>⇪</div>
+                <div style={{ fontSize: 32, color: isDragOverDropzone ? "var(--accent)" : "var(--text-secondary)", lineHeight: 1 }}>⇪</div>
                 <div style={{ textAlign: "center" }}>
                   <div style={{ fontWeight: 700, fontSize: 16, color: "var(--text)", marginBottom: 2 }}>Húzd ide a képeket!</div>
                   <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>Kattints a böngészéshez (max 30 db)</div>
                 </div>
               </div>
             ) : (
-              <div style={{ display: "flex", gap: 16, overflowX: "auto", width: "100%", alignItems: "center", padding: "12px 12px 12px 4px" }}>
+              <div style={{ display: "flex", gap: 16, overflowX: "auto", width: "100%", alignItems: "center", padding: "4px" }}>
                 {images.map((img, i) => (
-                  <div key={img.uid} style={{ position: "relative", width: 88, height: 88, flexShrink: 0 }}>
+                  <div key={img.uid} style={{ width: 76, height: 76, flexShrink: 0 }}>
                     <div 
                       onClick={() => setPreviewImg(img)}
-                      style={{
-                        width: "100%", height: "100%", borderRadius: 10, overflow: "hidden", background: "#fff",
-                        border: "1px solid var(--border-medium)", position: "relative", cursor: "zoom-in",
-                        boxShadow: "0 2px 6px rgba(0,0,0,0.03)", transition: "transform 0.15s ease",
+                      draggable
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData("idx", i.toString());
+                        e.dataTransfer.effectAllowed = "move";
+                        setDraggedIdx(i);
                       }}
-                      onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.04)"}
-                      onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
-                      title="Nagyítás"
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = "move";
+                        if (draggedIdx !== null && draggedIdx !== i) setDragOverIdx(i);
+                      }}
+                      onDragLeave={() => {
+                        if (dragOverIdx === i) setDragOverIdx(null);
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        const from = parseInt(e.dataTransfer.getData("idx"));
+                        if (!isNaN(from) && from !== i) reorderImages(from, i);
+                        setDraggedIdx(null);
+                        setDragOverIdx(null);
+                      }}
+                      style={{
+                        width: "100%", height: "100%", borderRadius: 8, overflow: "hidden", background: "#fff",
+                        border: `2px solid ${dragOverIdx === i ? "var(--accent)" : "var(--border-medium)"}`, position: "relative", cursor: "grab",
+                        boxShadow: dragOverIdx === i ? "0 4px 16px var(--accent-glow)" : "0 2px 6px rgba(0,0,0,0.03)", transition: "all 0.2s ease",
+                        transform: dragOverIdx === i ? "scale(1.05)" : "scale(1)"
+                      }}
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={img.src} alt={img.name} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                      <img src={img.src} alt={img.name} style={{ width: "100%", height: "100%", objectFit: "contain", pointerEvents: "none" }} />
+                      
+                      {/* Forgatás Gomb */}
+                      <button onClick={(e) => { e.stopPropagation(); rotateImage(i, 90); }} title="Forgatás" style={{
+                        position: "absolute", top: 4, left: 4, width: 22, height: 22, borderRadius: "50%",
+                        background: "rgba(255,255,255,0.95)", border: "1px solid var(--border-medium)", color: "var(--text)", 
+                        display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, zIndex: 10
+                      }}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 2v6h-6"></path><path d="M21 13a9 9 0 1 1-3-7.7L21 8"></path>
+                        </svg>
+                      </button>
+
+                      {/* Törlés Gomb */}
+                      <button onClick={(e) => { e.stopPropagation(); removeImage(i); }} title="Törlés" style={{
+                        position: "absolute", top: 4, right: 4, width: 22, height: 22, borderRadius: "50%",
+                        background: "rgba(255,255,255,0.95)", border: "1px solid #fca5a5", color: "#dc2626", 
+                        display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, zIndex: 10
+                      }}>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+                          <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                      </button>
                     </div>
-                    
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); removeImage(i); }} title="Törlés" 
-                      style={{
-                        position: "absolute", top: -8, right: -8, width: 24, height: 24, borderRadius: "50%",
-                        background: "#fff", border: "1px solid #fca5a5", color: "#dc2626", 
-                        display: "flex", alignItems: "center", justifyContent: "center", 
-                        cursor: "pointer", padding: 0, boxShadow: "0 2px 6px rgba(0,0,0,0.15)", zIndex: 2
-                      }}
-                    >
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                      </svg>
-                    </button>
                   </div>
                 ))}
                 
                 {images.length < 30 && (
                   <div
-                    onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
-                    onDragLeave={() => setIsDragOver(false)}
-                    onDrop={(e) => { e.preventDefault(); setIsDragOver(false); addFiles(e.dataTransfer.files); }}
+                    onDragOver={(e) => { e.preventDefault(); setIsDragOverDropzone(true); }}
+                    onDragLeave={() => setIsDragOverDropzone(false)}
+                    onDrop={(e) => { e.preventDefault(); setIsDragOverDropzone(false); addFiles(e.dataTransfer.files); }}
                     onClick={() => fileInputRef.current?.click()}
                     title="További kép hozzáadása"
                     style={{
-                      width: 88, height: 88, flexShrink: 0, // <--- INNEN KERÜLT KI AZ ALIGN-SELF!
-                      border: `2px dashed ${isDragOver ? "var(--accent)" : "var(--border-medium)"}`,
+                      width: 76, height: 76, flexShrink: 0, 
+                      border: `2px dashed ${isDragOverDropzone ? "var(--accent)" : "var(--border-medium)"}`,
                       borderRadius: 10, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4,
-                      cursor: "pointer", background: isDragOver ? "rgba(91,80,232,0.04)" : "transparent",
-                      color: isDragOver ? "var(--accent)" : "var(--text-secondary)", transition: "all 0.2s ease"
+                      cursor: "pointer", background: isDragOverDropzone ? "rgba(91,80,232,0.04)" : "transparent",
+                      color: isDragOverDropzone ? "var(--accent)" : "var(--text-secondary)", transition: "all 0.2s ease"
                     }}
                   >
                     <div style={{ fontSize: 28, fontWeight: 300, lineHeight: 1 }}>+</div>
@@ -166,10 +196,13 @@ export default function HomePage() {
             {images.length > 6 && <span style={{ color: "#ef4444", fontSize: 13, fontWeight: 600, background: "#fef2f2", padding: "2px 8px", borderRadius: 4 }}>Automata módhoz max 6 kép engedélyezett!</span>}
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 24 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 24 }}>
             <ModeCard disabled={!hasImages} href="/manualis" icon="🛠️" title="Manuális" badge="Pro" desc="Teljes szabadság. Te kezeled a rétegeket, méreteket és a pontos pozíciókat." />
             <ModeCard disabled={!hasImages} href="/segitett" icon="🎯" title="Segített" badge="Okos" desc="Szabad mozgástér, de intelligens mágneses rácsvonalakkal a tökéletes illesztésért." />
             <ModeCard disabled={isAutoDisabled} href="/automata" icon="⚡️" title="Automata" badge="Gyors" desc="Az algoritmus másodpercek alatt megtalálja a legjobb elrendezést. (Max 6 kép)" />
+            <div style={{ background: "var(--bg-panel)", border: "1px dashed var(--border)", borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-secondary)", fontSize: 14, fontWeight: 600, minHeight: 180 }}>
+                + Új mód érkezik
+            </div>
           </div>
         </div>
 
@@ -198,11 +231,10 @@ export default function HomePage() {
             onMouseLeave={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.1)"}
           >✕</button>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={previewImg.src} alt={previewImg.name} onClick={(e) => e.stopPropagation()} style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", borderRadius: 8, boxShadow: "0 10px 40px rgba(0,0,0,0.5)", cursor: "default" }} />
+          <img src={previewImg?.src} alt={previewImg?.name} onClick={(e) => e.stopPropagation()} style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", borderRadius: 8, boxShadow: "0 10px 40px rgba(0,0,0,0.5)", cursor: "default" }} />
         </div>
       )}
 
-      {/* Rejtett input */}
       <input ref={fileInputRef} type="file" multiple accept="image/*" style={{ display: "none" }} onChange={(e) => { if(e.target.files) addFiles(e.target.files); e.target.value = ''; }} />
     </div>
   );

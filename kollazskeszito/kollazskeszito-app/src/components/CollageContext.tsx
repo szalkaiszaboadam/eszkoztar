@@ -15,8 +15,9 @@ interface CollageContextType {
   addFiles: (files: FileList | File[]) => Promise<void>;
   removeImage: (index: number) => void;
   rotateImage: (index: number, degrees: 90 | -90) => void;
-  moveImage: (index: number, dir: -1 | 1) => void;
+  reorderImages: (oldIndex: number, newIndex: number) => void; // <-- ÚJ D&D FÜGGVÉNY
   clearImages: () => void;
+  shuffleImages: () => void;
 }
 
 const CollageContext = createContext<CollageContextType | null>(null);
@@ -50,7 +51,6 @@ export function CollageProvider({ children }: { children: ReactNode }) {
         newImgs.push({ el, src: el.src, name: file.name, uid: uid() });
       } catch { /* skip */ }
     }
-    // JAVÍTVA: Itt állítottuk be a globális limitet 30-ra!
     setImages(prev => [...prev, ...newImgs].slice(0, 30));
   }, []);
 
@@ -75,20 +75,31 @@ export function CollageProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const moveImage = useCallback((index: number, dir: -1 | 1) => {
+  // ÚJ: A Fogd és Vidd átrendező logikája
+  const reorderImages = useCallback((oldIndex: number, newIndex: number) => {
     setImages(prev => {
       const next = [...prev];
-      const target = index + dir;
-      if (target < 0 || target >= next.length) return prev;
-      [next[index], next[target]] = [next[target], next[index]];
+      const [moved] = next.splice(oldIndex, 1);
+      next.splice(newIndex, 0, moved);
       return next;
     });
   }, []);
 
   const clearImages = useCallback(() => setImages([]), []);
 
+  const shuffleImages = useCallback(() => {
+    setImages(prev => {
+      const next = [...prev];
+      for (let i = next.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [next[i], next[j]] = [next[j], next[i]];
+      }
+      return next;
+    });
+  }, []);
+
   return (
-    <CollageContext.Provider value={{ images, setImages, addFiles, removeImage, rotateImage, moveImage, clearImages }}>
+    <CollageContext.Provider value={{ images, setImages, addFiles, removeImage, rotateImage, reorderImages, clearImages, shuffleImages }}>
       {children}
     </CollageContext.Provider>
   );

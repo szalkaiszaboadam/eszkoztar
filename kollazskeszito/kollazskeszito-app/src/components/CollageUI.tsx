@@ -2,7 +2,7 @@
 
 import { useRef, useEffect } from "react";
 import { renderPreview, AutoLayout } from "@/src/lib/autoCollage";
-import { LoadedImg } from "./CollageContext"; // <-- EZT FRISSÍTETTÜK
+import { LoadedImg } from "./CollageContext"; 
 
 export function LayoutCard({ layout, index, selected, onSelect }: {
   layout: AutoLayout; index: number; selected: boolean; onSelect: () => void;
@@ -52,43 +52,93 @@ export function LayoutCard({ layout, index, selected, onSelect }: {
   );
 }
 
-export function CompactImageThumb({ img, index, total, onRemove, onRotateCW, onRotateCCW, onMoveLeft, onMoveRight }: {
-  img: LoadedImg; index: number; total: number;
-  onRemove: () => void; onRotateCW: () => void; onRotateCCW: () => void;
-  onMoveLeft: () => void; onMoveRight: () => void;
+// --- JAVÍTVA: Tiszta Drag & Drop kártya nyilak nélkül ---
+export function CompactImageThumb({ 
+  img, onRemove, onRotate, 
+  onDragStart, onDragOver, onDragLeave, onDrop, isDragTarget 
+}: {
+  img: LoadedImg; onRemove: () => void; onRotate: () => void;
+  onDragStart?: (e: React.DragEvent) => void;
+  onDragOver?: (e: React.DragEvent) => void;
+  onDragLeave?: () => void;
+  onDrop?: (e: React.DragEvent) => void;
+  isDragTarget?: boolean;
 }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 4, width: 68, flexShrink: 0 }}>
-      <div style={{
-        width: 68, height: 68, borderRadius: 8, overflow: "hidden", background: "#fff", 
-        border: "1px solid var(--border-medium)", position: "relative", boxShadow: "0 2px 4px rgba(0,0,0,0.02)"
+    <div 
+      draggable={!!onDragStart}
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+      style={{
+        position: "relative", width: 76, height: 76, flexShrink: 0,
+        borderRadius: 8, overflow: "hidden", background: "#fff", 
+        border: `2px solid ${isDragTarget ? "var(--accent)" : "var(--border-medium)"}`, 
+        boxShadow: isDragTarget ? "0 4px 16px var(--accent-glow)" : "0 2px 4px rgba(0,0,0,0.02)",
+        cursor: onDragStart ? "grab" : "default",
+        transition: "all 0.2s ease",
+        transform: isDragTarget ? "scale(1.05)" : "scale(1)"
+      }}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={img.src} alt={img.name} style={{ width: "100%", height: "100%", objectFit: "contain", pointerEvents: "none" }} />
+      
+      {/* Forgatás Gomb (Bal Felső) */}
+      <button onClick={(e) => { e.stopPropagation(); onRotate(); }} title="Forgatás" style={{
+        position: "absolute", top: 4, left: 4, width: 22, height: 22, borderRadius: "50%",
+        background: "rgba(255,255,255,0.95)", border: "1px solid var(--border-medium)", color: "var(--text)",
+        display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, zIndex: 10
       }}>
-        <img src={img.src} alt={img.name} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
-        <button onClick={onRemove} title="Törlés" style={{
-          position: "absolute", top: 4, right: 4, width: 18, height: 18, borderRadius: "50%",
-          background: "rgba(255,255,255,0.9)", border: "1px solid #fca5a5", color: "#dc2626",
-          fontSize: 9, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center",
-          cursor: "pointer", padding: 0, boxShadow: "0 1px 3px rgba(0,0,0,0.1)"
-        }}>✕</button>
-      </div>
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 2 }}>
-        <button onClick={onRotateCCW} style={{ flex: 1, height: 20, borderRadius: 4, fontSize: 10, border: "1px solid var(--border-medium)", background: "var(--bg-panel)", cursor: "pointer", color: "var(--text-secondary)" }}>↺</button>
-        <button onClick={onMoveLeft} disabled={index === 0} style={{ flex: 1, height: 20, borderRadius: 4, fontSize: 10, border: "1px solid var(--border-medium)", background: "var(--bg-panel)", cursor: index === 0 ? "default" : "pointer", opacity: index === 0 ? 0.3 : 1, color: "var(--text-secondary)" }}>←</button>
-        <button onClick={onMoveRight} disabled={index === total - 1} style={{ flex: 1, height: 20, borderRadius: 4, fontSize: 10, border: "1px solid var(--border-medium)", background: "var(--bg-panel)", cursor: index === total - 1 ? "default" : "pointer", opacity: index === total - 1 ? 0.3 : 1, color: "var(--text-secondary)" }}>→</button>
-      </div>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 2v6h-6"></path><path d="M21 13a9 9 0 1 1-3-7.7L21 8"></path>
+        </svg>
+      </button>
+
+      {/* Törlés Gomb (Jobb Felső) */}
+      <button onClick={(e) => { e.stopPropagation(); onRemove(); }} title="Törlés" style={{
+        position: "absolute", top: 4, right: 4, width: 22, height: 22, borderRadius: "50%",
+        background: "rgba(255,255,255,0.95)", border: "1px solid #fca5a5", color: "#dc2626",
+        display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, zIndex: 10
+      }}>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
     </div>
   );
 }
 
-export function HorizontalSlider({ label, value, min, max, unit, onChange }: {
-  label: string; value: number; min: number; max: number; unit: string;
+export function QuickSelect({ label, value, options, onChange }: {
+  label: string; value: number; options: number[];
   onChange: (v: number) => void;
 }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-      <span style={{ fontSize: 12, color: "var(--text-secondary)", fontWeight: 600, width: 44, flexShrink: 0 }}>{label}</span>
-      <input type="range" min={min} max={max} value={value} onChange={(e) => onChange(Number(e.target.value))} style={{ flex: 1, accentColor: "var(--accent)", cursor: "pointer" }} />
-      <span style={{ fontSize: 12, fontWeight: 800, color: "var(--text)", width: 40, textAlign: "right", flexShrink: 0 }}>{value}{unit}</span>
+      <span style={{ fontSize: 11, color: "var(--text-secondary)", fontWeight: 800, width: 44, flexShrink: 0, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+        {label}
+      </span>
+      <div style={{
+        display: "grid", gridTemplateColumns: "repeat(4, 1fr)", flex: 1, background: "var(--bg-panel)", 
+        padding: 4, borderRadius: 8, border: "1px solid var(--border-medium)", gap: 4
+      }}>
+        {options.map((opt) => (
+          <button
+            key={opt}
+            onClick={() => onChange(opt)}
+            style={{
+              padding: "6px 0", border: "none", borderRadius: 6,
+              fontSize: 13, fontWeight: 800, cursor: "pointer",
+              background: value === opt ? "var(--bg-elevated)" : "transparent",
+              color: value === opt ? "var(--accent)" : "var(--text-secondary)",
+              boxShadow: value === opt ? "0 2px 4px rgba(0,0,0,0.05)" : "none",
+              transition: "all 0.2s ease"
+            }}
+          >
+            {opt}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
