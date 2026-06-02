@@ -3,6 +3,7 @@
 import { useRef, useEffect } from "react";
 import { renderPreview, AutoLayout } from "@/src/lib/autoCollage";
 import { LoadedImg } from "./CollageContext"; 
+import { Wand2 } from "lucide-react"; // <-- ÚJ: Lucide ikon beimportálva
 
 export function LayoutCard({ layout, index, selected, onSelect }: {
   layout: AutoLayout; index: number; selected: boolean; onSelect: () => void;
@@ -29,8 +30,7 @@ export function LayoutCard({ layout, index, selected, onSelect }: {
       }}
     >
       <div style={{
-        width: "100%", aspectRatio: "1 / 1", 
-        borderRadius: 0, // <--- JAVÍTÁS: 8 helyett 0 lett, így tökéletesen szögletes lesz!
+        width: "100%", aspectRatio: "1 / 1", borderRadius: 0,
         border: "1px solid var(--border-medium)", background: "#fff",
         overflow: "hidden", position: "relative", flexShrink: 0,
       }}>
@@ -53,12 +53,13 @@ export function LayoutCard({ layout, index, selected, onSelect }: {
   );
 }
 
-// TISZTÍTVA: Nincs benne háttéreltávolító kód, csak a tiszta Drag & Drop
+// JAVÍTÁS: A kis képkártya most már fogad egy removeBg és onToggleBg paramétert is!
 export function CompactImageThumb({ 
-  img, onRemove, onRotate, 
+  img, onRemove, onRotate, onToggleBg, removeBg, 
   onDragStart, onDragOver, onDragLeave, onDrop, isDragTarget 
 }: {
   img: LoadedImg; onRemove: () => void; onRotate: () => void;
+  onToggleBg?: () => void; removeBg?: boolean;
   onDragStart?: (e: React.DragEvent) => void;
   onDragOver?: (e: React.DragEvent) => void;
   onDragLeave?: () => void;
@@ -86,26 +87,28 @@ export function CompactImageThumb({
       <img src={img.src} alt={img.name} style={{ width: "100%", height: "100%", objectFit: "contain", pointerEvents: "none" }} />
       
       {/* Forgatás Gomb */}
-      <button onClick={(e) => { e.stopPropagation(); onRotate(); }} title="Forgatás" style={{
-        position: "absolute", top: 4, left: 4, width: 22, height: 22, borderRadius: "50%",
-        background: "rgba(255,255,255,0.95)", border: "1px solid var(--border-medium)", color: "var(--text)",
-        display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, zIndex: 10
-      }}>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M21 2v6h-6"></path><path d="M21 13a9 9 0 1 1-3-7.7L21 8"></path>
-        </svg>
+      <button onClick={(e) => { e.stopPropagation(); onRotate(); }} title="Forgatás" style={{ position: "absolute", top: 4, left: 4, width: 22, height: 22, borderRadius: "50%", background: "rgba(255,255,255,0.95)", border: "1px solid var(--border-medium)", color: "var(--text)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, zIndex: 10 }}>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M21 2v6h-6"></path><path d="M21 13a9 9 0 1 1-3-7.7L21 8"></path></svg>
       </button>
 
       {/* Törlés Gomb */}
-      <button onClick={(e) => { e.stopPropagation(); onRemove(); }} title="Törlés" style={{
-        position: "absolute", top: 4, right: 4, width: 22, height: 22, borderRadius: "50%",
-        background: "rgba(255,255,255,0.95)", border: "1px solid #fca5a5", color: "#dc2626",
-        display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, zIndex: 10
-      }}>
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
-          <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
-        </svg>
+      <button onClick={(e) => { e.stopPropagation(); onRemove(); }} title="Törlés" style={{ position: "absolute", top: 4, right: 4, width: 22, height: 22, borderRadius: "50%", background: "rgba(255,255,255,0.95)", border: "1px solid #fca5a5", color: "#dc2626", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, zIndex: 10 }}>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
       </button>
+
+      {/* ÚJ: Egyéni Háttéreltávolító Gomb (Varázspálca) */}
+      {onToggleBg && (
+        <button onClick={(e) => { e.stopPropagation(); onToggleBg(); }} title="Háttér eltávolítása erről a képről" style={{
+          position: "absolute", bottom: 4, left: 4, width: 22, height: 22, borderRadius: "50%",
+          background: removeBg ? "rgba(91,80,232,0.95)" : "rgba(255,255,255,0.95)",
+          border: `1px solid ${removeBg ? "var(--accent)" : "var(--border-medium)"}`,
+          color: removeBg ? "#fff" : "var(--text-secondary)",
+          display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, zIndex: 10,
+          transition: "all 0.2s ease"
+        }}>
+          <Wand2 size={12} />
+        </button>
+      )}
     </div>
   );
 }
@@ -119,17 +122,12 @@ export function QuickSelect({ label, value, options, onChange }: {
       <span style={{ fontSize: 11, color: "var(--text-secondary)", fontWeight: 800, width: 44, flexShrink: 0, textTransform: "uppercase", letterSpacing: "0.05em" }}>
         {label}
       </span>
-      <div style={{
-        display: "grid", gridTemplateColumns: "repeat(4, 1fr)", flex: 1, background: "var(--bg-panel)", 
-        padding: 4, borderRadius: 8, border: "1px solid var(--border-medium)", gap: 4
-      }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", flex: 1, background: "var(--bg-panel)", padding: 4, borderRadius: 8, border: "1px solid var(--border-medium)", gap: 4 }}>
         {options.map((opt) => (
           <button
-            key={opt}
-            onClick={() => onChange(opt)}
+            key={opt} onClick={() => onChange(opt)}
             style={{
-              padding: "6px 0", border: "none", borderRadius: 6,
-              fontSize: 13, fontWeight: 800, cursor: "pointer",
+              padding: "6px 0", border: "none", borderRadius: 6, fontSize: 13, fontWeight: 800, cursor: "pointer",
               background: value === opt ? "var(--bg-elevated)" : "transparent",
               color: value === opt ? "var(--accent)" : "var(--text-secondary)",
               boxShadow: value === opt ? "0 2px 4px rgba(0,0,0,0.05)" : "none",

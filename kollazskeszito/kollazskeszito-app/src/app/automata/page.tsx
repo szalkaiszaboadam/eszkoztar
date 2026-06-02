@@ -1,10 +1,11 @@
 "use client";
 
 import { useRef, useState, useCallback, useEffect } from "react";
-import Link from "next/link"; 
+import Link from "next/link";
 import { processAndCrop, computeLayouts, renderToCanvas, AutoLayout } from "@/src/lib/autoCollage";
 import { LayoutCard, CompactImageThumb, QuickSelect } from "@/src/components/CollageUI"; 
 import { useCollage } from "@/src/components/CollageContext"; 
+import { Wand2 } from "lucide-react"; 
 
 const GAP_OPTIONS = [0, 10, 30, 80];
 const MARGIN_OPTIONS = [0, 50, 150, 300];
@@ -17,42 +18,73 @@ export default function AutoCollagePage() {
   const [gap, setGap] = useState(0);
   const [margin, setMargin] = useState(0);
   const [keepOrder, setKeepOrder] = useState(false);
-  const [downloading, setDownloading] = useState(false);
   
-  // Drag and drop state
+  // ÚJ: Képenkénti háttérbeállítások tárolása
+  const [imageBgSettings, setImageBgSettings] = useState<Record<string, boolean>>({});
+  
+  const [downloading, setDownloading] = useState(false);
   const [isDragOverDropzone, setIsDragOverDropzone] = useState(false);
   const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
-  
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // --- ÚJ: 6 KÉPES KORLÁTOZÁS AUTOMATA MÓDBAN ---
+  // Amikor új kép jön, alapértelmezetten bekapcsoljuk a hátterét
+  useEffect(() => {
+    setImageBgSettings(prev => {
+      const next = { ...prev };
+      let changed = false;
+      images.forEach(img => {
+        if (next[img.uid] === undefined) {
+          next[img.uid] = true;
+          changed = true;
+        }
+      });
+      return changed ? next : prev;
+    });
+  }, [images]);
+
   const handleAutoUpload = useCallback((files: FileList | File[]) => {
     const slotsLeft = 6 - images.length;
     if (slotsLeft <= 0) {
       alert("Az Automata módban maximum 6 kép engedélyezett!");
       return;
     }
-    
     const filesArray = Array.from(files);
     if (filesArray.length > slotsLeft) {
       alert(`Az Automata módban maximum 6 kép lehet! Ebből a feltöltésből csak az első ${slotsLeft} képet adjuk hozzá.`);
     }
-    
-    // Csak annyi képet adunk át a memóriának, amennyi szabad hely még van!
     addFiles(filesArray.slice(0, slotsLeft));
   }, [images.length, addFiles]);
 
+  // Változatok generálása az EGYÉNI beállítások alapján!
   useEffect(() => {
     if (!images.length) { setLayouts([]); return; }
-    const timer = setTimeout(() => {
-      const cropped = images.map((img, i) => processAndCrop(img.el, i));
-      const computed = computeLayouts(cropped, gap, margin, keepOrder);
-      setLayouts(computed);
-      setSelectedIdx(s => Math.min(s, computed.length - 1));
-    }, 80);
-    return () => clearTimeout(timer);
-  }, [images, gap, margin, keepOrder]);
+    
+    let isCancelled = false; 
+
+    const generate = async () => {
+      try {
+        // Minden képhez a SAJÁT removeBg értékét adjuk át! (Ha még nem létezik, akkor true)
+        const cropped = await Promise.all(
+          images.map((img, i) => processAndCrop(img.el, i, imageBgSettings[img.uid] ?? true))
+        );
+        
+        if (isCancelled) return; 
+
+        const computed = computeLayouts(cropped, gap, margin, keepOrder);
+        setLayouts(computed);
+        setSelectedIdx(s => Math.min(s, computed.length - 1));
+      } catch (error) {
+        console.error("Hiba az automata generálásnál:", error);
+      }
+    };
+
+    const timer = setTimeout(generate, 80);
+    return () => {
+      isCancelled = true;
+      clearTimeout(timer);
+    };
+  }, [images, gap, margin, keepOrder, imageBgSettings]);
 
   const download = useCallback(() => {
     if (!layouts[selectedIdx]) return;
@@ -72,6 +104,15 @@ export default function AutoCollagePage() {
   }, [selectedIdx, layouts]);
 
   const hasLayouts = layouts.length > 0;
+
+  // Globális kapcsoló logikája: Ha minden kép be van kapcsolva, akkor aktív.
+  const isAllBgRemoved = images.length > 0 && images.every(img => imageBgSettings[img.uid] !== false);
+  
+  const toggleAllBg = (checked: boolean) => {
+    const next: Record<string, boolean> = {};
+    images.forEach(img => next[img.uid] = checked);
+    setImageBgSettings(next);
+  };
 
   return (
     <div style={{ height: "100vh", display: "flex", flexDirection: "column", background: "var(--bg-elevated)", overflow: "hidden" }}>
@@ -125,6 +166,9 @@ export default function AutoCollagePage() {
                 key={img.uid} img={img} 
                 onRemove={() => removeImage(i)} 
                 onRotate={() => rotateImage(i, 90)}
+                // ÚJ: Átadjuk a kártyának az egyéni értékeket
+                removeBg={imageBgSettings[img.uid] ?? true}
+                onToggleBg={() => setImageBgSettings(prev => ({ ...prev, [img.uid]: !prev[img.uid] }))}
                 onDragStart={(e) => {
                   e.dataTransfer.setData("idx", i.toString());
                   e.dataTransfer.effectAllowed = "move";
@@ -153,7 +197,6 @@ export default function AutoCollagePage() {
               <div
                 onDragOver={(e) => { e.preventDefault(); setIsDragOverDropzone(true); }}
                 onDragLeave={() => setIsDragOverDropzone(false)}
-                // JAVÍTÁS: Itt már az új szűrőfüggvényt hívjuk a bedobott képeknél!
                 onDrop={(e) => { e.preventDefault(); setIsDragOverDropzone(false); handleAutoUpload(e.dataTransfer.files); }}
                 onClick={() => fileInputRef.current?.click()}
                 style={{
@@ -171,19 +214,26 @@ export default function AutoCollagePage() {
 
           <div style={{ width: 1, background: "var(--border-medium)", flexShrink: 0 }} />
 
-          <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", gap: 10, minWidth: 120 }}>
-            <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 12, fontWeight: 700, color: "var(--text)", padding: "4px 8px", background: keepOrder ? "rgba(91,80,232,0.08)" : "transparent", borderRadius: 6, transition: "all 0.2s ease" }}>
+          <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", gap: 8, minWidth: 160 }}>
+            
+            {/* ÚJ: Globális kapcsoló */}
+            <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 11, fontWeight: 800, color: isAllBgRemoved ? "var(--accent)" : "var(--text)", padding: "6px 8px", background: isAllBgRemoved ? "rgba(91,80,232,0.08)" : "transparent", borderRadius: 6, transition: "all 0.2s ease", border: isAllBgRemoved ? "1px solid rgba(91,80,232,0.15)" : "1px solid transparent" }}>
+              <input type="checkbox" checked={isAllBgRemoved} onChange={(e) => toggleAllBg(e.target.checked)} style={{ accentColor: "var(--accent)", width: 14, height: 14 }} />
+              <Wand2 size={14} /> Minden háttér ki/be
+            </label>
+
+            <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 11, fontWeight: 800, color: "var(--text)", padding: "4px 8px", background: keepOrder ? "rgba(91,80,232,0.08)" : "transparent", borderRadius: 6, transition: "all 0.2s ease", border: "1px solid transparent" }}>
               <input type="checkbox" checked={keepOrder} onChange={(e) => setKeepOrder(e.target.checked)} style={{ accentColor: "var(--accent)", width: 14, height: 14 }} />
               Fix sorrend
             </label>
 
             <div style={{ display: "flex", gap: 6, padding: "0 6px" }}>
-              <button disabled={images.length < 2} onClick={shuffleImages} title="Képek keverése" style={{ flex: 1, height: 32, borderRadius: 6, background: "var(--bg-panel)", border: "1px solid var(--border-medium)", display: "flex", alignItems: "center", justifyContent: "center", cursor: images.length < 2 ? "default" : "pointer", opacity: images.length < 2 ? 0.4 : 1, color: "var(--text)", transition: "all 0.2s ease", boxShadow: "0 1px 2px rgba(0,0,0,0.02)" }}>
+              <button disabled={images.length < 2} onClick={shuffleImages} title="Képek keverése" style={{ flex: 1, height: 28, borderRadius: 6, background: "var(--bg-panel)", border: "1px solid var(--border-medium)", display: "flex", alignItems: "center", justifyContent: "center", cursor: images.length < 2 ? "default" : "pointer", opacity: images.length < 2 ? 0.4 : 1, color: "var(--text)", transition: "all 0.2s ease", boxShadow: "0 1px 2px rgba(0,0,0,0.02)" }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="16 3 21 3 21 8"></polyline><line x1="4" y1="20" x2="21" y2="3"></line><polyline points="21 16 21 21 16 21"></polyline><line x1="15" y1="15" x2="21" y2="21"></line><line x1="4" y1="4" x2="9" y2="9"></line>
                 </svg>
               </button>
-              <button disabled={images.length === 0} onClick={clearImages} title="Összes törlése" style={{ flex: 1, height: 32, borderRadius: 6, background: images.length === 0 ? "var(--bg-panel)" : "#fef2f2", border: `1px solid ${images.length === 0 ? "var(--border-medium)" : "#fca5a5"}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: images.length === 0 ? "default" : "pointer", opacity: images.length === 0 ? 0.4 : 1, color: images.length === 0 ? "var(--text-secondary)" : "#dc2626", transition: "all 0.2s ease", boxShadow: "0 1px 2px rgba(0,0,0,0.02)" }}>
+              <button disabled={images.length === 0} onClick={clearImages} title="Összes törlése" style={{ flex: 1, height: 28, borderRadius: 6, background: images.length === 0 ? "var(--bg-panel)" : "#fef2f2", border: `1px solid ${images.length === 0 ? "var(--border-medium)" : "#fca5a5"}`, display: "flex", alignItems: "center", justifyContent: "center", cursor: images.length === 0 ? "default" : "pointer", opacity: images.length === 0 ? 0.4 : 1, color: images.length === 0 ? "var(--text-secondary)" : "#dc2626", transition: "all 0.2s ease", boxShadow: "0 1px 2px rgba(0,0,0,0.02)" }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                 </svg>
@@ -220,7 +270,6 @@ export default function AutoCollagePage() {
         </div>
       </main>
 
-      {/* JAVÍTÁS: Itt is az új szűrőfüggvényt hívjuk, amikor rákattint valaki a fájlválasztóra! */}
       <input ref={fileInputRef} type="file" multiple accept="image/*" style={{ display: "none" }} onChange={(e) => { if(e.target.files) handleAutoUpload(e.target.files); e.target.value = ''; }} />
     </div>
   );

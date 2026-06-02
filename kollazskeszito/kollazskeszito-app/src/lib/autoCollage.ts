@@ -1,3 +1,4 @@
+import { processWhiteBackground } from "./bgRemoval";
 // ── TÍPUSOK ────────────────────────────────────────────────
 
 export interface CroppedImage {
@@ -40,58 +41,59 @@ export interface AutoLayout {
 
 // ── KÉPVÁGÁS ───────────────────────────────────────────────
 
-export function processAndCrop(img: HTMLImageElement, originalIndex: number): CroppedImage {
-  const tempCanvas = document.createElement("canvas");
-  tempCanvas.width = img.width;
-  tempCanvas.height = img.height;
-  const ctx = tempCanvas.getContext("2d")!;
-  ctx.drawImage(img, 0, 0);
+export async function processAndCrop(img: HTMLImageElement, originalIndex: number, removeBg: boolean = true) {
+    let finalImg = img;
 
-  const imageData = ctx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
-  const data = imageData.data;
-  let minX = tempCanvas.width, minY = tempCanvas.height, maxX = 0, maxY = 0;
-  let found = false;
-
-  for (let y = 0; y < tempCanvas.height; y++) {
-    for (let x = 0; x < tempCanvas.width; x++) {
-      const idx = (y * tempCanvas.width + x) * 4;
-      const r = data[idx], g = data[idx + 1], b = data[idx + 2], a = data[idx + 3];
-      // Átlátszó vagy fehér pixelek kizárása
-      const isVisible = a > 20 && !(r > 235 && g > 235 && b > 235);
-      if (isVisible) {
-        if (x < minX) minX = x;
-        if (x > maxX) maxX = x;
-        if (y < minY) minY = y;
-        if (y > maxY) maxY = y;
-        found = true;
-      } else {
-        data[idx + 3] = 0;
-      }
+    // 1. Közös háttéreltávolító meghívása (ha a felhasználó bekapcsolta)
+    if (removeBg) {
+        const processed = await processWhiteBackground(img);
+        finalImg = processed.el;
     }
-  }
-  ctx.putImageData(imageData, 0, 0);
 
-  if (!found) {
-    // JAVÍTÁS: 'ar: 1' helyett az eredeti képarányt adjuk vissza, ha teljesen világos a kép!
-    return { 
-      canvas: tempCanvas, 
-      ar: img.width / img.height, 
-      originalIndex, 
-      cropOffsetX: 0, 
-      cropOffsetY: 0, 
-      cropW: img.width, 
-      cropH: img.height 
-    };
-  }
+    // 2. Kép vágása a látható pixelek mentén (Hitbox optimalizálás)
+    const tempCanvas = document.createElement("canvas");
+    tempCanvas.width = finalImg.width;
+    tempCanvas.height = finalImg.height;
+    const tCtx = tempCanvas.getContext("2d");
+    
+    // JAVÍTÁS: Ha hiba van, visszaadjuk a 0-ás offseteket is
+    if (!tCtx) return { canvas: tempCanvas, ar: 1, originalIndex, cropW: finalImg.width, cropH: finalImg.height, cropOffsetX: 0, cropOffsetY: 0 };
 
-  const cropW = maxX - minX + 1;
-  const cropH = maxY - minY + 1;
-  const cropped = document.createElement("canvas");
-  cropped.width = cropW;
-  cropped.height = cropH;
-  cropped.getContext("2d")!.drawImage(tempCanvas, minX, minY, cropW, cropH, 0, 0, cropW, cropH);
+    tCtx.drawImage(finalImg, 0, 0);
 
-  return { canvas: cropped, ar: cropW / cropH, originalIndex, cropOffsetX: minX, cropOffsetY: minY, cropW, cropH };
+    const imageData = tCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+    const data = imageData.data;
+    let minX = tempCanvas.width, minY = tempCanvas.height, maxX = 0, maxY = 0;
+
+    // Megkeressük a termék tényleges széleit
+    for (let y = 0; y < tempCanvas.height; y++) {
+        for (let x = 0; x < tempCanvas.width; x++) {
+            const idx = (y * tempCanvas.width + x) * 4;
+            const a = data[idx + 3];
+            if (a > 10) { // Ha a pixel nem átlátszó
+                if (x < minX) minX = x;
+                if (x > maxX) maxX = x;
+                if (y < minY) minY = y;
+                if (y > maxY) maxY = y;
+            }
+        }
+    }
+
+    const cropW = maxX - minX + 1;
+    const cropH = maxY - minY + 1;
+
+    // JAVÍTÁS: Biztonsági ellenőrzésnél is visszaadjuk a 0-ás offseteket
+    if (cropW <= 0 || cropH <= 0 || minX === tempCanvas.width) {
+        return { canvas: tempCanvas, ar: 1, originalIndex, cropW: finalImg.width, cropH: finalImg.height, cropOffsetX: 0, cropOffsetY: 0 };
+    }
+
+    const cropped = document.createElement("canvas");
+    cropped.width = cropW;
+    cropped.height = cropH;
+    cropped.getContext("2d")!.drawImage(tempCanvas, minX, minY, cropW, cropH, 0, 0, cropW, cropH);
+
+    // JAVÍTÁS: Itt adjuk át a pontos levágási koordinátákat (minX, minY)
+    return { canvas: cropped, ar: cropW / cropH, originalIndex, cropW, cropH, cropOffsetX: minX, cropOffsetY: minY };
 }
 
 // ── PERMUTÁCIÓK & PARTÍCIÓK ────────────────────────────────
