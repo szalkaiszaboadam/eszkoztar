@@ -7,9 +7,8 @@
     <list default="true" id="f4d015ee-e875-4790-906f-59e82f48dfe6" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/kollazskeszito/kollazskeszito-app/src/app/automata/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/kollazskeszito/kollazskeszito-app/src/app/automata/page.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/kollazskeszito/kollazskeszito-app/src/app/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/kollazskeszito/kollazskeszito-app/src/app/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kollazskeszito/kollazskeszito-app/src/app/manualis/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/kollazskeszito/kollazskeszito-app/src/app/manualis/page.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/kollazskeszito/kollazskeszito-app/src/components/CollageUI.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/kollazskeszito/kollazskeszito-app/src/components/CollageUI.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo-programok/kepkinyero/kepkinyero.py" beforeDir="false" afterPath="$PROJECT_DIR$/termekkezelo-programok/kepkinyero/kepkinyero.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -208,7 +207,7 @@
       <workItem from="1779017519565" duration="5838000" />
       <workItem from="1779291987186" duration="16186000" />
       <workItem from="1779474402448" duration="61000" />
-      <workItem from="1779474503469" duration="45216000" />
+      <workItem from="1779474503469" duration="46595000" />
     </task>
     <servers />
   </component>
@@ -221,7 +220,7 @@
     <SUITE FILE_PATH="coverage/eszkoztar$_cimkezoProgram.coverage" NAME="_cimkezoProgram Coverage Results" MODIFIED="1772963438771" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/cimkezo" />
     <SUITE FILE_PATH="coverage/eszkoztar$kategoriaepito.coverage" NAME="kategoriaepito Coverage Results" MODIFIED="1779017955431" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/reszprogramok/kategoriaepito" />
     <SUITE FILE_PATH="coverage/eszkoztar$kategorizalo.coverage" NAME="kategorizalo Coverage Results" MODIFIED="1779022899777" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/reszprogramok/kategorizalo" />
-    <SUITE FILE_PATH="coverage/sorbarendezo_py$kategorizalo.coverage" NAME="kategorizalo Coverage Results" MODIFIED="1780145963650" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/termekkezelo/kategorizalo" />
+    <SUITE FILE_PATH="coverage/sorbarendezo_py$kategorizalo.coverage" NAME="kategorizalo Coverage Results" MODIFIED="1780397534193" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/termekkezelo-programok/kategorizalo" />
     <SUITE FILE_PATH="coverage/eszkoztar$cikkszamozo.coverage" NAME="cikkszamozo Coverage Results" MODIFIED="1778435585288" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/reszprogramok/cikkszamozo" />
     <SUITE FILE_PATH="coverage/eszkoztar$_kep_scraperProgram.coverage" NAME="_kep-scraperProgram Coverage Results" MODIFIED="1774119449342" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/kep-scraper" />
     <SUITE FILE_PATH="coverage/eszkoztar$_kategorizaloProgram.coverage" NAME="_kategorizaloProgram Coverage Results" MODIFIED="1772867032516" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/kategorizalo" />

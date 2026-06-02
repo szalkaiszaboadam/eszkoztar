@@ -29,7 +29,8 @@ export function LayoutCard({ layout, index, selected, onSelect }: {
       }}
     >
       <div style={{
-        width: "100%", aspectRatio: "1 / 1", borderRadius: 8,
+        width: "100%", aspectRatio: "1 / 1", 
+        borderRadius: 0, // <--- JAVÍTÁS: 8 helyett 0 lett, így tökéletesen szögletes lesz!
         border: "1px solid var(--border-medium)", background: "#fff",
         overflow: "hidden", position: "relative", flexShrink: 0,
       }}>
@@ -52,7 +53,7 @@ export function LayoutCard({ layout, index, selected, onSelect }: {
   );
 }
 
-// --- JAVÍTVA: Tiszta Drag & Drop kártya nyilak nélkül ---
+// TISZTÍTVA: Nincs benne háttéreltávolító kód, csak a tiszta Drag & Drop
 export function CompactImageThumb({ 
   img, onRemove, onRotate, 
   onDragStart, onDragOver, onDragLeave, onDrop, isDragTarget 
@@ -84,7 +85,7 @@ export function CompactImageThumb({
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={img.src} alt={img.name} style={{ width: "100%", height: "100%", objectFit: "contain", pointerEvents: "none" }} />
       
-      {/* Forgatás Gomb (Bal Felső) */}
+      {/* Forgatás Gomb */}
       <button onClick={(e) => { e.stopPropagation(); onRotate(); }} title="Forgatás" style={{
         position: "absolute", top: 4, left: 4, width: 22, height: 22, borderRadius: "50%",
         background: "rgba(255,255,255,0.95)", border: "1px solid var(--border-medium)", color: "var(--text)",
@@ -95,7 +96,7 @@ export function CompactImageThumb({
         </svg>
       </button>
 
-      {/* Törlés Gomb (Jobb Felső) */}
+      {/* Törlés Gomb */}
       <button onClick={(e) => { e.stopPropagation(); onRemove(); }} title="Törlés" style={{
         position: "absolute", top: 4, right: 4, width: 22, height: 22, borderRadius: "50%",
         background: "rgba(255,255,255,0.95)", border: "1px solid #fca5a5", color: "#dc2626",
