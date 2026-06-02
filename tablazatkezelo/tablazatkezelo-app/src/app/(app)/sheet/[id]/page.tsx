@@ -22,6 +22,8 @@ function SheetContent({ onToggleSplit, isSplit }: { onToggleSplit: () => void, i
     const searchParams = useSearchParams();
     const folderId = searchParams.get("folder");
 
+    const router = useRouter();
+
     const { title, setTitle, isDirty, setDirty, setAllTabData } = useSheetStore();
 
     const [saving, setSaving] = useState(false);
@@ -59,15 +61,15 @@ function SheetContent({ onToggleSplit, isSplit }: { onToggleSplit: () => void, i
 
                     // ZSENIÁLIS: Bárhonnan nyílik meg a tábla, a szerkesztő azonnal bejegyzi a legutóbbiakhoz!
                     try {
-                    const recentItem = {
-                        id: current.id,
-                        title: current.title,
-                        folderId: current.folderId || null,
-                        openedAt: Date.now()
-                    };
-                    // FIX: user.uid alapján mentjük!
-                    localStorage.setItem(`mysheets_recent_${user.uid}`, JSON.stringify([recentItem]));
-                } catch (e) { console.error(e); }
+                        const recentItem = {
+                            id: current.id,
+                            title: current.title,
+                            folderId: current.folderId || null,
+                            openedAt: Date.now()
+                        };
+                        // FIX: user.uid alapján mentjük!
+                        localStorage.setItem(`mysheets_recent_${user.uid}`, JSON.stringify([recentItem]));
+                    } catch (e) { console.error(e); }
                 }
 
                 setAllTabData(data);
@@ -103,7 +105,7 @@ function SheetContent({ onToggleSplit, isSplit }: { onToggleSplit: () => void, i
         return () => window.removeEventListener("beforeunload", handleBeforeUnload);
     }, [handleSave]);
 
-const handleTitleSave = async () => {
+    const handleTitleSave = async () => {
         if (!user || !id || !title.trim()) return;
         await renameSheet(user.uid, id, title.trim());
         setEditingTitle(false);
@@ -135,7 +137,7 @@ const handleTitleSave = async () => {
                     onClick={async () => {
                         if (useSheetStore.getState().isDirty) await handleSave(true);
                         const backPath = folderId ? `/dashboard?folder=${folderId}` : "/dashboard";
-                        window.location.href = backPath;
+                        router.push(backPath); // <-- IDE KERÜL A ROUTER.PUSH
                     }}
                     className="p-1.5 hover:bg-gray-100 rounded-lg transition shrink-0"
                     title="Vissza a dokumentumokhoz"

@@ -171,7 +171,7 @@ function DashboardContent() {
   const openSheet = (sheet: Sheet) => {
     if (user) saveRecent(user.uid, { id: sheet.id, title: sheet.title, folderId: sheet.folderId, openedAt: Date.now() });
     const path = `/sheet/${sheet.id}${currentFolder ? `?folder=${currentFolder}` : ""}`;
-    window.location.href = path;
+    router.push(path);
   };
 
   const handleCreateSheet = async () => {
@@ -181,8 +181,7 @@ function DashboardContent() {
     saveRecent(user.uid, { id, title: "Névtelen táblázat", folderId: currentFolder, openedAt: Date.now() });
     // ...
     const path = `/sheet/${id}${currentFolder ? `?folder=${currentFolder}` : ""}`;
-    // 2. JAVÍTÁS
-    window.location.href = path;
+router.push(path);
   };
 
   const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -231,7 +230,7 @@ function DashboardContent() {
       saveRecent(user.uid, { id, title: sheetTitle, folderId: currentFolder, openedAt: Date.now() });
       // ...
       const path = `/sheet/${id}${currentFolder ? `?folder=${currentFolder}` : ""}`;
-      window.location.href = path;
+router.push(path);
     } catch (err) {
       console.error(err);
       toast.error("Hiba történt az importálás során.", { id: toastId });
@@ -710,23 +709,23 @@ function DashboardContent() {
                         {viewMode === "grid" ? (
                           <>
 
-                          {/* src/app/(app)/dashboard/page.tsx (keresd meg az előnézet renderelő részét) */}
+                            {/* src/app/(app)/dashboard/page.tsx (keresd meg az előnézet renderelő részét) */}
 
-{/* Előnézet terület */}
+                            {/* Előnézet terület */}
                             <div style={{ height: 110, background: "#f9fafb", borderBottom: "1px solid #f3f4f6", padding: "10px 10px 0", overflow: "hidden", position: "relative" }}>
-                              
+
                               {/* HTML table helyett CSS Grid, ami pont úgy viselkedik, mint a valódi szerkesztő */}
-                              <div style={{ 
-                                display: "grid", 
-                                gridTemplateColumns: "24px repeat(4, 1fr)", 
-                                borderTop: "1px solid #d1d5db", 
-                                borderLeft: "1px solid #d1d5db", 
-                                background: "#fff" 
+                              <div style={{
+                                display: "grid",
+                                gridTemplateColumns: "24px repeat(4, 1fr)",
+                                borderTop: "1px solid #d1d5db",
+                                borderLeft: "1px solid #d1d5db",
+                                background: "#fff"
                               }}>
                                 {[0, 1, 2, 3, 4].map(ri => (
                                   [0, 1, 2, 3, 4].map(ci => {
                                     const isHeader = ri === 0 || ci === 0;
-                                    
+
                                     let cellValue = "";
                                     let cellFormat: any = null;
 
@@ -754,21 +753,21 @@ function DashboardContent() {
                                     if (ci === 0 && ri > 0) label = String(ri);
 
                                     const alignClass = cellFormat?.align === "center" ? "center" : cellFormat?.align === "right" ? "right" : "left";
-                                    
+
                                     // Itt a varázslat: KIVETTÜK az 'overflow: "hidden"'-t a cella konténeréből!
-                                    const cellStyle: React.CSSProperties = isHeader 
+                                    const cellStyle: React.CSSProperties = isHeader
                                       ? {
-                                          background: "#f3f4f6", color: "#9ca3af", fontWeight: "600", fontSize: 8,
-                                          textAlign: "center", height: 18, borderBottom: "1px solid #d1d5db", borderRight: "1px solid #d1d5db",
-                                          position: "relative", display: "flex", alignItems: "center", justifyContent: "center", boxSizing: "border-box"
-                                        }
+                                        background: "#f3f4f6", color: "#9ca3af", fontWeight: "600", fontSize: 8,
+                                        textAlign: "center", height: 18, borderBottom: "1px solid #d1d5db", borderRight: "1px solid #d1d5db",
+                                        position: "relative", display: "flex", alignItems: "center", justifyContent: "center", boxSizing: "border-box"
+                                      }
                                       : {
-                                          background: cellFormat?.bgColor || "#fff", color: cellFormat?.color || "#374151",
-                                          fontWeight: cellFormat?.bold ? "bold" : "normal", fontStyle: cellFormat?.italic ? "italic" : "normal",
-                                          textDecoration: cellFormat?.underline ? "underline" : "none", textAlign: alignClass as any,
-                                          fontSize: 8, height: 18, borderBottom: "1px solid #e5e7eb", borderRight: "1px solid #e5e7eb",
-                                          position: "relative", boxSizing: "border-box"
-                                        };
+                                        background: cellFormat?.bgColor || "#fff", color: cellFormat?.color || "#374151",
+                                        fontWeight: cellFormat?.bold ? "bold" : "normal", fontStyle: cellFormat?.italic ? "italic" : "normal",
+                                        textDecoration: cellFormat?.underline ? "underline" : "none", textAlign: alignClass as any,
+                                        fontSize: 8, height: 18, borderBottom: "1px solid #e5e7eb", borderRight: "1px solid #e5e7eb",
+                                        position: "relative", boxSizing: "border-box"
+                                      };
 
                                     // Hajszálpontosan A TE Cell.tsx kódod a tökéletes szegélyekhez:
                                     const renderPreviewBorder = (b: any, side: string) => {
@@ -784,7 +783,7 @@ function DashboardContent() {
                                       const shift = Math.floor((w - 1) / 2);
                                       const offset = `-${1 + shift}px`;
                                       const common: React.CSSProperties = { position: "absolute", zIndex: 11, pointerEvents: "none" };
-                                      
+
                                       if (side === "top") return <div style={{ ...common, top: offset, left: offset, right: offset, borderTop: `${w}px ${style} ${color}` }} />;
                                       if (side === "bottom") return <div style={{ ...common, top: `calc(100% - ${1 + shift}px)`, left: offset, right: offset, borderTop: `${w}px ${style} ${color}` }} />;
                                       if (side === "left") return <div style={{ ...common, left: offset, top: offset, bottom: offset, borderLeft: `${w}px ${style} ${color}` }} />;
@@ -794,14 +793,14 @@ function DashboardContent() {
                                     return (
                                       <div key={`${ri}-${ci}`} style={cellStyle}>
                                         {/* A szöveget egy belső span-be zárjuk, így CSAK a szöveg lesz levágva, nem a szegély! */}
-                                        <span style={{ 
-                                          display: "block", padding: "0 4px", lineHeight: "17px", 
+                                        <span style={{
+                                          display: "block", padding: "0 4px", lineHeight: "17px",
                                           whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
                                           position: "relative", zIndex: 10, width: "100%", boxSizing: "border-box"
                                         }}>
                                           {isHeader ? label : cellValue}
                                         </span>
-                                        
+
                                         {/* Szegélyek (immár szabadon kinyúlhatnak a div-ből) */}
                                         {!isHeader && cellFormat?.border?.top && renderPreviewBorder(cellFormat.border.top, "top")}
                                         {!isHeader && cellFormat?.border?.bottom && renderPreviewBorder(cellFormat.border.bottom, "bottom")}
@@ -812,9 +811,9 @@ function DashboardContent() {
                                   })
                                 ))}
                               </div>
-                              
+
                               <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 40, background: "linear-gradient(to top, #f9fafb, transparent)", pointerEvents: "none", zIndex: 15 }} />
-                              
+
                               {/* Hover akció gombok */}
                               <div style={{ position: "absolute", top: 8, right: 8, display: "flex", gap: 4, opacity: sheet.isFavorite ? 1 : 0, transition: "opacity 0.15s", zIndex: 20 }} className={sheet.isFavorite ? "" : "sheet-actions"}>
                                 <button onClick={e => handleToggleFavoriteSheet(e, sheet)} style={{ background: "rgba(255,255,255,0.9)", border: "1px solid #e5e7eb", borderRadius: 6, padding: "4px 7px", cursor: "pointer", display: "flex" }}><Star size={13} color={sheet.isFavorite ? "#eab308" : "#6b7280"} fill={sheet.isFavorite ? "#eab308" : "none"} /></button>

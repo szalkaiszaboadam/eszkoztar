@@ -4,10 +4,9 @@ import {
   doc, updateDoc, serverTimestamp, query, orderBy, where,
 } from "firebase/firestore";
 import {
-  ref as dbRef, set, get, remove
+  ref as dbRef, set, get, remove, update
 } from "firebase/database";
 import { db, rtdb } from "./firebase";
-import { CellData } from "./sheetStore";
 import { DEFAULT_ROW_COUNT } from "./constants";
 
 export interface Sheet {
@@ -17,7 +16,7 @@ export interface Sheet {
   updatedAt: any;
   rowCount?: number;
   folderId?: string | null;
-  previewData?: string[]; // JAVÍTVA: Sima tömb (flat array)
+  previewData?: string[];
   isFavorite?: boolean;
 }
 
@@ -28,6 +27,14 @@ export interface Folder {
   parentId?: string | null;
   isFavorite?: boolean;
 }
+
+// -----------------------------------------------------------------------------
+// CACHE: Tárolja a cellák referencia-állapotát a villámgyors ellenőrzéshez
+// -----------------------------------------------------------------------------
+const sheetCache = new Map<string, {
+  cellsRef: any;
+  chunkedRows: any;
+}>();
 
 export async function createSheet(userId: string, title: string, folderId: string | null = null): Promise<string> {
   const docRef = await addDoc(collection(db, "users", userId, "sheets"), {
@@ -41,10 +48,7 @@ export async function createSheet(userId: string, title: string, folderId: strin
 }
 
 export async function getSheets(userId: string): Promise<Sheet[]> {
-  const q = query(
-    collection(db, "users", userId, "sheets"),
-    orderBy("updatedAt", "desc")
-  );
+  const q = query(collection(db, "users", userId, "sheets"), orderBy("updatedAt", "desc"));
   const snap = await getDocs(q);
   return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Sheet));
 }
@@ -52,16 +56,18 @@ export async function getSheets(userId: string): Promise<Sheet[]> {
 export async function deleteSheet(userId: string, sheetId: string): Promise<void> {
   await deleteDoc(doc(db, "users", userId, "sheets", sheetId));
   await remove(dbRef(rtdb, `sheets/${userId}/${sheetId}`));
+  sheetCache.delete(sheetId);
 }
 
 export async function renameSheet(userId: string, sheetId: string, title: string): Promise<void> {
   await updateDoc(doc(db, "users", userId, "sheets", sheetId), {
-    title,
-    updatedAt: serverTimestamp(),
+    title, updatedAt: serverTimestamp(),
   });
 }
 
-
+// -----------------------------------------------------------------------------
+// MENTÉS: Extrém gyors Delta-frissítéssel (Csak a megváltozott sorokat menti)
+// -----------------------------------------------------------------------------
 export async function saveCells(
   userId: string,
   sheetId: string,
@@ -72,139 +78,229 @@ export async function saveCells(
   rowHeightsByTab: any
 ): Promise<void> {
 
-  const chunkedCellsByTab: any = {};
-  
-  for (const tab in cellsByTab) {
-    const cells = cellsByTab[tab];
-    const rows: any = {};
-    
-    for (const cellId in cells) {
-      const cell = cells[cellId];
-      if (!cell) continue;
-      
-      const hasValue = cell.value !== undefined && cell.value !== null && cell.value !== "";
-      const hasFormula = cell.formula !== undefined && cell.formula !== null && cell.formula !== "";
-      const hasFormat = cell.format !== undefined && cell.format !== null && Object.keys(cell.format).length > 0;
+  const cache = sheetCache.get(sheetId) || { cellsRef: {}, chunkedRows: {} };
+  const newCellsRef: any = {};
+  const newChunkedRows: any = {};
+  const updates: any = {};
 
-      if (hasValue || hasFormula || hasFormat) {
-         const cleanCell: any = {};
-         if (cell.value !== undefined) cleanCell.value = cell.value;
-         if (cell.formula !== undefined) cleanCell.formula = cell.formula;
-         if (cell.format !== undefined) cleanCell.format = cell.format;
-         
-         // Kinyerjük a sorszámot a cella nevéből (pl. A12 -> 12)
-         const match = cellId.match(/^[A-Z]+(\d+)$/);
-         const row = match ? match[1] : "0";
-         
-         // A cellákat betesszük a megfelelő sor dobozába
-         if (!rows[row]) rows[row] = {};
-         rows[row][cellId] = cleanCell;
+  let totalUpdatedRows = 0;
+
+  for (const tab in cellsByTab) {
+    const currentCells = cellsByTab[tab] || {};
+    const prevCells = cache.cellsRef[tab] || {};
+    const prevChunked = cache.chunkedRows[tab] || {};
+
+    newCellsRef[tab] = currentCells;
+    newChunkedRows[tab] = {};
+
+    const dirtyRows = new Set<string>();
+
+    // 1. LÉPÉS: Megkeressük, hogy mely cellák memóriacíme (referenciája) változott meg. Ez szupergyors!
+    const currentCellIds = Object.keys(currentCells);
+    for (let i = 0; i < currentCellIds.length; i++) {
+      const cellId = currentCellIds[i];
+      if (currentCells[cellId] !== prevCells[cellId]) {
+        let idx = 0;
+        while (idx < cellId.length && (cellId.charCodeAt(idx) < 48 || cellId.charCodeAt(idx) > 57)) idx++;
+        dirtyRows.add(cellId.substring(idx) || "0");
       }
     }
 
-    chunkedCellsByTab[tab] = {};
-    // SORONKÉNT csomagoljuk be szöveggé. Így nincs 10MB-os túllépés, de fagyás sincs!
-    for (const row in rows) {
-       chunkedCellsByTab[tab][row] = JSON.stringify(rows[row]);
+    // Törölt cellák keresése
+    const prevCellIds = Object.keys(prevCells);
+    for (let i = 0; i < prevCellIds.length; i++) {
+      const cellId = prevCellIds[i];
+      if (!(cellId in currentCells)) {
+        let idx = 0;
+        while (idx < cellId.length && (cellId.charCodeAt(idx) < 48 || cellId.charCodeAt(idx) > 57)) idx++;
+        dirtyRows.add(cellId.substring(idx) || "0");
+      }
+    }
+
+    // 2. LÉPÉS: Csoportosítjuk az ezen a lapon lévő cellákat sorok szerint
+    const rowData: Record<string, Record<string, any>> = {};
+    for (let i = 0; i < currentCellIds.length; i++) {
+      const cellId = currentCellIds[i];
+      let idx = 0;
+      while (idx < cellId.length && (cellId.charCodeAt(idx) < 48 || cellId.charCodeAt(idx) > 57)) idx++;
+      const row = cellId.substring(idx) || "0";
+
+      if (!rowData[row]) rowData[row] = {};
+      rowData[row][cellId] = currentCells[cellId];
+    }
+
+    // 3. LÉPÉS: CSAK A MÓDOSULT sorokat csomagoljuk be szöveggé! A többit kivesszük a Cache-ből.
+    for (const row in rowData) {
+      if (dirtyRows.has(row) || !prevChunked[row]) {
+        const cleanRow: any = {};
+        const cellsInRow = rowData[row];
+        for (const cellId in cellsInRow) {
+          const cell = cellsInRow[cellId];
+          if (!cell) continue;
+
+          const hasValue = cell.value !== undefined && cell.value !== null && cell.value !== "";
+          const hasFormula = cell.formula !== undefined && cell.formula !== null && cell.formula !== "";
+          const hasFormat = cell.format !== undefined && cell.format !== null && Object.keys(cell.format).length > 0;
+
+          if (hasValue || hasFormula || hasFormat) {
+            const cleanCell: any = {};
+            if (hasValue) cleanCell.value = cell.value;
+            if (hasFormula) cleanCell.formula = cell.formula;
+            if (hasFormat) cleanCell.format = cell.format;
+            cleanRow[cellId] = cleanCell;
+          }
+        }
+        const rowString = JSON.stringify(cleanRow);
+        newChunkedRows[tab][row] = rowString;
+
+        // Ha tényleg változott az adat
+        if (rowString !== prevChunked[row]) {
+          updates[`cellsByTab/${tab}/${row}`] = rowString;
+          totalUpdatedRows++;
+        }
+      } else {
+        // Nem változott? Használjuk az elmentettet (Zéró CPU használat!)
+        newChunkedRows[tab][row] = prevChunked[row];
+      }
+    }
+
+    // Törölt sorok regisztrálása
+    for (const oldRow in prevChunked) {
+      if (!rowData[oldRow]) {
+        updates[`cellsByTab/${tab}/${oldRow}`] = null;
+        totalUpdatedRows++;
+      }
+    }
+  }
+
+  // Törölt fülek (Munkalapok) kezelése
+  for (const oldTab in cache.chunkedRows) {
+    if (!cellsByTab[oldTab]) {
+      updates[`cellsByTab/${oldTab}`] = null;
+      totalUpdatedRows += Object.keys(cache.chunkedRows[oldTab]).length || 1;
     }
   }
 
   const cleanColWidths = JSON.parse(JSON.stringify(colWidthsByTab || {}));
   const cleanRowHeights = JSON.parse(JSON.stringify(rowHeightsByTab || {}));
 
-  const payload = {
-    cellsByTab: chunkedCellsByTab, 
-    rowCountByTab: rowCountByTab || { 0: 50 },
-    tabs: tabs || ["Sheet1"],
-    colWidthsByTab: cleanColWidths,
-    rowHeightsByTab: cleanRowHeights,
-    updatedAt: Date.now(),
-  };
+  updates["rowCountByTab"] = rowCountByTab || { 0: 50 };
+  updates["tabs"] = tabs || ["Sheet1"];
+  updates["colWidthsByTab"] = cleanColWidths;
+  updates["rowHeightsByTab"] = cleanRowHeights;
+  updates["updatedAt"] = Date.now();
 
-  // 1. RTDB Mentés (Villámgyors és biztonságos méretű)
-  await set(dbRef(rtdb, `sheets/${userId}/${sheetId}`), payload);
-  
-  // 2. Előnézet generálása 4x4-es adatmagból
-  let preview: string[] = [];
+  // 4. LÉPÉS: FIREBASE FELTÖLTÉS BIZTONSÁGI SZELEPPEL
+  if (totalUpdatedRows > 100) {
+    // Ha sok sort törölsz vagy újat importálsz, az update() lefagyna. Itt a set() a nyerő.
+    const payload = {
+      cellsByTab: newChunkedRows,
+      rowCountByTab: updates["rowCountByTab"],
+      tabs: updates["tabs"],
+      colWidthsByTab: updates["colWidthsByTab"],
+      rowHeightsByTab: updates["rowHeightsByTab"],
+      updatedAt: updates["updatedAt"],
+    };
+    await set(dbRef(rtdb, `sheets/${userId}/${sheetId}`), payload);
+  } else {
+    // Ha 1-2 cellát átírsz, az update() azonnal, ezredmásodpercek alatt végez!
+    await update(dbRef(rtdb, `sheets/${userId}/${sheetId}`), updates);
+  }
+
+  // Gyorstár frissítése a következő leütéshez
+  sheetCache.set(sheetId, { cellsRef: newCellsRef, chunkedRows: newChunkedRows });
+
+  // 5. Előnézet generálása aszinkron módon a Firestore-ba (nem váratja a felhasználót)
   try {
-     const firstTabKey = Object.keys(chunkedCellsByTab)[0];
-     const firstTabRows = chunkedCellsByTab[firstTabKey] || {};
-     
-     // Összefűzzük az első 4 sort a memóriában, hogy megcsináljuk az előnézeti képet
-     const previewCells: any = {};
-     for (let i = 1; i <= 4; i++) {
-         if (firstTabRows[i]) {
-             Object.assign(previewCells, JSON.parse(firstTabRows[i]));
-         }
-     }
-     
-     const PREVIEW_COLS = ["A", "B", "C", "D"]; 
-     for (let r = 1; r <= 4; r++) { 
+    let preview: string[] = [];
+    const firstTabKey = Object.keys(newChunkedRows)[0];
+    if (firstTabKey !== undefined) {
+      const firstTabRows = newChunkedRows[firstTabKey] || {};
+      const previewCells: any = {};
+      for (let i = 1; i <= 4; i++) {
+        if (firstTabRows[i]) Object.assign(previewCells, JSON.parse(firstTabRows[i]));
+      }
+      const PREVIEW_COLS = ["A", "B", "C", "D"];
+      for (let r = 1; r <= 4; r++) {
         for (let c = 0; c < PREVIEW_COLS.length; c++) {
-           const cellKey = `${PREVIEW_COLS[c]}${r}`;
-           const cell = previewCells[cellKey];
-           let val = ""; let fmt = null;
-           if (cell) {
-              val = typeof cell === "string" ? cell : (cell.value || cell.computed || "");
-              if (cell.format) { fmt = { bold: cell.format.bold, italic: cell.format.italic, underline: cell.format.underline, bgColor: cell.format.bgColor, color: cell.format.color, align: cell.format.align, border: cell.format.border }; }
-           }
-           preview.push(JSON.stringify({ v: val.toString().substring(0, 20), f: fmt }));
+          const cellKey = `${PREVIEW_COLS[c]}${r}`;
+          const cell = previewCells[cellKey];
+          let val = ""; let fmt = null;
+          if (cell) {
+            val = typeof cell === "string" ? cell : (cell.value || cell.computed || "");
+            if (cell.format) { fmt = { bold: cell.format.bold, italic: cell.format.italic, underline: cell.format.underline, bgColor: cell.format.bgColor, color: cell.format.color, align: cell.format.align, border: cell.format.border }; }
+          }
+          preview.push(JSON.stringify({ v: val.toString().substring(0, 20), f: fmt }));
         }
-     }
+      }
+    }
+
+    const rcVals = Object.values(rowCountByTab || {});
+    const maxRowC = rcVals.length > 0 ? Math.max(...(rcVals as number[])) : 50;
+
+    // Nem várjuk meg a Firestore-t (nincs await), a Mentve szöveg azonnal megjelenik
+    updateDoc(doc(db, "users", userId, "sheets", sheetId), {
+      updatedAt: serverTimestamp(),
+      rowCount: maxRowC,
+      previewData: preview,
+    }).catch(console.error);
+
   } catch (e) { console.error(e); }
-
-  // 3. Firestore frissítés
-  const rcVals = Object.values(rowCountByTab || {});
-  const maxRowC = rcVals.length > 0 ? Math.max(...(rcVals as number[])) : 50;
-
-  await updateDoc(doc(db, "users", userId, "sheets", sheetId), {
-    updatedAt: serverTimestamp(),
-    rowCount: maxRowC,
-    previewData: preview,
-  });
 }
 
-
+// -----------------------------------------------------------------------------
+// BETÖLTÉS: Villámgyors, memória-barát beolvasás
+// -----------------------------------------------------------------------------
 export async function loadSheetData(userId: string, sheetId: string) {
   const snap = await get(dbRef(rtdb, `sheets/${userId}/${sheetId}`));
   if (!snap.exists()) {
     return {
-      cellsByTab: { 0: {} },
-      rowCountByTab: { 0: 50 },
-      tabs: ["Sheet1"],
-      colWidthsByTab: { 0: {} },
-      rowHeightsByTab: { 0: {} },
+      cellsByTab: { 0: {} }, rowCountByTab: { 0: 50 },
+      tabs: ["Sheet1"], colWidthsByTab: { 0: {} }, rowHeightsByTab: { 0: {} },
     };
   }
   const data = snap.val();
-  
   let parsedCells: any = {};
+  const chunkedRowsCache: any = {};
   const dataCells = data.cellsByTab || {};
-  
-  // UNIVERZÁLIS VISSZAFEJTŐ: Kezeli a régi formátumot, az egyben lévőt és az új sor-alapút is
+
   if (typeof dataCells === "string") {
-    try { parsedCells = JSON.parse(dataCells); } catch(e) {}
+    try { parsedCells = JSON.parse(dataCells); } catch (e) { }
   } else {
     for (const tab in dataCells) {
       parsedCells[tab] = {};
+      chunkedRowsCache[tab] = {};
       const tabData = dataCells[tab];
-      
+
       if (typeof tabData === "string") {
-         try { parsedCells[tab] = JSON.parse(tabData); } catch(e) {}
+        try { parsedCells[tab] = JSON.parse(tabData); } catch (e) { }
       } else if (typeof tabData === "object") {
-         for (const key in tabData) {
-            const val = tabData[key];
-            if (typeof val === "string") {
-               // Új módszer: Soronkénti JSON darab visszafejtése
-               try { Object.assign(parsedCells[tab], JSON.parse(val)); } catch(e) {}
-            } else {
-               // Legrégebbi módszer: Cellánkénti tárolás
-               parsedCells[tab][key] = val;
-            }
-         }
+        const rowKeys = Object.keys(tabData);
+        for (let i = 0; i < rowKeys.length; i++) {
+          // Finom pihentetés betöltés alatt: A "Betöltés..." animáció nem fagy meg!
+          if (i > 0 && i % 1000 === 0) await new Promise(r => setTimeout(r, 0));
+
+          const key = rowKeys[i];
+          const val = tabData[key];
+          if (typeof val === "string") {
+            chunkedRowsCache[tab][key] = val;
+            try {
+              const parsedRow = JSON.parse(val);
+              const cellKeys = Object.keys(parsedRow);
+              for (let j = 0; j < cellKeys.length; j++) {
+                parsedCells[tab][cellKeys[j]] = parsedRow[cellKeys[j]];
+              }
+            } catch (e) { }
+          } else {
+            parsedCells[tab][key] = val;
+          }
+        }
       }
     }
   }
+
+  // BEÁLLÍTJUK A CACHE-T! Így az első mentés már villámgyors lesz.
+  sheetCache.set(sheetId, { cellsRef: parsedCells, chunkedRows: chunkedRowsCache });
 
   return {
     cellsByTab: Object.keys(parsedCells).length > 0 ? parsedCells : { 0: {} },
@@ -215,12 +311,12 @@ export async function loadSheetData(userId: string, sheetId: string) {
   };
 }
 
+// --- INNENTŐL LEFELÉ A TÖBBI KÓD (Import, Mappák) VÁLTOZATLAN MARAD ---
 
 export function csvToCells(csv: string) {
   const Papa = require("papaparse");
   const result = Papa.parse(csv, { skipEmptyLines: true });
   const rows = result.data as string[][];
-  
   const cells: Record<string, any> = {};
 
   const getColLetter = (idx: number) => {
@@ -235,30 +331,19 @@ export function csvToCells(csv: string) {
 
   rows.forEach((row, rIdx) => {
     row.forEach((val, cIdx) => {
-      // Biztonságos érték kinyerés
       const finalValue = val !== undefined && val !== null ? String(val).trim() : "";
-      
       if (finalValue !== "") {
         const cellRef = `${getColLetter(cIdx + 1)}${rIdx + 1}`;
         const isFormula = finalValue.startsWith("=");
-        cells[cellRef] = { 
-          value: finalValue, 
-          formula: isFormula ? finalValue : "" 
-        };
+        cells[cellRef] = { value: finalValue, formula: isFormula ? finalValue : "" };
       }
     });
   });
-  
+
   const rowCount = Math.max(50, rows.length + 10);
-  const cellsByTab: Record<number, Record<string, any>> = { 0: cells };
-  const rowCountByTab: Record<number, number> = { 0: rowCount };
-  
-  return { 
-    cellsByTab, 
-    rowCountByTab, 
-    tabs: ["Sheet1"],
-    colWidthsByTab: { 0: {} },
-    rowHeightsByTab: { 0: {} }
+  return {
+    cellsByTab: { 0: cells }, rowCountByTab: { 0: rowCount },
+    tabs: ["Sheet1"], colWidthsByTab: { 0: {} }, rowHeightsByTab: { 0: {} }
   };
 }
 
@@ -287,31 +372,25 @@ export async function xlsxToCells(data: ArrayBuffer) {
   wb.eachSheet((worksheet, sheetId) => {
     const tabIdx = tabs.length;
     tabs.push(worksheet.name);
-    
+
     const cells: Record<string, any> = {};
     const colWidths: Record<string, number> = {};
     const rowHeights: Record<string, number> = {};
     let maxRow = 50;
 
     for (let i = 1; i <= worksheet.columnCount; i++) {
-       const col = worksheet.getColumn(i);
-       if (col && col.width) {
-           const colLetter = getColLetter(i);
-           colWidths[colLetter] = Math.round(col.width * 7);
-       }
+      const col = worksheet.getColumn(i);
+      if (col && col.width) colWidths[getColLetter(i)] = Math.round(col.width * 7);
     }
 
     worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
       if (rowNumber > maxRow) maxRow = rowNumber;
-
-      if (row.height) {
-         rowHeights[rowNumber.toString()] = Math.round(row.height * 1.33);
-      }
+      if (row.height) rowHeights[rowNumber.toString()] = Math.round(row.height * 1.33);
 
       row.eachCell({ includeEmpty: false }, (cell, colNumber) => {
-        const cellRef = cell.address; 
+        const cellRef = cell.address;
         const format: any = {};
-        
+
         if (cell.font) {
           if (cell.font.bold) format.bold = true;
           if (cell.font.italic) format.italic = true;
@@ -323,74 +402,60 @@ export async function xlsxToCells(data: ArrayBuffer) {
             format.color = "#" + argb.toLowerCase();
           }
         }
-        
-        if (cell.fill && cell.fill.type === 'pattern' && cell.fill.fgColor) {
-           let argb = cell.fill.fgColor.argb;
-           if (argb && argb.length === 8) {
-              argb = argb.substring(2);
-              format.bgColor = "#" + argb.toLowerCase();
-           }
-        }
-        
-        if (cell.alignment && cell.alignment.horizontal) {
-            const align = cell.alignment.horizontal;
-            if (align === "left" || align === "center" || align === "right") format.align = align;
-        }
-        
-        if (cell.border) {
-           const mapBorder = (b: any) => {
-             if (!b) return null; 
-             let color = "#000000";
-             if (b.color && b.color.argb) {
-               let argb = b.color.argb;
-               if (argb && argb.length === 8) argb = argb.substring(2);
-               color = "#" + argb.toLowerCase();
-             }
-             return { style: b.style || "thin", color };
-           };
-           
-           const cleanBorders: any = {};
-           const t = mapBorder(cell.border.top); if (t) cleanBorders.top = t;
-           const b = mapBorder(cell.border.bottom); if (b) cleanBorders.bottom = b;
-           const l = mapBorder(cell.border.left); if (l) cleanBorders.left = l;
-           const r = mapBorder(cell.border.right); if (r) cleanBorders.right = r;
 
-           if (Object.keys(cleanBorders).length > 0) {
-             format.border = cleanBorders;
-           }
+        if (cell.fill && cell.fill.type === 'pattern' && cell.fill.fgColor) {
+          let argb = cell.fill.fgColor.argb;
+          if (argb && argb.length === 8) {
+            argb = argb.substring(2);
+            format.bgColor = "#" + argb.toLowerCase();
+          }
         }
+
+        if (cell.alignment && cell.alignment.horizontal) {
+          const align = cell.alignment.horizontal;
+          if (align === "left" || align === "center" || align === "right") format.align = align;
+        }
+
+        if (cell.border) {
+          const mapBorder = (b: any) => {
+            if (!b) return null;
+            let color = "#000000";
+            if (b.color && b.color.argb) {
+              let argb = b.color.argb;
+              if (argb && argb.length === 8) argb = argb.substring(2);
+              color = "#" + argb.toLowerCase();
+            }
+            return { style: b.style || "thin", color };
+          };
+          const cleanBorders: any = {};
+          const t = mapBorder(cell.border.top); if (t) cleanBorders.top = t;
+          const b = mapBorder(cell.border.bottom); if (b) cleanBorders.bottom = b;
+          const l = mapBorder(cell.border.left); if (l) cleanBorders.left = l;
+          const r = mapBorder(cell.border.right); if (r) cleanBorders.right = r;
+          if (Object.keys(cleanBorders).length > 0) format.border = cleanBorders;
+        }
+
         let value: any = cell.value;
         let formula = "";
-        
         if (value instanceof Date) {
-            value = value.toLocaleDateString("hu-HU");
+          value = value.toLocaleDateString("hu-HU");
         } else if (value && typeof value === 'object') {
-            if ('formula' in value) {
-                formula = "=" + (value.formula as string);
-                let res = value.result;
-                if (res instanceof Date) {
-                    value = res.toLocaleDateString("hu-HU");
-                } else if (res && typeof res === 'object' && 'error' in res) {
-                    value = "#HIBA";
-                } else {
-                    value = res !== undefined ? res : "";
-                }
-            } else if ('richText' in value) {
-                value = (value.richText as any[]).map(rt => rt.text).join("");
-            }
+          if ('formula' in value) {
+            formula = "=" + (value.formula as string);
+            let res = value.result;
+            if (res instanceof Date) value = res.toLocaleDateString("hu-HU");
+            else if (res && typeof res === 'object' && 'error' in res) value = "#HIBA";
+            else value = res !== undefined ? res : "";
+          } else if ('richText' in value) {
+            value = (value.richText as any[]).map(rt => rt.text).join("");
+          }
         }
 
-        // --- BIZTONSÁGOS EXTRÉM OPTIMALIZÁCIÓ ---
         const finalValue = value !== undefined && value !== null ? String(value) : "";
         const hasFormat = Object.keys(format).length > 0;
-        
-        // Csak akkor rakjuk be a memóriába, ha valóban van mit megjeleníteni
+
         if (finalValue !== "" || formula !== "" || hasFormat) {
-          cells[cellRef] = {
-            value: finalValue,
-            formula: formula,
-            ...(hasFormat ? { format } : {})
-          };
+          cells[cellRef] = { value: finalValue, formula: formula, ...(hasFormat ? { format } : {}) };
         }
       });
     });
@@ -402,13 +467,8 @@ export async function xlsxToCells(data: ArrayBuffer) {
   });
 
   if (tabs.length === 0) {
-    tabs.push("Sheet1");
-    cellsByTab[0] = {};
-    rowCountByTab[0] = 50;
-    colWidthsByTab[0] = {};
-    rowHeightsByTab[0] = {};
+    tabs.push("Sheet1"); cellsByTab[0] = {}; rowCountByTab[0] = 50; colWidthsByTab[0] = {}; rowHeightsByTab[0] = {};
   }
-
   return { cellsByTab, rowCountByTab, tabs, colWidthsByTab, rowHeightsByTab };
 }
 
@@ -452,9 +512,6 @@ export async function toggleFolderFavorite(userId: string, folderId: string, isF
   await updateDoc(doc(db, "users", userId, "folders", folderId), { isFavorite });
 }
 
-// sheetService.ts - egy új függvény
 export async function updateLastOpened(userId: string, sheetId: string) {
-  await updateDoc(doc(db, "users", userId, "sheets", sheetId), {
-    lastOpenedAt: serverTimestamp(),
-  });
+  await updateDoc(doc(db, "users", userId, "sheets", sheetId), { lastOpenedAt: serverTimestamp() });
 }
