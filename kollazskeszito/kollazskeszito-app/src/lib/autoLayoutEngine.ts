@@ -1,4 +1,4 @@
-import { processWhiteBackground } from "./bgRemoval";
+import { processWhiteBackground } from "./imageProcessing";
 // ── TÍPUSOK ────────────────────────────────────────────────
 
 export interface CroppedImage {

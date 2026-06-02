@@ -4,7 +4,15 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="f4d015ee-e875-4790-906f-59e82f48dfe6" name="Changes" comment="" />
+    <list default="true" id="f4d015ee-e875-4790-906f-59e82f48dfe6" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/kollazskeszito/kollazskeszito-app/src/app/automata/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/kollazskeszito/kollazskeszito-app/src/app/automata/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kollazskeszito/kollazskeszito-app/src/app/manualis/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/kollazskeszito/kollazskeszito-app/src/app/manualis/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kollazskeszito/kollazskeszito-app/src/app/manualis/useManualCollage.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/kollazskeszito/kollazskeszito-app/src/components/CollageUI.tsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/kollazskeszito/kollazskeszito-app/src/components/ManualUI.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/kollazskeszito/kollazskeszito-app/src/components/ManualUI.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kollazskeszito/kollazskeszito-app/src/lib/autoCollage.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/kollazskeszito/kollazskeszito-app/src/lib/bgRemoval.ts" beforeDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -202,7 +210,7 @@
       <workItem from="1779017519565" duration="5838000" />
       <workItem from="1779291987186" duration="16186000" />
       <workItem from="1779474402448" duration="61000" />
-      <workItem from="1779474503469" duration="48252000" />
+      <workItem from="1779474503469" duration="48867000" />
     </task>
     <servers />
   </component>

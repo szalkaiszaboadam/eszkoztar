@@ -2,19 +2,19 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useCollage } from "@/src/components/CollageContext";
-import { processWhiteBackground } from "@/src/lib/bgRemoval";
+import { processWhiteBackground, downloadCanvasAsImage } from "@/src/lib/imageProcessing";
 
+// ÚJ: Kikerült a removeBg a LayerState-ből, mert a globálisból vesszük!
 export type LayerState = {
   x: number;
   y: number;
   zoom: number;
   rot: number;
   visible: boolean;
-  removeBg: boolean; 
 };
 
-export function useManualCollage() {
-  const { images, removeImage, reorderImages } = useCollage();
+export function useManualMode() {
+  const { images, removeImage, reorderImages, toggleImageBg, setImagesBg, setAllImagesBg } = useCollage(); // ÚJ: Behúztuk a hookokat
 
   const [layers, setLayers] = useState<Record<string, LayerState>>({});
   const [activeUids, setActiveUids] = useState<string[]>([]);
@@ -57,7 +57,8 @@ export function useManualCollage() {
       let changed = false;
       images.forEach(img => {
         if (!next[img.uid]) {
-          next[img.uid] = { x: 0, y: 0, zoom: 0.8, rot: 0, visible: true, removeBg: true };
+          // ÚJ: Már nem itt állítjuk be a removeBg-t!
+          next[img.uid] = { x: 0, y: 0, zoom: 0.8, rot: 0, visible: true };
           changed = true;
         }
       });
@@ -192,14 +193,6 @@ export function useManualCollage() {
     });
   };
 
-  const updateAllLayers = (updates: Partial<LayerState>) => {
-    setLayers(prev => {
-      const next = { ...prev };
-      Object.keys(next).forEach(uid => { next[uid] = { ...next[uid], ...updates }; });
-      return next;
-    });
-  };
-
   const download = useCallback(() => {
     setDownloading(true);
     setTimeout(() => {
@@ -217,33 +210,25 @@ export function useManualCollage() {
         ctx.save();
         ctx.translate(1000 + l.x, 1000 + l.y);
         ctx.rotate(l.rot * Math.PI / 180);
-        ctx.globalCompositeOperation = l.removeBg ? "multiply" : "source-over";
         
         const baseScale = Math.min(2000 / img.el.width, 2000 / img.el.height) * 0.5;
         const finalScale = baseScale * l.zoom;
         const w = img.el.width * finalScale;
         const h = img.el.height * finalScale;
         
-        const imageToDraw = (l.removeBg && processedImages[img.uid]) ? processedImages[img.uid].el : img.el;
+        // ÚJ: A 'removeBg' már az 'img'-ből jön, nem a layer-ből!
+        const imageToDraw = (img.removeBg && processedImages[img.uid]) ? processedImages[img.uid].el : img.el;
         ctx.drawImage(imageToDraw, -w / 2, -h / 2, w, h);
         ctx.restore();
       });
 
-      const now = new Date();
-      const ds = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`;
-      const ts = `${String(now.getHours()).padStart(2,"0")}-${String(now.getMinutes()).padStart(2,"0")}`;
-      
-      const a = document.createElement("a");
-      a.download = `kollazs_manualis_${ds}_${ts}.jpg`;
-      a.href = canvas.toDataURL("image/jpeg", 0.95);
-      a.click();
+      downloadCanvasAsImage(canvas, "kollazs_manualis");
       
       setDownloading(false);
     }, 100);
   }, [images, layers, processedImages]);
 
   const activeLayerData = activeUids.length > 0 ? layers[activeUids[0]] : null;
-  const isAllBgRemoved = Object.keys(layers).length > 0 && Object.values(layers).every(l => l.removeBg);
 
   return {
     images, layers, activeUids, setActiveUids, processedImages,
@@ -251,7 +236,8 @@ export function useManualCollage() {
     showGrid, setShowGrid, gridDivisions, setGridDivisions,
     isSnapEnabled, setIsSnapEnabled, activeSnapLines,
     isDraggingCanvas, onPointerDownCanvas, onPointerMoveCanvas, onPointerUpCanvas,
-    removeImage, reorderImages, updateLayer, updateActiveLayers, updateAllLayers,
-    download, activeLayerData, isAllBgRemoved
+    removeImage, reorderImages, updateLayer, updateActiveLayers,
+    download, activeLayerData, 
+    toggleImageBg, setImagesBg, setAllImagesBg // ÚJ
   };
 }

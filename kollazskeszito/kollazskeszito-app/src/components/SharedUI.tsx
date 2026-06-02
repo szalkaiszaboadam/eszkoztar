@@ -1,9 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useRef, useEffect } from "react";
-import { renderPreview, AutoLayout } from "@/src/lib/autoCollage";
+import { renderPreview, AutoLayout } from "@/src/lib/autoLayoutEngine";
 import { LoadedImg } from "./CollageContext"; 
-import { Wand2 } from "lucide-react"; // <-- ÚJ: Lucide ikon beimportálva
+import { Zap, Target, Wrench, Wand2 } from "lucide-react";
 
 export function LayoutCard({ layout, index, selected, onSelect }: {
   layout: AutoLayout; index: number; selected: boolean; onSelect: () => void;
@@ -139,5 +140,48 @@ export function QuickSelect({ label, value, options, onChange }: {
         ))}
       </div>
     </div>
+  );
+}
+
+export function TopNavbar({
+  currentMode, onDownload, isDownloadDisabled, downloading
+}: {
+  currentMode: "automata" | "segitett" | "manualis";
+  onDownload: () => void;
+  isDownloadDisabled: boolean;
+  downloading: boolean;
+}) {
+  return (
+    <header style={{
+      height: 64, flexShrink: 0, borderBottom: "1px solid var(--border)", padding: "0 24px", 
+      display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", background: "var(--bg-panel)", zIndex: 30
+    }}>
+      <Link href="/" style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none", justifySelf: "start" }}>
+        <div style={{ width: 32, height: 32, borderRadius: 8, background: "var(--accent)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, color: "#fff", fontWeight: 800 }}>⊞</div>
+        <span style={{ fontWeight: 800, fontSize: 18, letterSpacing: "-0.02em", color: "var(--text)" }}>Kollázs</span>
+      </Link>
+
+      <div style={{ display: "flex", background: "var(--bg-elevated)", padding: 4, borderRadius: 10, border: "1px solid var(--border)", gap: 4, justifySelf: "center" }}>
+       <Link href="/manualis" style={{ padding: "8px 18px", background: currentMode === "manualis" ? "var(--bg-panel)" : "transparent", borderRadius: 6, fontSize: 13, fontWeight: currentMode === "manualis" ? 700 : 600, color: currentMode === "manualis" ? "var(--text)" : "var(--text-secondary)", textDecoration: "none", boxShadow: currentMode === "manualis" ? "0 1px 3px rgba(0,0,0,0.06)" : "none", display: "flex", alignItems: "center", gap: 6 }}>
+          <Wrench size={16} />Manuális
+        </Link>
+        <Link href="/segitett" style={{ padding: "8px 18px", background: currentMode === "segitett" ? "var(--bg-panel)" : "transparent", borderRadius: 6, fontSize: 13, fontWeight: currentMode === "segitett" ? 700 : 600, color: currentMode === "segitett" ? "var(--text)" : "var(--text-secondary)", textDecoration: "none", boxShadow: currentMode === "segitett" ? "0 1px 3px rgba(0,0,0,0.06)" : "none", display: "flex", alignItems: "center", gap: 6 }}>
+          <Target size={16} />Segített
+        </Link>
+         <Link href="/automata" style={{ padding: "8px 18px", background: currentMode === "automata" ? "var(--bg-panel)" : "transparent", borderRadius: 6, fontSize: 13, fontWeight: currentMode === "automata" ? 700 : 600, color: currentMode === "automata" ? "var(--text)" : "var(--text-secondary)", textDecoration: "none", boxShadow: currentMode === "automata" ? "0 1px 3px rgba(0,0,0,0.06)" : "none", display: "flex", alignItems: "center", gap: 6 }}>
+          <Zap size={16} />Automata
+        </Link>
+      </div>
+
+      <button onClick={onDownload} disabled={isDownloadDisabled || downloading} style={{ 
+        height: 40, padding: "0 20px", background: !isDownloadDisabled ? "var(--accent)" : "var(--bg-elevated)", 
+        color: !isDownloadDisabled ? "#fff" : "var(--text-secondary)", border: "none", borderRadius: 8, 
+        fontFamily: "inherit", fontSize: 13, fontWeight: 800, cursor: !isDownloadDisabled ? "pointer" : "not-allowed", 
+        display: "flex", alignItems: "center", gap: 8, boxShadow: !isDownloadDisabled ? "0 4px 14px var(--accent-glow)" : "none",
+        justifySelf: "end", transition: "all 0.2s ease"
+      }}>
+        {downloading ? "⟳ Mentés..." : "↓ Letöltés (2000×2000)"}
+      </button>
+    </header>
   );
 }

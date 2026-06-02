@@ -1,45 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { Eye, EyeOff, Trash2, CheckSquare, XSquare, Wand2, Layers } from "lucide-react";
-import { useManualCollage } from "@/src/app/manualis/useManualCollage";
+import { useManualMode } from "@/src/hooks/useManualMode";
 
-type ManualState = ReturnType<typeof useManualCollage>;
+type ManualState = ReturnType<typeof useManualMode>;
 type Props = { state: ManualState };
-
-// --- 1. FEJLÉC ---
-export function ManualHeader({ state }: Props) {
-  const { images, download, downloading } = state;
-  return (
-    <header style={{ height: 64, flexShrink: 0, borderBottom: "1px solid var(--border)", padding: "0 24px", display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", background: "var(--bg-panel)", zIndex: 30 }}>
-      <Link href="/" style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none", justifySelf: "start" }}>
-        <div style={{ width: 32, height: 32, borderRadius: 8, background: "var(--accent)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, color: "#fff", fontWeight: 800 }}>⊞</div>
-        <span style={{ fontWeight: 800, fontSize: 18, letterSpacing: "-0.02em", color: "var(--text)" }}>Kollázs</span>
-      </Link>
-
-      <div style={{ display: "flex", background: "var(--bg-elevated)", padding: 4, borderRadius: 10, border: "1px solid var(--border)", gap: 4, justifySelf: "center" }}>
-        <Link href="/automata" style={{ padding: "8px 18px", background: "transparent", borderRadius: 6, fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", textDecoration: "none", display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{ fontSize: 14 }}>⚡️</span> Automata
-        </Link>
-        <Link href="/segitett" style={{ padding: "8px 18px", background: "transparent", borderRadius: 6, fontSize: 13, fontWeight: 600, color: "var(--text-secondary)", textDecoration: "none", display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{ fontSize: 14 }}>🎯</span> Segített
-        </Link>
-        <Link href="/manualis" style={{ padding: "8px 18px", background: "var(--bg-panel)", borderRadius: 6, fontSize: 13, fontWeight: 700, color: "var(--text)", textDecoration: "none", boxShadow: "0 1px 3px rgba(0,0,0,0.06)", display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{ fontSize: 14 }}>🛠️</span> Manuális
-        </Link>
-      </div>
-
-      <button onClick={download} disabled={downloading || !images.length} style={{ height: 40, padding: "0 20px", background: images.length ? "var(--accent)" : "var(--bg-elevated)", color: images.length ? "#fff" : "var(--text-secondary)", border: "none", borderRadius: 8, fontFamily: "inherit", fontSize: 13, fontWeight: 800, cursor: images.length ? "pointer" : "not-allowed", display: "flex", alignItems: "center", gap: 8, boxShadow: images.length ? "0 4px 14px var(--accent-glow)" : "none", justifySelf: "end", transition: "all 0.2s ease" }}>
-        {downloading ? "⟳ Mentés..." : "↓ Letöltés (2000×2000)"}
-      </button>
-    </header>
-  );
-}
 
 // --- 2. BAL OSZLOP (RÉTEGEK) ---
 export function LayerSidebar({ state }: Props) {
-  const { images, layers, activeUids, setActiveUids, updateLayer, removeImage, reorderImages } = state;
+  const { images, layers, activeUids, setActiveUids, updateLayer, removeImage, reorderImages, toggleImageBg } = state;
   const [draggedListIdx, setDraggedListIdx] = useState<number | null>(null);
   const [dragOverListIdx, setDragOverListIdx] = useState<number | null>(null);
 
@@ -107,7 +77,7 @@ export function LayerSidebar({ state }: Props) {
                   <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: isActive ? "var(--accent)" : "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Réteg {actualIndex + 1}</span>
                   
                   <div style={{ display: "flex", gap: 4 }}>
-                    <button onClick={(e) => { e.stopPropagation(); updateLayer(img.uid, { removeBg: !lState.removeBg }); }} title="Fehér háttér eltüntetése" style={{ width: 26, height: 26, borderRadius: 4, border: "none", background: lState.removeBg ? "rgba(91,80,232,0.1)" : "transparent", color: lState.removeBg ? "var(--accent)" : "var(--text-secondary)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s" }}><Wand2 size={14} /></button>
+                    <button onClick={(e) => { e.stopPropagation(); toggleImageBg(img.uid); }} title="Fehér háttér eltüntetése" style={{ width: 26, height: 26, borderRadius: 4, border: "none", background: img.removeBg ? "rgba(91,80,232,0.1)" : "transparent", color: img.removeBg ? "var(--accent)" : "var(--text-secondary)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s" }}><Wand2 size={14} /></button>
                     <button onClick={(e) => { e.stopPropagation(); updateLayer(img.uid, { visible: !lState.visible }); }} title="Láthatóság" style={{ width: 26, height: 26, borderRadius: 4, border: "none", background: "transparent", color: "var(--text-secondary)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>{lState.visible ? <Eye size={14} /> : <EyeOff size={14} />}</button>
                     <button onClick={(e) => { e.stopPropagation(); setActiveUids(prev => prev.filter(id => id !== img.uid)); removeImage(actualIndex); }} title="Törlés" style={{ width: 26, height: 26, borderRadius: 4, border: "none", background: "transparent", color: "#ef4444", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><Trash2 size={14} /></button>
                   </div>
@@ -144,7 +114,8 @@ export function WorkspaceCanvas({ state }: Props) {
               const baseScale = Math.min(2000 / img.el.width, 2000 / img.el.height) * 0.5;
               const w = img.el.width * baseScale;
               const h = img.el.height * baseScale;
-              const currentSrc = (l.removeBg && processedImages[img.uid]) ? processedImages[img.uid].src : img.src;
+              
+              const currentSrc = (img.removeBg && processedImages[img.uid]) ? processedImages[img.uid].src : img.src;
 
               return (
                 <div
@@ -162,7 +133,7 @@ export function WorkspaceCanvas({ state }: Props) {
                   }}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={currentSrc} alt="" draggable={false} style={{ width: "100%", height: "100%", display: "block", pointerEvents: "none", userSelect: "none", mixBlendMode: l.removeBg ? "multiply" : "normal" }} />
+                  <img src={currentSrc} alt="" draggable={false} style={{ width: "100%", height: "100%", display: "block", pointerEvents: "none", userSelect: "none" }} />
                 </div>
               );
             })}
@@ -193,8 +164,11 @@ export function WorkspaceCanvas({ state }: Props) {
 export function PropertiesSidebar({ state }: Props) {
   const { 
     showGrid, setShowGrid, gridDivisions, setGridDivisions, isSnapEnabled, setIsSnapEnabled, 
-    activeLayerData, activeUids, updateActiveLayers, isAllBgRemoved, updateAllLayers 
+    activeLayerData, activeUids, updateActiveLayers, setImagesBg, setAllImagesBg, images
   } = state;
+
+  const isAllBgRemoved = images.length > 0 && images.every(img => img.removeBg);
+  const activeImg = activeUids.length > 0 ? images.find(i => i.uid === activeUids[0]) : null;
 
   return (
     <aside style={{ width: 300, background: "var(--bg-panel)", borderLeft: "1px solid var(--border)", display: "flex", flexDirection: "column", zIndex: 20, overflowY: "auto" }}>
@@ -204,7 +178,8 @@ export function PropertiesSidebar({ state }: Props) {
           <Layers size={16} /> Globális Képek
         </h2>
         <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, fontWeight: 700, color: "var(--text)" }}>
-          <input type="checkbox" checked={isAllBgRemoved} onChange={(e) => updateAllLayers({ removeBg: e.target.checked })} style={{ accentColor: "var(--accent)", width: 16, height: 16 }} />
+          {/* JAVÍTÁS: !! logikai típus-kényszerítés */}
+          <input type="checkbox" checked={!!isAllBgRemoved} onChange={(e) => setAllImagesBg(e.target.checked)} style={{ accentColor: "var(--accent)", width: 16, height: 16 }} />
           Minden háttér eltüntetése
         </label>
       </div>
@@ -213,7 +188,7 @@ export function PropertiesSidebar({ state }: Props) {
         <h2 style={{ fontSize: 14, fontWeight: 800, color: "var(--text)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 16 }}>Vászon</h2>
         
         <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, color: "var(--text)", marginBottom: showGrid ? 12 : 16 }}>
-          <input type="checkbox" checked={showGrid} onChange={(e) => setShowGrid(e.target.checked)} style={{ accentColor: "var(--accent)", width: 16, height: 16 }} />
+          <input type="checkbox" checked={!!showGrid} onChange={(e) => setShowGrid(e.target.checked)} style={{ accentColor: "var(--accent)", width: 16, height: 16 }} />
           Segédrács mutatása
         </label>
 
@@ -232,7 +207,7 @@ export function PropertiesSidebar({ state }: Props) {
         )}
 
         <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, color: "var(--text)" }}>
-          <input type="checkbox" checked={isSnapEnabled} onChange={(e) => setIsSnapEnabled(e.target.checked)} style={{ accentColor: "var(--accent)", width: 16, height: 16 }} />
+          <input type="checkbox" checked={!!isSnapEnabled} onChange={(e) => setIsSnapEnabled(e.target.checked)} style={{ accentColor: "var(--accent)", width: 16, height: 16 }} />
           Mágneses tapadás
         </label>
       </div>
@@ -252,7 +227,8 @@ export function PropertiesSidebar({ state }: Props) {
             
             <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: "14px", background: "rgba(91,80,232,0.04)", borderRadius: "8px", border: "1px solid rgba(91,80,232,0.15)" }}>
               <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, fontWeight: 800, color: "var(--accent)" }}>
-                <input type="checkbox" checked={activeLayerData?.removeBg || false} onChange={(e) => updateActiveLayers({ removeBg: e.target.checked })} style={{ accentColor: "var(--accent)", width: 16, height: 16 }} />
+                {/* JAVÍTÁS: !! és biztonsági fallback értékek */}
+                <input type="checkbox" checked={!!activeImg?.removeBg} onChange={(e) => setImagesBg(activeUids, e.target.checked)} style={{ accentColor: "var(--accent)", width: 16, height: 16 }} />
                 <Wand2 size={16} /> Fehér háttér eltüntetése
               </label>
               <span style={{ fontSize: 11, color: "var(--text-secondary)", lineHeight: 1.4, fontWeight: 500 }}>
@@ -269,27 +245,27 @@ export function PropertiesSidebar({ state }: Props) {
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Méret (Zoom)</span>
-                <span style={{ fontSize: 12, fontWeight: 800, color: "var(--accent)" }}>{activeLayerData.zoom.toFixed(2)}x</span>
+                <span style={{ fontSize: 12, fontWeight: 800, color: "var(--accent)" }}>{(activeLayerData.zoom ?? 1).toFixed(2)}x</span>
               </div>
-              <input type="range" min="0.1" max="3.0" step="0.05" value={activeLayerData.zoom} onChange={(e) => updateActiveLayers({ zoom: parseFloat(e.target.value) })} onDoubleClick={() => updateActiveLayers({ zoom: 1 })} style={{ accentColor: "var(--accent)", width: "100%" }} />
+              <input type="range" min="0.1" max="3.0" step="0.05" value={activeLayerData.zoom ?? 1} onChange={(e) => updateActiveLayers({ zoom: parseFloat(e.target.value) })} onDoubleClick={() => updateActiveLayers({ zoom: 1 })} style={{ accentColor: "var(--accent)", width: "100%" }} />
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Forgatás</span>
-                <span style={{ fontSize: 12, fontWeight: 800, color: "var(--accent)" }}>{activeLayerData.rot}°</span>
+                <span style={{ fontSize: 12, fontWeight: 800, color: "var(--accent)" }}>{activeLayerData.rot ?? 0}°</span>
               </div>
-              <input type="range" min="-180" max="180" step="1" value={activeLayerData.rot} onChange={(e) => { let val = parseInt(e.target.value); const snaps = [-180, -135, -90, -45, 0, 45, 90, 135, 180]; for (let s of snaps) { if (Math.abs(val - s) < 5) val = s; } updateActiveLayers({ rot: val }); }} onDoubleClick={() => updateActiveLayers({ rot: 0 })} style={{ accentColor: "var(--accent)", width: "100%" }} />
+              <input type="range" min="-180" max="180" step="1" value={activeLayerData.rot ?? 0} onChange={(e) => { let val = parseInt(e.target.value); const snaps = [-180, -135, -90, -45, 0, 45, 90, 135, 180]; for (let s of snaps) { if (Math.abs(val - s) < 5) val = s; } updateActiveLayers({ rot: val }); }} onDoubleClick={() => updateActiveLayers({ rot: 0 })} style={{ accentColor: "var(--accent)", width: "100%" }} />
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 12 }}>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 <label style={{ fontSize: 10, fontWeight: 800, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em" }}>X Tengely</label>
-                <input type="number" value={Math.round(activeLayerData.x)} onChange={(e) => updateActiveLayers({ x: parseInt(e.target.value) || 0 })} style={{ width: "100%", padding: "8px", borderRadius: 6, border: "1px solid var(--border-medium)", background: "var(--bg-elevated)", fontSize: 13, fontFamily: "inherit" }} />
+                <input type="number" value={Math.round(activeLayerData.x ?? 0)} onChange={(e) => updateActiveLayers({ x: parseInt(e.target.value) || 0 })} style={{ width: "100%", padding: "8px", borderRadius: 6, border: "1px solid var(--border-medium)", background: "var(--bg-elevated)", fontSize: 13, fontFamily: "inherit" }} />
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 <label style={{ fontSize: 10, fontWeight: 800, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Y Tengely</label>
-                <input type="number" value={Math.round(activeLayerData.y)} onChange={(e) => updateActiveLayers({ y: parseInt(e.target.value) || 0 })} style={{ width: "100%", padding: "8px", borderRadius: 6, border: "1px solid var(--border-medium)", background: "var(--bg-elevated)", fontSize: 13, fontFamily: "inherit" }} />
+                <input type="number" value={Math.round(activeLayerData.y ?? 0)} onChange={(e) => updateActiveLayers({ y: parseInt(e.target.value) || 0 })} style={{ width: "100%", padding: "8px", borderRadius: 6, border: "1px solid var(--border-medium)", background: "var(--bg-elevated)", fontSize: 13, fontFamily: "inherit" }} />
               </div>
             </div>
             

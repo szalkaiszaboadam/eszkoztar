@@ -7,6 +7,7 @@ export interface LoadedImg {
   src: string;
   name: string;
   uid: string;
+  removeBg: boolean; // <-- ÚJ: A globális háttéreltávolító állapot
 }
 
 interface CollageContextType {
@@ -15,9 +16,14 @@ interface CollageContextType {
   addFiles: (files: FileList | File[]) => Promise<void>;
   removeImage: (index: number) => void;
   rotateImage: (index: number, degrees: 90 | -90) => void;
-  reorderImages: (oldIndex: number, newIndex: number) => void; // <-- ÚJ D&D FÜGGVÉNY
+  reorderImages: (oldIndex: number, newIndex: number) => void;
   clearImages: () => void;
   shuffleImages: () => void;
+  
+  // <-- ÚJ: Globális Háttéreltávolító funkciók
+  toggleImageBg: (uid: string) => void;
+  setImagesBg: (uids: string[], removeBg: boolean) => void;
+  setAllImagesBg: (removeBg: boolean) => void;
 }
 
 const CollageContext = createContext<CollageContextType | null>(null);
@@ -48,7 +54,8 @@ export function CollageProvider({ children }: { children: ReactNode }) {
     for (const file of arr) {
       try {
         const el = await loadImageFromFile(file);
-        newImgs.push({ el, src: el.src, name: file.name, uid: uid() });
+        // ÚJ: Alapértelmezetten be van kapcsolva a háttéreltávolítás
+        newImgs.push({ el, src: el.src, name: file.name, uid: uid(), removeBg: true });
       } catch { /* skip */ }
     }
     setImages(prev => [...prev, ...newImgs].slice(0, 30));
@@ -75,7 +82,6 @@ export function CollageProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  // ÚJ: A Fogd és Vidd átrendező logikája
   const reorderImages = useCallback((oldIndex: number, newIndex: number) => {
     setImages(prev => {
       const next = [...prev];
@@ -98,8 +104,24 @@ export function CollageProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  // --- ÚJ: Háttér állapotok módosítása ---
+  const toggleImageBg = useCallback((uid: string) => {
+    setImages(prev => prev.map(img => img.uid === uid ? { ...img, removeBg: !img.removeBg } : img));
+  }, []);
+
+  const setImagesBg = useCallback((uids: string[], removeBg: boolean) => {
+    setImages(prev => prev.map(img => uids.includes(img.uid) ? { ...img, removeBg } : img));
+  }, []);
+
+  const setAllImagesBg = useCallback((removeBg: boolean) => {
+    setImages(prev => prev.map(img => ({ ...img, removeBg })));
+  }, []);
+
   return (
-    <CollageContext.Provider value={{ images, setImages, addFiles, removeImage, rotateImage, reorderImages, clearImages, shuffleImages }}>
+    <CollageContext.Provider value={{ 
+      images, setImages, addFiles, removeImage, rotateImage, reorderImages, clearImages, shuffleImages,
+      toggleImageBg, setImagesBg, setAllImagesBg // Ezt a hármat is átadjuk
+    }}>
       {children}
     </CollageContext.Provider>
   );

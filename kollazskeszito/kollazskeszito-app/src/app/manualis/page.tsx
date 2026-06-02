@@ -1,14 +1,16 @@
 "use client";
 
-import { useManualCollage } from "./useManualCollage";
-import { ManualHeader, LayerSidebar, WorkspaceCanvas, PropertiesSidebar } from "@/src/components/ManualUI";
+import { useManualMode } from "../../hooks/useManualMode";
+import {LayerSidebar, WorkspaceCanvas, PropertiesSidebar } from "@/src/components/ManualUI";
+import { TopNavbar } from "@/src/components/SharedUI";
+
 
 export default function ManualisPage() {
-  const state = useManualCollage();
+  const state = useManualMode();
 
   return (
     <div style={{ height: "100vh", display: "flex", flexDirection: "column", background: "var(--bg-elevated)", overflow: "hidden" }}>
-      <ManualHeader state={state} />
+      <TopNavbar currentMode="manualis" onDownload={state.download} isDownloadDisabled={!state.images.length} downloading={state.downloading} />
       
       <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
         <LayerSidebar state={state} />

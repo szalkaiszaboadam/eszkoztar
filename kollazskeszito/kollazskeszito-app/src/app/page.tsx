@@ -3,10 +3,12 @@
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { useCollage, LoadedImg } from "@/src/components/CollageContext";
+// ÚJ IMPORTOK: A módválasztó ikonjai
+import { Wand2, Zap, Target, Wrench, Plus } from "lucide-react"; 
 
 // --- KOMPONENSEK ---
-
-function ModeCard({ title, badge, desc, href, icon, disabled }: { title: string, badge: string, desc: string, href: string, icon: string, disabled: boolean }) {
+// JAVÍTÁS: Az 'icon' típusa most már React.ReactNode, hogy fogadja a Lucide ikonokat
+function ModeCard({ title, badge, desc, href, icon, disabled }: { title: string, badge: string, desc: string, href: string, icon: React.ReactNode, disabled: boolean }) {
   return (
     <Link href={disabled ? "#" : href} style={{ textDecoration: "none", opacity: disabled ? 0.5 : 1, pointerEvents: disabled ? "none" : "auto", display: "block", height: "100%" }}>
       <div style={{
@@ -28,7 +30,8 @@ function ModeCard({ title, badge, desc, href, icon, disabled }: { title: string,
         e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.02)";
       }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
-          <div style={{ fontSize: 28 }}>{icon}</div>
+          {/* Itt jelenik meg a Lucide ikon */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text)" }}>{icon}</div>
           <span style={{ fontSize: 10, fontWeight: 800, color: "var(--accent)", background: "rgba(91,80,232,0.1)", borderRadius: 6, padding: "4px 8px", letterSpacing: "0.06em", textTransform: "uppercase" }}>
             {badge}
           </span>
@@ -41,19 +44,16 @@ function ModeCard({ title, badge, desc, href, icon, disabled }: { title: string,
     </Link>
   );
 }
-
-// --- FŐALKALMAZÁS ---
-
+// --- FŐ ALKALMAZÁS ---
 export default function HomePage() {
-  const { images, addFiles, removeImage, rotateImage, reorderImages, clearImages } = useCollage();
+  const { images, addFiles, removeImage, rotateImage, reorderImages, clearImages, toggleImageBg } = useCollage(); // ÚJ
+  
   const [isDragOverDropzone, setIsDragOverDropzone] = useState(false);
   const [previewImg, setPreviewImg] = useState<LoadedImg | null>(null);
-  
   const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
-  
   const fileInputRef = useRef<HTMLInputElement>(null);
-
+  
   const hasImages = images.length > 0;
   const isAutoDisabled = !hasImages || images.length > 6;
 
@@ -63,15 +63,15 @@ export default function HomePage() {
       {/* FEJLÉC */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, flexShrink: 0, marginBottom: 24 }}>
         <div style={{ width: 44, height: 44, borderRadius: 10, background: "var(--accent)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, fontWeight: 800 }}>⊞</div>
-        <h1 style={{ fontSize: 28, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.02em" }}>Kollázskészítő</h1>
+        <h1 style={{ fontSize: 28, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.02em" }}>Kollázs</h1>
       </div>
 
       <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", gap: 32, maxWidth: 1100, width: "100%", margin: "0 auto", minHeight: 0 }}>
         
         {/* 1. LÉPÉS: KÉPFELTÖLTÉS */}
         <div style={{ 
-          flexShrink: 0, height: 224, background: "var(--bg-panel)", border: "1px solid var(--border)", 
-          borderRadius: 16, padding: 24, boxShadow: "0 4px 20px rgba(0,0,0,0.02)",
+           flexShrink: 0, height: 224, background: "var(--bg-panel)", border: "1px solid var(--border)", 
+           borderRadius: 16, padding: 24, boxShadow: "0 4px 20px rgba(0,0,0,0.02)",
           display: "flex", flexDirection: "column"
         }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, flexShrink: 0 }}>
@@ -97,7 +97,7 @@ export default function HomePage() {
                   background: isDragOverDropzone ? "rgba(91,80,232,0.04)" : "var(--bg-elevated)", transition: "all 0.2s ease"
                 }}
               >
-                <div style={{ fontSize: 32, color: isDragOverDropzone ? "var(--accent)" : "var(--text-secondary)", lineHeight: 1 }}>⇪</div>
+                <div style={{ fontSize: 32, color: isDragOverDropzone ? "var(--accent)" : "var(--text-secondary)", lineHeight: 1 }}>↓</div>
                 <div style={{ textAlign: "center" }}>
                   <div style={{ fontWeight: 700, fontSize: 16, color: "var(--text)", marginBottom: 2 }}>Húzd ide a képeket!</div>
                   <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>Kattints a böngészéshez (max 30 db)</div>
@@ -161,6 +161,19 @@ export default function HomePage() {
                           <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
                         </svg>
                       </button>
+
+                      {/* ÚJ: Varázspálca a főképernyőn is! */}
+                      <button onClick={(e) => { e.stopPropagation(); toggleImageBg(img.uid); }} title="Háttér eltüntetése" style={{
+                        position: "absolute", bottom: 4, left: 4, width: 22, height: 22, borderRadius: "50%",
+                        background: img.removeBg ? "rgba(91,80,232,0.95)" : "rgba(255,255,255,0.95)",
+                        border: `1px solid ${img.removeBg ? "var(--accent)" : "var(--border-medium)"}`,
+                        color: img.removeBg ? "#fff" : "var(--text-secondary)",
+                        display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, zIndex: 10,
+                        transition: "all 0.2s ease"
+                      }}>
+                        <Wand2 size={12} />
+                      </button>
+
                     </div>
                   </div>
                 ))}
@@ -195,17 +208,15 @@ export default function HomePage() {
             {!hasImages && <span style={{ color: "#ef4444", fontSize: 13, fontWeight: 600, background: "#fef2f2", padding: "2px 8px", borderRadius: 4 }}>Elsőnek tölts fel legalább 1 képet!</span>}
             {images.length > 6 && <span style={{ color: "#ef4444", fontSize: 13, fontWeight: 600, background: "#fef2f2", padding: "2px 8px", borderRadius: 4 }}>Automata módhoz max 6 kép engedélyezett!</span>}
           </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 24 }}>
-            <ModeCard disabled={!hasImages} href="/manualis" icon="🛠️" title="Manuális" badge="Pro" desc="Teljes szabadság. Te kezeled a rétegeket, méreteket és a pontos pozíciókat." />
-            <ModeCard disabled={!hasImages} href="/segitett" icon="🎯" title="Segített" badge="Okos" desc="Szabad mozgástér, de intelligens mágneses rácsvonalakkal a tökéletes illesztésért." />
-            <ModeCard disabled={isAutoDisabled} href="/automata" icon="⚡️" title="Automata" badge="Gyors" desc="Az algoritmus másodpercek alatt megtalálja a legjobb elrendezést. (Max 6 kép)" />
-            <div style={{ background: "var(--bg-panel)", border: "1px dashed var(--border)", borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-secondary)", fontSize: 14, fontWeight: 600, minHeight: 180 }}>
-                + Új mód érkezik
+         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 24 }}>
+            <ModeCard disabled={!hasImages} href="/manualis" icon={<Wrench size={28} strokeWidth={1.5} />} title="Manuális" badge="Pro" desc="Teljes szabadság. Te kezeled a rétegeket, méreteket és a pontos pozíciókat." />
+            <ModeCard disabled={!hasImages} href="/segitett" icon={<Target size={28} strokeWidth={1.5} />} title="Segített" badge="Okos" desc="Szabad mozgástér, de intelligens mágneses rácsvonalakkal a tökéletes illesztésért." />
+            <ModeCard disabled={isAutoDisabled} href="/automata" icon={<Zap size={28} strokeWidth={1.5} />} title="Automata" badge="Gyors" desc="Az algoritmus másodpercek alatt megtalálja a legjobb elrendezést. (Max 6 kép)" />
+            <div style={{ background: "var(--bg-panel)", border: "1px dashed var(--border)", borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-secondary)", fontSize: 14, fontWeight: 600, minHeight: 180, gap: 8 }}>
+                <Plus size={16} /> Új mód érkezik
             </div>
           </div>
         </div>
-
       </div>
 
       {/* --- PREVIEW MODAL --- */}
@@ -220,7 +231,7 @@ export default function HomePage() {
           }}
         >
           <button 
-            onClick={() => setPreviewImg(null)}
+             onClick={() => setPreviewImg(null)}
             style={{
               position: "absolute", top: 24, right: 32, width: 44, height: 44, borderRadius: "50%",
               background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff",
