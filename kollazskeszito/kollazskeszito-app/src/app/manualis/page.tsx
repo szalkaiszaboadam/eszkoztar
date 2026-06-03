@@ -10,8 +10,15 @@ export default function ManualisPage() {
 
   return (
     <div style={{ height: "100vh", display: "flex", flexDirection: "column", background: "var(--bg-elevated)", overflow: "hidden" }}>
-      <TopNavbar currentMode="manualis" onDownload={state.download} isDownloadDisabled={!state.images.length} downloading={state.downloading} />
-      
+      <TopNavbar 
+        currentMode="manualis" 
+        onDownload={state.download} 
+        isDownloadDisabled={!state.images.length} 
+        downloading={state.downloading} 
+        imageCount={state.images.length} 
+        isSaved={state.isSaved}// <-- EZT A SORT ADD HOZZÁ!
+      />
+
       <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
         <LayerSidebar state={state} />
         <WorkspaceCanvas state={state} />

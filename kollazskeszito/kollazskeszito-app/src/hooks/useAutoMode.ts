@@ -15,10 +15,16 @@ export function useAutoMode() {
   const [keepOrder, setKeepOrder] = useState(false);
   
   const [downloading, setDownloading] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
   const [isDragOverDropzone, setIsDragOverDropzone] = useState(false);
   const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+// ÚJ: Bármi változik az automatánál, újra lehessen menteni
+  useEffect(() => {
+    setIsSaved(false);
+  }, [images, selectedIdx, gap, margin, keepOrder]);
 
   const handleAutoUpload = useCallback((files: FileList | File[]) => {
     const slotsLeft = 6 - images.length;
@@ -71,6 +77,7 @@ export function useAutoMode() {
       
       downloadCanvasAsImage(canvas, "kollazs_automata");
       setDownloading(false);
+      setIsSaved(true); // <--- EZT ADD HOZZÁ
     }, 60);
   }, [selectedIdx, layouts]);
 
@@ -82,6 +89,6 @@ export function useAutoMode() {
     isDragOverDropzone, setIsDragOverDropzone, draggedIdx, setDraggedIdx,
     dragOverIdx, setDragOverIdx, fileInputRef, handleAutoUpload, download,
     hasLayouts, removeImage, rotateImage, 
-    reorderImages, clearImages, shuffleImages, toggleImageBg, setAllImagesBg // ÚJ
+    reorderImages, clearImages, shuffleImages, toggleImageBg, setAllImagesBg, isSaved // ÚJ
   };
 }

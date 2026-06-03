@@ -7,7 +7,7 @@ export interface LoadedImg {
   src: string;
   name: string;
   uid: string;
-  removeBg: boolean; // <-- ÚJ: A globális háttéreltávolító állapot
+  removeBg: boolean; 
 }
 
 interface CollageContextType {
@@ -15,12 +15,11 @@ interface CollageContextType {
   setImages: React.Dispatch<React.SetStateAction<LoadedImg[]>>;
   addFiles: (files: FileList | File[]) => Promise<void>;
   removeImage: (index: number) => void;
+  removeImages: (uidsToRemove: string[]) => void; // <-- ÚJ: Csoportos törlés
   rotateImage: (index: number, degrees: 90 | -90) => void;
   reorderImages: (oldIndex: number, newIndex: number) => void;
   clearImages: () => void;
   shuffleImages: () => void;
-  
-  // <-- ÚJ: Globális Háttéreltávolító funkciók
   toggleImageBg: (uid: string) => void;
   setImagesBg: (uids: string[], removeBg: boolean) => void;
   setAllImagesBg: (removeBg: boolean) => void;
@@ -54,7 +53,6 @@ export function CollageProvider({ children }: { children: ReactNode }) {
     for (const file of arr) {
       try {
         const el = await loadImageFromFile(file);
-        // ÚJ: Alapértelmezetten be van kapcsolva a háttéreltávolítás
         newImgs.push({ el, src: el.src, name: file.name, uid: uid(), removeBg: true });
       } catch { /* skip */ }
     }
@@ -63,6 +61,11 @@ export function CollageProvider({ children }: { children: ReactNode }) {
 
   const removeImage = useCallback((index: number) => {
     setImages(prev => prev.filter((_, i) => i !== index));
+  }, []);
+
+  // --- ÚJ FÜGGVÉNY: Csoportos Törlés Uid alapján ---
+  const removeImages = useCallback((uidsToRemove: string[]) => {
+    setImages(prev => prev.filter(img => !uidsToRemove.includes(img.uid)));
   }, []);
 
   const rotateImage = useCallback((index: number, degrees: 90 | -90) => {
@@ -104,7 +107,6 @@ export function CollageProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  // --- ÚJ: Háttér állapotok módosítása ---
   const toggleImageBg = useCallback((uid: string) => {
     setImages(prev => prev.map(img => img.uid === uid ? { ...img, removeBg: !img.removeBg } : img));
   }, []);
@@ -119,8 +121,8 @@ export function CollageProvider({ children }: { children: ReactNode }) {
 
   return (
     <CollageContext.Provider value={{ 
-      images, setImages, addFiles, removeImage, rotateImage, reorderImages, clearImages, shuffleImages,
-      toggleImageBg, setImagesBg, setAllImagesBg // Ezt a hármat is átadjuk
+      images, setImages, addFiles, removeImage, removeImages, rotateImage, reorderImages, clearImages, shuffleImages,
+      toggleImageBg, setImagesBg, setAllImagesBg 
     }}>
       {children}
     </CollageContext.Provider>

@@ -14,8 +14,10 @@ export type LayerState = {
 };
 
 export function useManualMode() {
-  const { images, removeImage, reorderImages, toggleImageBg, setImagesBg, setAllImagesBg } = useCollage(); // ÚJ: Behúztuk a hookokat
+// Így nézzen ki:
+  const { images, removeImage, removeImages, reorderImages, toggleImageBg, setImagesBg, setAllImagesBg, addFiles } = useCollage(); // ÚJ: addFiles
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [layers, setLayers] = useState<Record<string, LayerState>>({});
   const [activeUids, setActiveUids] = useState<string[]>([]);
   const [processedImages, setProcessedImages] = useState<Record<string, { src: string, el: HTMLImageElement }>>({});
@@ -24,11 +26,17 @@ export function useManualMode() {
   const [canvasPixelSize, setCanvasPixelSize] = useState(800);
   const containerRef = useRef<HTMLDivElement>(null);
   const [downloading, setDownloading] = useState(false);
+  const [isSaved, setIsSaved] = useState(false); // <--- EZT ADD HOZZÁ
 
   const [showGrid, setShowGrid] = useState(false);
   const [gridDivisions, setGridDivisions] = useState(20);
   const [isSnapEnabled, setIsSnapEnabled] = useState(true);
   const [activeSnapLines, setActiveSnapLines] = useState<{x: number | null, y: number | null}>({ x: null, y: null });
+
+// ÚJ: Bármi változik a vásznon, a Mentés gomb újra aktív lesz!
+  useEffect(() => {
+    setIsSaved(false);
+  }, [images, layers]);
 
   useEffect(() => {
     const updateSize = (w: number, h: number) => {
@@ -223,21 +231,22 @@ export function useManualMode() {
       });
 
       downloadCanvasAsImage(canvas, "kollazs_manualis");
-      
       setDownloading(false);
+      setIsSaved(true); // <--- EZT ADD HOZZÁ A setTimeout VÉGÉRE
     }, 100);
   }, [images, layers, processedImages]);
 
   const activeLayerData = activeUids.length > 0 ? layers[activeUids[0]] : null;
 
-  return {
+return {
     images, layers, activeUids, setActiveUids, processedImages,
     containerRef, canvasPixelSize, canvasScale, downloading,
     showGrid, setShowGrid, gridDivisions, setGridDivisions,
     isSnapEnabled, setIsSnapEnabled, activeSnapLines,
     isDraggingCanvas, onPointerDownCanvas, onPointerMoveCanvas, onPointerUpCanvas,
-    removeImage, reorderImages, updateLayer, updateActiveLayers,
+    // JAVÍTÁS: Innen vettük ki az updateAllLayers-t, mert már nincs rá szükség!
+    removeImage, removeImages, reorderImages, updateLayer, updateActiveLayers,
     download, activeLayerData, 
-    toggleImageBg, setImagesBg, setAllImagesBg // ÚJ
+    toggleImageBg, setImagesBg, setAllImagesBg, addFiles, fileInputRef, isSaved
   };
 }

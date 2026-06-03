@@ -1,17 +1,30 @@
 "use client";
 
 import { useState } from "react";
-import { Eye, EyeOff, Trash2, CheckSquare, XSquare, Wand2, Layers } from "lucide-react";
+import { Eye, EyeOff, Trash2, CheckSquare, XSquare, Wand2, Layers, Plus, Pointer } from "lucide-react"; // ÚJ: Plus ikon
 import { useManualMode } from "@/src/hooks/useManualMode";
 
 type ManualState = ReturnType<typeof useManualMode>;
 type Props = { state: ManualState };
 
+
 // --- 2. BAL OSZLOP (RÉTEGEK) ---
 export function LayerSidebar({ state }: Props) {
-  const { images, layers, activeUids, setActiveUids, updateLayer, removeImage, reorderImages, toggleImageBg } = state;
+  const { 
+    images, layers, activeUids, setActiveUids, 
+    updateLayer, updateActiveLayers, removeImage, removeImages, 
+    reorderImages, toggleImageBg, setImagesBg 
+  } = state;
+  
   const [draggedListIdx, setDraggedListIdx] = useState<number | null>(null);
   const [dragOverListIdx, setDragOverListIdx] = useState<number | null>(null);
+  
+  // ÚJ: Állapot a gombra történő Drag & Drop feltöltéshez
+  const [isDragOverUpload, setIsDragOverUpload] = useState(false);
+
+  // Kiszámoljuk, hogy a Kijelöltek közül mi az uralkodó állapot
+  const isAllSelectedVisible = activeUids.length > 0 && activeUids.every(uid => layers[uid]?.visible);
+  const isAllSelectedBgRemoved = activeUids.length > 0 && activeUids.every(uid => images.find(i => i.uid === uid)?.removeBg);
 
   return (
     <aside style={{ width: 300, background: "var(--bg-panel)", borderRight: "1px solid var(--border)", display: "flex", flexDirection: "column", zIndex: 20 }}>
@@ -21,15 +34,42 @@ export function LayerSidebar({ state }: Props) {
       </div>
 
       {images.length > 0 && (
-        <div style={{ padding: "0 12px 12px 12px", display: "flex", gap: "8px", borderBottom: "1px solid var(--border)" }}>
+        <div style={{ padding: "0 12px 12px 12px", display: "flex", gap: "8px", borderBottom: activeUids.length > 1 ? "none" : "1px solid var(--border)" }}>
           <button onClick={() => setActiveUids(images.map(i => i.uid))} style={{ flex: 1, padding: "8px", background: "var(--bg-elevated)", border: "1px solid var(--border-medium)", borderRadius: "6px", fontSize: "12px", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", color: "var(--text)" }}>
             <CheckSquare size={14} /> Összes kijelölése
           </button>
-          {activeUids.length > 0 && (
-            <button onClick={() => setActiveUids([])} style={{ padding: "8px", background: "var(--bg-elevated)", border: "1px solid var(--border-medium)", borderRadius: "6px", cursor: "pointer", color: "var(--text-secondary)", display: "flex", alignItems: "center", justifyContent: "center" }} title="Kijelölés megszüntetése">
-              <XSquare size={14} />
+        </div>
+      )}
+
+      {/* DEDIKÁLT CSOPORTOS MŰVELETEK SÁV */}
+      {activeUids.length > 1 && (
+        <div style={{ padding: "0 12px 12px 12px", borderBottom: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ fontSize: 11, fontWeight: 800, color: "var(--accent)", textTransform: "uppercase", letterSpacing: "0.05em", textAlign: "center" }}>
+            Kijelöltek ({activeUids.length}) módosítása
+          </div>
+          <div style={{ display: "flex", gap: 6 }}>
+            <button 
+              onClick={() => setImagesBg(activeUids, !isAllSelectedBgRemoved)} 
+              title="Háttér eltüntetése a kijelöltekről"
+              style={{ flex: 1, height: 32, borderRadius: 6, background: isAllSelectedBgRemoved ? "rgba(91,80,232,0.1)" : "var(--bg-elevated)", border: `1px solid ${isAllSelectedBgRemoved ? "var(--accent)" : "var(--border-medium)"}`, color: isAllSelectedBgRemoved ? "var(--accent)" : "var(--text-secondary)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "all 0.2s" }}
+            >
+              <Wand2 size={14} />
             </button>
-          )}
+            <button 
+              onClick={() => updateActiveLayers({ visible: !isAllSelectedVisible })} 
+              title="Láthatóság módosítása a kijelölteken"
+              style={{ flex: 1, height: 32, borderRadius: 6, background: "var(--bg-elevated)", border: "1px solid var(--border-medium)", color: "var(--text-secondary)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "all 0.2s" }}
+            >
+              {isAllSelectedVisible ? <Eye size={14} /> : <EyeOff size={14} />}
+            </button>
+            <button 
+              onClick={() => { removeImages(activeUids); setActiveUids([]); }} 
+              title="Kijelöltek törlése"
+              style={{ flex: 1, height: 32, borderRadius: 6, background: "#fef2f2", border: "1px solid #fca5a5", color: "#dc2626", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "all 0.2s" }}
+            >
+              <Trash2 size={14} />
+            </button>
+          </div>
         </div>
       )}
 
@@ -77,9 +117,15 @@ export function LayerSidebar({ state }: Props) {
                   <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: isActive ? "var(--accent)" : "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Réteg {actualIndex + 1}</span>
                   
                   <div style={{ display: "flex", gap: 4 }}>
-                    <button onClick={(e) => { e.stopPropagation(); toggleImageBg(img.uid); }} title="Fehér háttér eltüntetése" style={{ width: 26, height: 26, borderRadius: 4, border: "none", background: img.removeBg ? "rgba(91,80,232,0.1)" : "transparent", color: img.removeBg ? "var(--accent)" : "var(--text-secondary)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s" }}><Wand2 size={14} /></button>
-                    <button onClick={(e) => { e.stopPropagation(); updateLayer(img.uid, { visible: !lState.visible }); }} title="Láthatóság" style={{ width: 26, height: 26, borderRadius: 4, border: "none", background: "transparent", color: "var(--text-secondary)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>{lState.visible ? <Eye size={14} /> : <EyeOff size={14} />}</button>
-                    <button onClick={(e) => { e.stopPropagation(); setActiveUids(prev => prev.filter(id => id !== img.uid)); removeImage(actualIndex); }} title="Törlés" style={{ width: 26, height: 26, borderRadius: 4, border: "none", background: "transparent", color: "#ef4444", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><Trash2 size={14} /></button>
+                    <button onClick={(e) => { e.stopPropagation(); toggleImageBg(img.uid); }} title="Fehér háttér eltüntetése" style={{ width: 26, height: 26, borderRadius: 4, border: "none", background: img.removeBg ? "rgba(91,80,232,0.1)" : "transparent", color: img.removeBg ? "var(--accent)" : "var(--text-secondary)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s" }}>
+                      <Wand2 size={14} />
+                    </button>
+                    <button onClick={(e) => { e.stopPropagation(); updateLayer(img.uid, { visible: !lState.visible }); }} title="Láthatóság" style={{ width: 26, height: 26, borderRadius: 4, border: "none", background: "transparent", color: "var(--text-secondary)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      {lState.visible ? <Eye size={14} /> : <EyeOff size={14} />}
+                    </button>
+                    <button onClick={(e) => { e.stopPropagation(); setActiveUids(prev => prev.filter(id => id !== img.uid)); removeImage(actualIndex); }} title="Törlés" style={{ width: 26, height: 26, borderRadius: 4, border: "none", background: "transparent", color: "#ef4444", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <Trash2 size={14} />
+                    </button>
                   </div>
                 </div>
               );
@@ -87,6 +133,44 @@ export function LayerSidebar({ state }: Props) {
           </div>
         )}
       </div>
+
+      {/* ÚJ: FÁJLFELTÖLTŐ GOMB A SÁV ALJÁN (DRAG & DROP TÁMOGATÁSSAL) */}
+      <div 
+        onDragOver={(e) => { e.preventDefault(); setIsDragOverUpload(true); }}
+        onDragLeave={() => setIsDragOverUpload(false)}
+        onDrop={(e) => { 
+          e.preventDefault(); 
+          setIsDragOverUpload(false); 
+          if(e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            state.addFiles(e.dataTransfer.files);
+          }
+        }}
+        style={{ padding: "12px", borderTop: "1px solid var(--border)", background: isDragOverUpload ? "rgba(91,80,232,0.05)" : "var(--bg-panel)", transition: "all 0.2s" }}
+      >
+        <button 
+          onClick={() => state.fileInputRef.current?.click()} 
+          style={{ 
+            width: "100%", padding: "10px", 
+            background: isDragOverUpload ? "transparent" : "var(--bg-elevated)", 
+            border: `2px dashed ${isDragOverUpload ? "var(--accent)" : "var(--border-medium)"}`, 
+            borderRadius: 8, 
+            color: isDragOverUpload ? "var(--accent)" : "var(--text)", 
+            fontSize: 13, fontWeight: 700, cursor: "pointer", 
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "all 0.2s",
+            pointerEvents: isDragOverUpload ? "none" : "auto" 
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.borderColor = "var(--accent)"}
+          onMouseLeave={(e) => e.currentTarget.style.borderColor = isDragOverUpload ? "var(--accent)" : "var(--border-medium)"}
+        >
+          <Plus size={16} /> {isDragOverUpload ? "Húzd ide a fájlokat!" : "Új kép feltöltése"}
+        </button>
+        <input 
+          ref={state.fileInputRef} 
+          type="file" multiple accept="image/*" style={{ display: "none" }} 
+          onChange={(e) => { if(e.target.files) state.addFiles(e.target.files); e.target.value = ''; }} 
+        />
+      </div>
+
     </aside>
   );
 }
@@ -164,11 +248,10 @@ export function WorkspaceCanvas({ state }: Props) {
 export function PropertiesSidebar({ state }: Props) {
   const { 
     showGrid, setShowGrid, gridDivisions, setGridDivisions, isSnapEnabled, setIsSnapEnabled, 
-    activeLayerData, activeUids, updateActiveLayers, setImagesBg, setAllImagesBg, images
+    activeLayerData, activeUids, updateActiveLayers, setAllImagesBg, images
   } = state;
 
   const isAllBgRemoved = images.length > 0 && images.every(img => img.removeBg);
-  const activeImg = activeUids.length > 0 ? images.find(i => i.uid === activeUids[0]) : null;
 
   return (
     <aside style={{ width: 300, background: "var(--bg-panel)", borderLeft: "1px solid var(--border)", display: "flex", flexDirection: "column", zIndex: 20, overflowY: "auto" }}>
@@ -178,7 +261,6 @@ export function PropertiesSidebar({ state }: Props) {
           <Layers size={16} /> Globális Képek
         </h2>
         <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, fontWeight: 700, color: "var(--text)" }}>
-          {/* JAVÍTÁS: !! logikai típus-kényszerítés */}
           <input type="checkbox" checked={!!isAllBgRemoved} onChange={(e) => setAllImagesBg(e.target.checked)} style={{ accentColor: "var(--accent)", width: 16, height: 16 }} />
           Minden háttér eltüntetése
         </label>
@@ -218,23 +300,17 @@ export function PropertiesSidebar({ state }: Props) {
       
       <div style={{ flex: 1, padding: "24px" }}>
         {!activeLayerData ? (
-          <div style={{ textAlign: "center", color: "var(--text-secondary)", fontSize: 13, marginTop: 20 }}>
-            <div style={{ fontSize: 32, marginBottom: 12, opacity: 0.5 }}>🖱️</div>
-            Válassz ki egy képet a vásznon<br/>vagy a rétegek között!
+          <div style={{ 
+            display: "flex", flexDirection: "column", alignItems: "center", 
+            textAlign: "center", color: "var(--text-secondary)", fontSize: 13, marginTop: 20 
+          }}>
+            <Pointer style={{ marginBottom: 12, opacity: 0.5 }} size={32} />
+            <div>Válassz ki egy képet a vásznon<br/>vagy a rétegek között!</div>
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-            
-            <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: "14px", background: "rgba(91,80,232,0.04)", borderRadius: "8px", border: "1px solid rgba(91,80,232,0.15)" }}>
-              <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, fontWeight: 800, color: "var(--accent)" }}>
-                {/* JAVÍTÁS: !! és biztonsági fallback értékek */}
-                <input type="checkbox" checked={!!activeImg?.removeBg} onChange={(e) => setImagesBg(activeUids, e.target.checked)} style={{ accentColor: "var(--accent)", width: 16, height: 16 }} />
-                <Wand2 size={16} /> Fehér háttér eltüntetése
-              </label>
-              <span style={{ fontSize: 11, color: "var(--text-secondary)", lineHeight: 1.4, fontWeight: 500 }}>
-                Kijelölt képek automatikus feldolgozása. (Nem módosítja az eredeti képarányokat)
-              </span>
-            </div>
+
+            {/* Itt volt a lila doboz, ami most szépen kikerült! */}
 
             {activeUids.length > 1 && (
               <div style={{ background: "rgba(91,80,232,0.1)", color: "var(--accent)", padding: "8px 12px", borderRadius: 6, fontSize: 11, fontWeight: 700, textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>

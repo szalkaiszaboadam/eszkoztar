@@ -17,6 +17,8 @@ export default function AutoCollagePage() {
         onDownload={state.download} 
         isDownloadDisabled={!state.hasLayouts} 
         downloading={state.downloading} 
+        imageCount={state.images.length}
+        isSaved={state.isSaved} // <--- EZT AZ EGY SORT ADD HOZZÁ!
       />
 
       {/* 2. A felső vezérlősáv a képekkel és beállításokkal */}
