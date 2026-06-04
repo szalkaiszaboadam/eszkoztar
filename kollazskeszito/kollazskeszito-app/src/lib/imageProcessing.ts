@@ -47,6 +47,6 @@ export function downloadCanvasAsImage(canvas: HTMLCanvasElement, filenamePrefix:
   
   const a = document.createElement("a");
   a.download = `${filenamePrefix}_${ds}_${ts}.jpg`;
-  a.href = canvas.toDataURL("image/jpeg", 0.95);
+  a.href = canvas.toDataURL("image/jpeg", 0.85); // vagy 0.80 az agresszívebb méretcsökkentésért
   a.click();
 }

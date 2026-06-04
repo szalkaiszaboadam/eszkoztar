@@ -3,7 +3,7 @@
 
 import { useState } from "react";
 // ÚJ IMPORTOK: Undo2 és Redo2 hozzáadása a lucide-react-ból!
-import { Eye, EyeOff, Trash2, CheckSquare, XSquare, Wand2, Layers, Plus, Pointer, Undo2, Redo2 } from "lucide-react"; 
+import { Eye, EyeOff, Trash2, CheckSquare, XSquare, Wand2, Eraser, Layers, Plus, Pointer, Undo2, Redo2 } from "lucide-react";
 import { useManualMode } from "@/src/hooks/useManualMode";
 
 type ManualState = ReturnType<typeof useManualMode>;
@@ -12,15 +12,15 @@ type Props = { state: ManualState };
 
 // --- 2. BAL OSZLOP (RÉTEGEK) ---
 export function LayerSidebar({ state }: Props) {
-  const { 
-    images, layers, activeUids, setActiveUids, 
-    updateLayer, updateActiveLayers, removeImage, removeImages, 
-    reorderImages, toggleImageBg, setImagesBg 
+  const {
+    images, layers, activeUids, setActiveUids,
+    updateLayer, updateActiveLayers, removeImage, removeImages,
+    reorderImages, toggleImageBg, setImagesBg
   } = state;
-  
+
   const [draggedListIdx, setDraggedListIdx] = useState<number | null>(null);
   const [dragOverListIdx, setDragOverListIdx] = useState<number | null>(null);
-  
+
   // ÚJ: Állapot a gombra történő Drag & Drop feltöltéshez
   const [isDragOverUpload, setIsDragOverUpload] = useState(false);
 
@@ -50,22 +50,22 @@ export function LayerSidebar({ state }: Props) {
             Kijelöltek ({activeUids.length}) módosítása
           </div>
           <div style={{ display: "flex", gap: 6 }}>
-            <button 
-              onClick={() => setImagesBg(activeUids, !isAllSelectedBgRemoved)} 
+            <button
+              onClick={() => setImagesBg(activeUids, !isAllSelectedBgRemoved)}
               title="Háttér eltüntetése a kijelöltekről"
               style={{ flex: 1, height: 32, borderRadius: 6, background: isAllSelectedBgRemoved ? "rgba(91,80,232,0.1)" : "var(--bg-elevated)", border: `1px solid ${isAllSelectedBgRemoved ? "var(--accent)" : "var(--border-medium)"}`, color: isAllSelectedBgRemoved ? "var(--accent)" : "var(--text-secondary)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "all 0.2s" }}
             >
-              <Wand2 size={14} />
+              <Eraser size={14} />
             </button>
-            <button 
-              onClick={() => updateActiveLayers({ visible: !isAllSelectedVisible })} 
+            <button
+              onClick={() => updateActiveLayers({ visible: !isAllSelectedVisible })}
               title="Láthatóság módosítása a kijelölteken"
               style={{ flex: 1, height: 32, borderRadius: 6, background: "var(--bg-elevated)", border: "1px solid var(--border-medium)", color: "var(--text-secondary)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "all 0.2s" }}
             >
               {isAllSelectedVisible ? <Eye size={14} /> : <EyeOff size={14} />}
             </button>
-            <button 
-              onClick={() => { removeImages(activeUids); setActiveUids([]); }} 
+            <button
+              onClick={() => { removeImages(activeUids); setActiveUids([]); }}
               title="Kijelöltek törlése"
               style={{ flex: 1, height: 32, borderRadius: 6, background: "#fef2f2", border: "1px solid #fca5a5", color: "#dc2626", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", transition: "all 0.2s" }}
             >
@@ -89,7 +89,7 @@ export function LayerSidebar({ state }: Props) {
               if (!lState) return null;
 
               return (
-                <div 
+                <div
                   key={img.uid} draggable
                   onDragStart={(e) => { e.dataTransfer.setData("idx", actualIndex.toString()); setDraggedListIdx(actualIndex); }}
                   onDragOver={(e) => { e.preventDefault(); if (draggedListIdx !== null && draggedListIdx !== actualIndex) setDragOverListIdx(actualIndex); }}
@@ -117,10 +117,10 @@ export function LayerSidebar({ state }: Props) {
                     <img src={img.src} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
                   </div>
                   <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: isActive ? "var(--accent)" : "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Réteg {actualIndex + 1}</span>
-                  
+
                   <div style={{ display: "flex", gap: 4 }}>
                     <button onClick={(e) => { e.stopPropagation(); toggleImageBg(img.uid); }} title="Fehér háttér eltüntetése" style={{ width: 26, height: 26, borderRadius: 4, border: "none", background: img.removeBg ? "rgba(91,80,232,0.1)" : "transparent", color: img.removeBg ? "var(--accent)" : "var(--text-secondary)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s" }}>
-                      <Wand2 size={14} />
+                      <Eraser size={14} />
                     </button>
                     <button onClick={(e) => { e.stopPropagation(); updateLayer(img.uid, { visible: !lState.visible }); }} title="Láthatóság" style={{ width: 26, height: 26, borderRadius: 4, border: "none", background: "transparent", color: "var(--text-secondary)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                       {lState.visible ? <Eye size={14} /> : <EyeOff size={14} />}
@@ -136,40 +136,60 @@ export function LayerSidebar({ state }: Props) {
         )}
       </div>
 
-      {/* ÚJ: FÁJLFELTÖLTŐ GOMB A SÁV ALJÁN (DRAG & DROP TÁMOGATÁSSAL) */}
-      <div 
+      {/* 💥 MATRICA HOZZÁADÁSA SZEKCIÓ 💥 */}
+      <div style={{ padding: "12px", borderTop: "1px solid var(--border)", background: "var(--bg-elevated)" }}>
+        <button
+          onClick={() => state.addBadge()}
+          style={{
+            width: "100%", padding: "12px",
+            background: "#FF0000", // 💥 Ugyanaz a tiszta, vibráló piros
+            color: "#ffffff", borderRadius: 8, fontWeight: 900, fontSize: 13,
+            border: "none", cursor: "pointer",
+            boxShadow: "0 4px 14px rgba(255, 0, 0, 0.35)",
+            transition: "transform 0.1s",
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 8
+          }}
+          onMouseDown={e => e.currentTarget.style.transform = "scale(0.96)"}
+          onMouseUp={e => e.currentTarget.style.transform = "scale(1)"}
+        >
+          "ÚJ" Címke hozzáadása
+        </button>
+      </div>
+
+      {/* EREDETI FÁJLFELTÖLTŐ GOMB */}
+      <div
         onDragOver={(e) => { e.preventDefault(); setIsDragOverUpload(true); }}
         onDragLeave={() => setIsDragOverUpload(false)}
-        onDrop={(e) => { 
-          e.preventDefault(); 
-          setIsDragOverUpload(false); 
-          if(e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        onDrop={(e) => {
+          e.preventDefault();
+          setIsDragOverUpload(false);
+          if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
             state.addFiles(e.dataTransfer.files);
           }
         }}
         style={{ padding: "12px", borderTop: "1px solid var(--border)", background: isDragOverUpload ? "rgba(91,80,232,0.05)" : "var(--bg-panel)", transition: "all 0.2s" }}
       >
-        <button 
-          onClick={() => state.fileInputRef.current?.click()} 
-          style={{ 
-            width: "100%", padding: "10px", 
-            background: isDragOverUpload ? "transparent" : "var(--bg-elevated)", 
-            border: `2px dashed ${isDragOverUpload ? "var(--accent)" : "var(--border-medium)"}`, 
-            borderRadius: 8, 
-            color: isDragOverUpload ? "var(--accent)" : "var(--text)", 
-            fontSize: 13, fontWeight: 700, cursor: "pointer", 
+        <button
+          onClick={() => state.fileInputRef.current?.click()}
+          style={{
+            width: "100%", padding: "10px",
+            background: isDragOverUpload ? "transparent" : "var(--bg-elevated)",
+            border: `2px dashed ${isDragOverUpload ? "var(--accent)" : "var(--border-medium)"}`,
+            borderRadius: 8,
+            color: isDragOverUpload ? "var(--accent)" : "var(--text)",
+            fontSize: 13, fontWeight: 700, cursor: "pointer",
             display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "all 0.2s",
-            pointerEvents: isDragOverUpload ? "none" : "auto" 
+            pointerEvents: isDragOverUpload ? "none" : "auto"
           }}
           onMouseEnter={(e) => e.currentTarget.style.borderColor = "var(--accent)"}
           onMouseLeave={(e) => e.currentTarget.style.borderColor = isDragOverUpload ? "var(--accent)" : "var(--border-medium)"}
         >
           <Plus size={16} /> {isDragOverUpload ? "Húzd ide a fájlokat!" : "Új kép feltöltése"}
         </button>
-        <input 
-          ref={state.fileInputRef} 
-          type="file" multiple accept="image/*" style={{ display: "none" }} 
-          onChange={(e) => { if(e.target.files) state.addFiles(e.target.files); e.target.value = ''; }} 
+        <input
+          ref={state.fileInputRef}
+          type="file" multiple accept="image/*" style={{ display: "none" }}
+          onChange={(e) => { if (e.target.files) state.addFiles(e.target.files); e.target.value = ''; }}
         />
       </div>
 
@@ -179,85 +199,85 @@ export function LayerSidebar({ state }: Props) {
 
 // --- 3. KÖZÉPSŐ OSZLOP (VÁSZON) ÉS LEBEGŐ ESZKÖZTÁR ---
 export function WorkspaceCanvas({ state }: Props) {
-  const { 
-    containerRef, canvasPixelSize, canvasScale, showGrid, gridDivisions, activeSnapLines, 
+  const {
+    containerRef, canvasPixelSize, canvasScale, showGrid, gridDivisions, activeSnapLines,
     images, layers, activeUids, setActiveUids, processedImages,
     onPointerDownCanvas, onPointerMoveCanvas, onPointerUpCanvas, isDraggingCanvas,
     undo, redo, canUndo, canRedo // Húzzuk be az Undo/Redo elemeket
   } = state;
 
   return (
-    <main 
-      ref={containerRef} onPointerDown={() => setActiveUids([])} 
+    <main
+      ref={containerRef} onPointerDown={() => setActiveUids([])}
       style={{ flex: 1, background: "var(--bg)", position: "relative", overflow: "hidden", userSelect: "none", WebkitUserSelect: "none", touchAction: "none" }}
     >
       {/* 1. MAGA A VÁSZON */}
       <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", width: canvasPixelSize, height: canvasPixelSize, background: "#ffffff", boxShadow: "0 10px 40px rgba(0,0,0,0.08)", overflow: "hidden" }}>
         <div style={{ width: 2000, height: 2000, transformOrigin: "top left", transform: `scale(${canvasScale})`, position: "absolute", top: 0, left: 0 }}>
-            {images.map((img, index) => {
-              const l = layers[img.uid];
-              if (!l || !l.visible) return null;
-              const isActive = activeUids.includes(img.uid);
+          {images.map((img, index) => {
+            const l = layers[img.uid];
+            if (!l || !l.visible) return null;
+            const isActive = activeUids.includes(img.uid);
 
-              const baseScale = Math.min(2000 / img.el.width, 2000 / img.el.height) * 0.5;
-              const w = img.el.width * baseScale;
-              const h = img.el.height * baseScale;
-              
-              const currentSrc = (img.removeBg && processedImages[img.uid]) ? processedImages[img.uid].src : img.src;
+            const baseScale = Math.min(2000 / img.el.width, 2000 / img.el.height) * 0.5;
+            const w = img.el.width * baseScale;
+            const h = img.el.height * baseScale;
 
-              return (
-                <div
-                  key={img.uid}
-                  onPointerDown={(e) => onPointerDownCanvas(e, img.uid)}
-                  onPointerMove={onPointerMoveCanvas}
-                  onPointerUp={onPointerUpCanvas}
-                  onPointerCancel={onPointerUpCanvas}
-                  style={{
-                    position: "absolute", left: 1000 + l.x, top: 1000 + l.y, width: w, height: h,
-                    transform: `translate(-50%, -50%) rotate(${l.rot}deg) scale(${l.zoom})`,
-                    zIndex: index, cursor: isActive ? (isDraggingCanvas ? "grabbing" : "grab") : "pointer",
-                    boxShadow: isActive ? "0 0 0 6px var(--accent)" : "none", borderRadius: 4,
-                    userSelect: "none", WebkitUserSelect: "none", touchAction: "none"
-                  }}
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={currentSrc} alt="" draggable={false} style={{ width: "100%", height: "100%", display: "block", pointerEvents: "none", userSelect: "none" }} />
-                </div>
-              );
-            })}
+            const currentSrc = (img.removeBg && processedImages[img.uid]) ? processedImages[img.uid].src : img.src;
 
-            <div style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 10000 }}>
-              {showGrid && (
-                <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" shapeRendering="crispEdges">
-                  <defs>
-                    <pattern id="gridPattern" width={2000 / gridDivisions} height={2000 / gridDivisions} patternUnits="userSpaceOnUse" x="0" y="0">
-                      <path d={`M ${2000 / gridDivisions} 0 L 0 0 0 ${2000 / gridDivisions}`} fill="none" stroke="rgba(0,0,0,0.35)" strokeWidth="2" />
-                    </pattern>
-                  </defs>
-                  <rect width="100%" height="100%" fill="url(#gridPattern)" />
-                </svg>
-              )}
-              <svg width="100%" height="100%" style={{ position: "absolute", inset: 0 }}>
-                {activeSnapLines.x !== null && <line x1={activeSnapLines.x} y1="0" x2={activeSnapLines.x} y2="2000" stroke="#ef4444" strokeWidth="3" filter="drop-shadow(0px 0px 4px rgba(239,68,68,0.8))" />}
-                {activeSnapLines.y !== null && <line x1="0" y1={activeSnapLines.y} x2="2000" y2={activeSnapLines.y} stroke="#ef4444" strokeWidth="3" filter="drop-shadow(0px 0px 4px rgba(239,68,68,0.8))" />}
+            return (
+              <div
+                key={img.uid}
+                onPointerDown={(e) => onPointerDownCanvas(e, img.uid)}
+                onPointerMove={onPointerMoveCanvas}
+                onPointerUp={onPointerUpCanvas}
+                onPointerCancel={onPointerUpCanvas}
+                style={{
+                  position: "absolute", left: 1000 + l.x, top: 1000 + l.y, width: w, height: h,
+                  transform: `translate(-50%, -50%) rotate(${l.rot}deg) scale(${l.zoom})`,
+                  zIndex: index, cursor: isActive ? (isDraggingCanvas ? "grabbing" : "grab") : "pointer",
+                  boxShadow: isActive ? "0 0 0 6px var(--accent)" : "none", borderRadius: 4,
+                  userSelect: "none", WebkitUserSelect: "none", touchAction: "none"
+                }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={currentSrc} alt="" draggable={false} style={{ width: "100%", height: "100%", display: "block", pointerEvents: "none", userSelect: "none" }} />
+              </div>
+            );
+          })}
+
+          <div style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 10000 }}>
+            {showGrid && (
+              <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" shapeRendering="crispEdges">
+                <defs>
+                  <pattern id="gridPattern" width={2000 / gridDivisions} height={2000 / gridDivisions} patternUnits="userSpaceOnUse" x="0" y="0">
+                    <path d={`M ${2000 / gridDivisions} 0 L 0 0 0 ${2000 / gridDivisions}`} fill="none" stroke="rgba(0,0,0,0.35)" strokeWidth="2" />
+                  </pattern>
+                </defs>
+                <rect width="100%" height="100%" fill="url(#gridPattern)" />
               </svg>
-            </div>
+            )}
+            <svg width="100%" height="100%" style={{ position: "absolute", inset: 0 }}>
+              {activeSnapLines.x !== null && <line x1={activeSnapLines.x} y1="0" x2={activeSnapLines.x} y2="2000" stroke="#ef4444" strokeWidth="3" filter="drop-shadow(0px 0px 4px rgba(239,68,68,0.8))" />}
+              {activeSnapLines.y !== null && <line x1="0" y1={activeSnapLines.y} x2="2000" y2={activeSnapLines.y} stroke="#ef4444" strokeWidth="3" filter="drop-shadow(0px 0px 4px rgba(239,68,68,0.8))" />}
+            </svg>
+          </div>
         </div>
       </div>
 
       {/* 2. ÚJ: LEBEGŐ ESZKÖZTÁR (Glassmorphism effekt) */}
-      <div 
+      <div
         onPointerDown={(e) => e.stopPropagation()} // Ne törölje a kijelölést, ha az eszköztárra kattint
         style={{
           position: "absolute", bottom: 24, left: "50%", transform: "translateX(-50%)",
-          background: "rgba(255, 255, 255, 0.75)", 
+          background: "rgba(255, 255, 255, 0.75)",
           backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
-          border: "1px solid rgba(255, 255, 255, 0.5)", 
+          border: "1px solid rgba(255, 255, 255, 0.5)",
           borderRadius: 100, padding: "6px", display: "flex", gap: 4,
           boxShadow: "0 8px 32px rgba(0, 0, 0, 0.08)", zIndex: 1000
         }}
       >
-        <button 
+        <button
           onClick={undo} disabled={!canUndo} title="Visszavonás (Ctrl+Z)"
           style={{
             width: 44, height: 44, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
@@ -273,7 +293,7 @@ export function WorkspaceCanvas({ state }: Props) {
 
         <div style={{ width: 1, background: "rgba(0,0,0,0.1)", margin: "10px 4px" }} />
 
-        <button 
+        <button
           onClick={redo} disabled={!canRedo} title="Újra (Ctrl+Y)"
           style={{
             width: 44, height: 44, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
@@ -294,8 +314,8 @@ export function WorkspaceCanvas({ state }: Props) {
 
 // --- 4. JOBB OSZLOP (TULAJDONSÁGOK) ---
 export function PropertiesSidebar({ state }: Props) {
-  const { 
-    showGrid, setShowGrid, gridDivisions, setGridDivisions, isSnapEnabled, setIsSnapEnabled, 
+  const {
+    showGrid, setShowGrid, gridDivisions, setGridDivisions, isSnapEnabled, setIsSnapEnabled,
     activeLayerData, activeUids, updateActiveLayers, setAllImagesBg, images
   } = state;
 
@@ -303,7 +323,7 @@ export function PropertiesSidebar({ state }: Props) {
 
   return (
     <aside style={{ width: 300, background: "var(--bg-panel)", borderLeft: "1px solid var(--border)", display: "flex", flexDirection: "column", zIndex: 20, overflowY: "auto" }}>
-      
+
       <div style={{ padding: "20px 24px", borderBottom: "1px solid var(--border)", background: "rgba(91,80,232,0.03)" }}>
         <h2 style={{ fontSize: 14, fontWeight: 800, color: "var(--accent)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 12, display: "flex", alignItems: "center", gap: 6 }}>
           <Layers size={16} /> Globális Képek
@@ -316,7 +336,7 @@ export function PropertiesSidebar({ state }: Props) {
 
       <div style={{ padding: "20px 24px", borderBottom: "1px solid var(--border)" }}>
         <h2 style={{ fontSize: 14, fontWeight: 800, color: "var(--text)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 16 }}>Vászon</h2>
-        
+
         <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 13, fontWeight: 600, color: "var(--text)", marginBottom: showGrid ? 12 : 16 }}>
           <input type="checkbox" checked={!!showGrid} onChange={(e) => setShowGrid(e.target.checked)} style={{ accentColor: "var(--accent)", width: 16, height: 16 }} />
           Segédrács mutatása
@@ -345,15 +365,15 @@ export function PropertiesSidebar({ state }: Props) {
       <div style={{ padding: "20px 24px", borderBottom: "1px solid var(--border)" }}>
         <h2 style={{ fontSize: 14, fontWeight: 800, color: "var(--text)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Transzformáció</h2>
       </div>
-      
+
       <div style={{ flex: 1, padding: "24px" }}>
         {!activeLayerData ? (
-          <div style={{ 
-            display: "flex", flexDirection: "column", alignItems: "center", 
-            textAlign: "center", color: "var(--text-secondary)", fontSize: 13, marginTop: 20 
+          <div style={{
+            display: "flex", flexDirection: "column", alignItems: "center",
+            textAlign: "center", color: "var(--text-secondary)", fontSize: 13, marginTop: 20
           }}>
             <Pointer style={{ marginBottom: 12, opacity: 0.5 }} size={32} />
-            <div>Válassz ki egy képet a vásznon<br/>vagy a rétegek között!</div>
+            <div>Válassz ki egy képet a vásznon<br />vagy a rétegek között!</div>
           </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
@@ -392,7 +412,7 @@ export function PropertiesSidebar({ state }: Props) {
                 <input type="number" value={Math.round(activeLayerData.y ?? 0)} onChange={(e) => updateActiveLayers({ y: parseInt(e.target.value) || 0 })} style={{ width: "100%", padding: "8px", borderRadius: 6, border: "1px solid var(--border-medium)", background: "var(--bg-elevated)", fontSize: 13, fontFamily: "inherit" }} />
               </div>
             </div>
-            
+
             <button onClick={() => updateActiveLayers({ x: 0, y: 0, zoom: 0.8, rot: 0 })} style={{ marginTop: 12, padding: "10px", background: "var(--bg-elevated)", border: "1px solid var(--border-medium)", borderRadius: 8, color: "var(--text)", fontSize: 12, fontWeight: 700, cursor: "pointer", transition: "all 0.15s ease" }}>
               Középre igazítás & Alaphelyzet
             </button>

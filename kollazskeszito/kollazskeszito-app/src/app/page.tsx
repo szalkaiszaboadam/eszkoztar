@@ -4,7 +4,7 @@
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { useCollage, LoadedImg } from "@/src/components/CollageContext";
-import { Wand2, Zap, Target, Wrench, MonitorX } from "lucide-react"; 
+import { Wand2, Zap, Eraser, Target, Wrench, Hand, MonitorX } from "lucide-react"; 
 import { useIsMobile } from "@/src/components/SharedUI"; 
 
 // --- KOMPONENSEK ---
@@ -168,7 +168,7 @@ export default function HomePage() {
                         display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, zIndex: 10,
                         transition: "all 0.2s ease"
                       }}>
-                        <Wand2 size={12} />
+                        <Eraser size={12} />
                       </button>
                     </div>
                   </div>
@@ -190,7 +190,7 @@ export default function HomePage() {
           </div>
           
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 24 }}>
-            <ModeCard disabled={!hasImages || isMobile} mobileDisabledMsg={isMobile ? "Csak számítógépen elérhető" : undefined} href="/manualis" icon={<Wrench size={32} strokeWidth={1.5} />} title="Manuális" desc="Teljes szabadság. Te kezeled a rétegeket, méreteket és a pontos pozíciókat." />
+            <ModeCard disabled={!hasImages || isMobile} mobileDisabledMsg={isMobile ? "Csak számítógépen elérhető" : undefined} href="/manualis" icon={<Hand size={32} strokeWidth={1.5} />} title="Manuális" desc="Teljes szabadság. Te kezeled a rétegeket, méreteket és a pontos pozíciókat." />
             <ModeCard disabled={!hasImages || isMobile} mobileDisabledMsg={isMobile ? "Csak számítógépen elérhető" : undefined} href="/segitett" icon={<Target size={32} strokeWidth={1.5} />} title="Segített" desc="Szabad mozgástér, de intelligens mágneses rácsvonalakkal a tökéletes illesztésért." />
             <ModeCard disabled={isAutoDisabled} href="/automata" icon={<Zap size={32} strokeWidth={1.5} />} title="Automata" desc="Az algoritmus másodpercek alatt megtalálja a legjobb elrendezést. (Max 6 kép)" />
           </div>

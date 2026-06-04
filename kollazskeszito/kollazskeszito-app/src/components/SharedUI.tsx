@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRef, useEffect, useState } from "react";
 import { renderPreview, AutoLayout } from "@/src/lib/autoLayoutEngine";
 import { LoadedImg } from "./CollageContext"; 
-import { Zap, Target, Wrench, Wand2, Download, Check } from "lucide-react";
+import { Zap, Target, Wrench, Hand, Wand2, Eraser, Download, Check } from "lucide-react";
 
 
 // 💥 ÚJ HOOK: MOBIL ÉRZÉKELŐ (Hydration-biztos) 💥
@@ -128,7 +128,7 @@ export function CompactImageThumb({
           display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, zIndex: 10,
           transition: "all 0.2s ease"
         }}>
-          <Wand2 size={12} />
+          <Eraser size={12} />
         </button>
       )}
     </div>
@@ -193,7 +193,7 @@ export function TopNavbar({
         {!isMobile && (
           <>
           <Link href="/manualis" style={{ padding: "8px 18px", background: currentMode === "manualis" ? "var(--bg-panel)" : "transparent", borderRadius: 6, fontSize: 13, fontWeight: currentMode === "manualis" ? 700 : 600, color: currentMode === "manualis" ? "var(--text)" : "var(--text-secondary)", textDecoration: "none", boxShadow: currentMode === "manualis" ? "0 1px 3px rgba(0,0,0,0.06)" : "none", display: "flex", alignItems: "center", gap: 6 }}>
-              <Wrench size={14} /> Manuális
+              <Hand size={14} /> Manuális
             </Link>
             <Link href="/segitett" style={{ padding: "8px 18px", background: currentMode === "segitett" ? "var(--bg-panel)" : "transparent", borderRadius: 6, fontSize: 13, fontWeight: currentMode === "segitett" ? 700 : 600, color: currentMode === "segitett" ? "var(--text)" : "var(--text-secondary)", textDecoration: "none", boxShadow: currentMode === "segitett" ? "0 1px 3px rgba(0,0,0,0.06)" : "none", display: "flex", alignItems: "center", gap: 6 }}>
               <Target size={14} /> Segített

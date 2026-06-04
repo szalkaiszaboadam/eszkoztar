@@ -19,10 +19,10 @@ type HistorySnapshot = {
 };
 
 export function useManualMode() {
-  const { 
-    images, setImages, removeImage, removeImages, reorderImages, 
+  const {
+    images, setImages, removeImage, removeImages, reorderImages,
     toggleImageBg, setImagesBg, setAllImagesBg, addFiles,
-    manualLayersOverride, setManualLayersOverride // <--- ÚJ
+    manualLayersOverride, setManualLayersOverride, // <--- ÚJ
   } = useCollage();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -39,37 +39,109 @@ export function useManualMode() {
   const [showGrid, setShowGrid] = useState(false);
   const [gridDivisions, setGridDivisions] = useState(20);
   const [isSnapEnabled, setIsSnapEnabled] = useState(true);
-  const [activeSnapLines, setActiveSnapLines] = useState<{x: number | null, y: number | null}>({ x: null, y: null });
+  const [activeSnapLines, setActiveSnapLines] = useState<{ x: number | null, y: number | null }>({ x: null, y: null });
 
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
   const historyRef = useRef<HistorySnapshot[]>([]);
   const historyIndexRef = useRef(-1);
-  const isRestoringRef = useRef(false); 
+  const isRestoringRef = useRef(false);
+
+
+  // 💥 EGYSZERŰ, ÉLÉNK PIROS KÖR MATRICA (Kisebb, sarkokhoz közelebb) 💥
+  const addBadge = useCallback(() => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 400;
+    canvas.height = 400;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    // 1. Finomabb árnyék, hogy ne sötétítse el a képet
+    ctx.shadowColor = "rgba(0, 0, 0, 0.25)";
+    ctx.shadowBlur = 12;
+    ctx.shadowOffsetY = 6;
+
+    // 2. Piros kör - Tiszta, vibráló, élénk piros! (Semmi rózsaszín, semmi sötét)
+    ctx.beginPath();
+    ctx.arc(200, 200, 160, 0, Math.PI * 2);
+    ctx.fillStyle = "#FF0000";
+    ctx.fill();
+
+    // 3. Vékony belső szaggatott vonal
+    ctx.shadowColor = "transparent";
+    ctx.beginPath();
+    ctx.arc(200, 200, 145, 0, Math.PI * 2);
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.6)";
+    ctx.lineWidth = 4;
+    ctx.setLineDash([12, 10]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // 4. "ÚJ" Szöveg (Középen, picit megdöntve)
+    ctx.translate(200, 200);
+    ctx.rotate(15 * Math.PI / 180);
+    ctx.fillStyle = "#ffffff";
+
+    // Vaskos, erős betűtípus
+    ctx.font = "900 130px 'Arial Black', Impact, system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("ÚJ", 0, 10);
+
+    const dataUrl = canvas.toDataURL("image/png");
+    const img = new Image();
+    img.onload = () => {
+      const newUid = Math.random().toString(36).slice(2);
+      const newImg = {
+        el: img,
+        src: dataUrl,
+        name: `cimke_uj.png`,
+        uid: newUid,
+        removeBg: false // Fontos: a szöveget ne tüntesse el az algoritmus!
+      };
+
+      // 💥 KISEBB MÉRET ÉS KÖZELEBB A SAROKHOZ 💥
+      setLayers(prev => ({
+        ...prev,
+        [newUid]: {
+          x: 675,       // Beljebb a jobb széltől (így már nem ér hozzá!)
+          y: -675,      // Lejjebb a felső széltől
+          zoom: 0.65,   // Maradt a kért kisebb, letisztult méret
+          rot: 0,
+          visible: true
+        }
+      }));
+
+      // Kép hozzáadása a memóriához
+      setImages((prev: any) => [...prev, newImg]);
+    };
+    img.src = dataUrl;
+  }, [setImages]);
 
   const saveSnapshot = useCallback((currentImages: LoadedImg[], currentLayers: Record<string, LayerState>) => {
     if (isRestoringRef.current) return;
 
     const mappedImages = currentImages.map(img => ({ uid: img.uid, removeBg: img.removeBg, el: img.el, src: img.src, name: img.name }));
     const lastState = historyRef.current[historyIndexRef.current];
-    
+
     if (lastState) {
       const isImagesSame = JSON.stringify(lastState.images.map(i => ({ u: i.uid, b: i.removeBg }))) === JSON.stringify(mappedImages.map(i => ({ u: i.uid, b: i.removeBg })));
       const isLayersSame = JSON.stringify(lastState.layers) === JSON.stringify(currentLayers);
-      if (isImagesSame && isLayersSame) return; 
+      if (isImagesSame && isLayersSame) return;
     }
 
     const newHistory = historyRef.current.slice(0, historyIndexRef.current + 1);
     newHistory.push({ images: mappedImages as LoadedImg[], layers: JSON.parse(JSON.stringify(currentLayers)) });
-    
-    if (newHistory.length > 30) newHistory.shift(); 
-    
+
+    if (newHistory.length > 30) newHistory.shift();
+
     historyRef.current = newHistory;
     historyIndexRef.current = newHistory.length - 1;
-    
+
     setCanUndo(historyIndexRef.current > 0);
     setCanRedo(historyIndexRef.current < historyRef.current.length - 1);
   }, []);
+
 
 
   // --- ÚJ: Friss állapot referencia a gyors billentyűparancsokhoz ---
@@ -83,20 +155,20 @@ export function useManualMode() {
   }, [images, layers]);
 
 
-// 💥 ÚJ, GOLYÓÁLLÓ RESIZEOBSERVER (Nincs több beragadó kicsi vászon!) 💥
+  // 💥 ÚJ, GOLYÓÁLLÓ RESIZEOBSERVER (Nincs több beragadó kicsi vászon!) 💥
   useEffect(() => {
     let animationFrameId: number;
     let observer: ResizeObserver;
 
     const updateSize = () => {
       if (!containerRef.current) return;
-      
+
       const rect = containerRef.current.getBoundingClientRect();
-      
+
       // A FŐ JAVÍTÁS: Ha a Flexbox még nem rendezte el a layoutot (méret = 0), 
       // akkor ignoráljuk, így nem ugrik össze 100x100-ra!
       if (rect.width === 0 || rect.height === 0) return;
-      
+
       const minDim = Math.min(rect.width, rect.height) - 64;
       setCanvasPixelSize(Math.max(100, minDim));
     };
@@ -104,7 +176,7 @@ export function useManualMode() {
     // 1. Késleltetett első mérés: hagyjuk, hogy a böngésző CSS-e végezzen az elrendezéssel
     const initTimeout = setTimeout(() => {
       updateSize();
-      
+
       // 2. Csak a stabilizálódás után indítjuk a figyelőt
       if (containerRef.current) {
         observer = new ResizeObserver(() => {
@@ -129,22 +201,22 @@ export function useManualMode() {
   const canvasScale = canvasPixelSize / 2000;
 
   useEffect(() => {
-    if (isRestoringRef.current) return; 
+    if (isRestoringRef.current) return;
 
     // HA ÉRKEZETT ÁTADOTT ÁLLAPOT AZ AUTOMATA MÓDBÓL:
     if (manualLayersOverride) {
       setLayers(manualLayersOverride);
-      
+
       // Azonnal elmentjük a történetbe (History), hogy az Undo azonnal működjön rá!
       setTimeout(() => {
         saveSnapshot(images, manualLayersOverride);
       }, 100);
-      
+
       setManualLayersOverride(null); // Töröljük a memóriából, hogy ne ragadjon be
       return;
     }
 
-   // ALAPÉRTELMEZETT ESET (Sima Manuális mód megnyitása)
+    // ALAPÉRTELMEZETT ESET (Sima Manuális mód megnyitása)
     setLayers(prev => {
       const next = { ...prev };
       let changed = false;
@@ -156,7 +228,7 @@ export function useManualMode() {
       });
       return changed ? next : prev;
     });
-  }, [images, manualLayersOverride, setManualLayersOverride, saveSnapshot]); 
+  }, [images, manualLayersOverride, setManualLayersOverride, saveSnapshot]);
 
   useEffect(() => {
     images.forEach(async (img) => {
@@ -169,7 +241,7 @@ export function useManualMode() {
   }, [images]);
 
   const [isDraggingCanvas, setIsDraggingCanvas] = useState(false);
-  const [dragStart, setDragStart] = useState<{ mouseX: number, mouseY: number, itemStarts: Record<string, {x: number, y: number}> }>({ mouseX: 0, mouseY: 0, itemStarts: {} });
+  const [dragStart, setDragStart] = useState<{ mouseX: number, mouseY: number, itemStarts: Record<string, { x: number, y: number }> }>({ mouseX: 0, mouseY: 0, itemStarts: {} });
 
   useEffect(() => {
     if (isRestoringRef.current || isDraggingCanvas) return;
@@ -187,13 +259,13 @@ export function useManualMode() {
       isRestoringRef.current = true;
       historyIndexRef.current -= 1;
       const state = historyRef.current[historyIndexRef.current];
-      
+
       setImages(state.images);
       setLayers(state.layers);
-      
+
       setCanUndo(historyIndexRef.current > 0);
       setCanRedo(historyIndexRef.current < historyRef.current.length - 1);
-      
+
       setTimeout(() => { isRestoringRef.current = false; }, 50);
     }
   }, [setImages]);
@@ -203,13 +275,13 @@ export function useManualMode() {
       isRestoringRef.current = true;
       historyIndexRef.current += 1;
       const state = historyRef.current[historyIndexRef.current];
-      
+
       setImages(state.images);
       setLayers(state.layers);
-      
+
       setCanUndo(historyIndexRef.current > 0);
       setCanRedo(historyIndexRef.current < historyRef.current.length - 1);
-      
+
       setTimeout(() => { isRestoringRef.current = false; }, 50);
     }
   }, [setImages]);
@@ -243,7 +315,7 @@ export function useManualMode() {
     saveSnapshot(images, layers);
 
     if (layers[uid]?.visible === false) return;
-    
+
     let newActiveUids = [...activeUids];
     if (e.shiftKey || e.ctrlKey || e.metaKey) {
       if (newActiveUids.includes(uid)) newActiveUids = newActiveUids.filter(id => id !== uid);
@@ -251,14 +323,14 @@ export function useManualMode() {
     } else {
       if (!activeUids.includes(uid)) newActiveUids = [uid];
     }
-    
+
     setActiveUids(newActiveUids);
 
     if (newActiveUids.length > 0) {
       (e.target as HTMLElement).setPointerCapture(e.pointerId);
       setIsDraggingCanvas(true);
-      
-      const starts: Record<string, {x: number, y: number}> = {};
+
+      const starts: Record<string, { x: number, y: number }> = {};
       newActiveUids.forEach(id => { if (layers[id]) starts[id] = { x: layers[id].x, y: layers[id].y }; });
       setDragStart({ mouseX: e.clientX, mouseY: e.clientY, itemStarts: starts });
     }
@@ -266,7 +338,7 @@ export function useManualMode() {
 
   const onPointerMoveCanvas = (e: React.PointerEvent) => {
     if (!isDraggingCanvas || activeUids.length === 0) return;
-    
+
     const dx = (e.clientX - dragStart.mouseX) / canvasScale;
     const dy = (e.clientY - dragStart.mouseY) / canvasScale;
 
@@ -277,10 +349,10 @@ export function useManualMode() {
 
     if (isSnapEnabled && activeUids.length === 1) {
       const activeUid = activeUids[0];
-      const SNAP_THRESHOLD = 20; 
+      const SNAP_THRESHOLD = 20;
       const draggedImg = images.find(img => img.uid === activeUid);
       const draggedLayer = layers[activeUid];
-      
+
       if (draggedImg && draggedLayer && dragStart.itemStarts[activeUid]) {
         const baseScale = Math.min(2000 / draggedImg.el.width, 2000 / draggedImg.el.height) * 0.5;
         const w = draggedImg.el.width * baseScale * draggedLayer.zoom;
@@ -360,23 +432,23 @@ export function useManualMode() {
       const canvas = document.createElement("canvas");
       canvas.width = 2000; canvas.height = 2000;
       const ctx = canvas.getContext("2d")!;
-      
+
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, 2000, 2000);
 
       images.forEach(img => {
         const l = layers[img.uid];
         if (!l || !l.visible) return;
-        
+
         ctx.save();
         ctx.translate(1000 + l.x, 1000 + l.y);
         ctx.rotate(l.rot * Math.PI / 180);
-        
+
         const baseScale = Math.min(2000 / img.el.width, 2000 / img.el.height) * 0.5;
         const finalScale = baseScale * l.zoom;
         const w = img.el.width * finalScale;
         const h = img.el.height * finalScale;
-        
+
         const imageToDraw = (img.removeBg && processedImages[img.uid]) ? processedImages[img.uid].el : img.el;
         ctx.drawImage(imageToDraw, -w / 2, -h / 2, w, h);
         ctx.restore();
@@ -384,21 +456,21 @@ export function useManualMode() {
 
       downloadCanvasAsImage(canvas, "kollazs_manualis");
       setDownloading(false);
-      setIsSaved(true); 
+      setIsSaved(true);
     }, 100);
   }, [images, layers, processedImages]);
 
   const activeLayerData = activeUids.length > 0 ? layers[activeUids[0]] : null;
 
-return {
+  return {
     images, layers, activeUids, setActiveUids, processedImages,
     containerRef, canvasPixelSize, canvasScale, downloading,
     showGrid, setShowGrid, gridDivisions, setGridDivisions,
     isSnapEnabled, setIsSnapEnabled, activeSnapLines,
     isDraggingCanvas, onPointerDownCanvas, onPointerMoveCanvas, onPointerUpCanvas,
     removeImage, removeImages, reorderImages, updateLayer, updateActiveLayers,
-    download, activeLayerData, 
+    download, activeLayerData,
     toggleImageBg, setImagesBg, setAllImagesBg, addFiles, fileInputRef, isSaved,
-    undo, redo, canUndo, canRedo 
+    addBadge, undo, redo, canUndo, canRedo // <--- EZT ADD HOZZÁ A LISTÁHOZ
   };
 }
