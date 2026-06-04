@@ -1,7 +1,9 @@
+// src/components/ManualUI.tsx (Tetején lévő importok módosítása)
 "use client";
 
 import { useState } from "react";
-import { Eye, EyeOff, Trash2, CheckSquare, XSquare, Wand2, Layers, Plus, Pointer } from "lucide-react"; // ÚJ: Plus ikon
+// ÚJ IMPORTOK: Undo2 és Redo2 hozzáadása a lucide-react-ból!
+import { Eye, EyeOff, Trash2, CheckSquare, XSquare, Wand2, Layers, Plus, Pointer, Undo2, Redo2 } from "lucide-react"; 
 import { useManualMode } from "@/src/hooks/useManualMode";
 
 type ManualState = ReturnType<typeof useManualMode>;
@@ -175,12 +177,13 @@ export function LayerSidebar({ state }: Props) {
   );
 }
 
-// --- 3. KÖZÉPSŐ OSZLOP (VÁSZON) ---
+// --- 3. KÖZÉPSŐ OSZLOP (VÁSZON) ÉS LEBEGŐ ESZKÖZTÁR ---
 export function WorkspaceCanvas({ state }: Props) {
   const { 
     containerRef, canvasPixelSize, canvasScale, showGrid, gridDivisions, activeSnapLines, 
     images, layers, activeUids, setActiveUids, processedImages,
-    onPointerDownCanvas, onPointerMoveCanvas, onPointerUpCanvas, isDraggingCanvas 
+    onPointerDownCanvas, onPointerMoveCanvas, onPointerUpCanvas, isDraggingCanvas,
+    undo, redo, canUndo, canRedo // Húzzuk be az Undo/Redo elemeket
   } = state;
 
   return (
@@ -188,6 +191,7 @@ export function WorkspaceCanvas({ state }: Props) {
       ref={containerRef} onPointerDown={() => setActiveUids([])} 
       style={{ flex: 1, background: "var(--bg)", position: "relative", overflow: "hidden", userSelect: "none", WebkitUserSelect: "none", touchAction: "none" }}
     >
+      {/* 1. MAGA A VÁSZON */}
       <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", width: canvasPixelSize, height: canvasPixelSize, background: "#ffffff", boxShadow: "0 10px 40px rgba(0,0,0,0.08)", overflow: "hidden" }}>
         <div style={{ width: 2000, height: 2000, transformOrigin: "top left", transform: `scale(${canvasScale})`, position: "absolute", top: 0, left: 0 }}>
             {images.map((img, index) => {
@@ -240,6 +244,50 @@ export function WorkspaceCanvas({ state }: Props) {
             </div>
         </div>
       </div>
+
+      {/* 2. ÚJ: LEBEGŐ ESZKÖZTÁR (Glassmorphism effekt) */}
+      <div 
+        onPointerDown={(e) => e.stopPropagation()} // Ne törölje a kijelölést, ha az eszköztárra kattint
+        style={{
+          position: "absolute", bottom: 24, left: "50%", transform: "translateX(-50%)",
+          background: "rgba(255, 255, 255, 0.75)", 
+          backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
+          border: "1px solid rgba(255, 255, 255, 0.5)", 
+          borderRadius: 100, padding: "6px", display: "flex", gap: 4,
+          boxShadow: "0 8px 32px rgba(0, 0, 0, 0.08)", zIndex: 1000
+        }}
+      >
+        <button 
+          onClick={undo} disabled={!canUndo} title="Visszavonás (Ctrl+Z)"
+          style={{
+            width: 44, height: 44, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
+            background: "transparent", border: "none", cursor: canUndo ? "pointer" : "default",
+            color: canUndo ? "var(--text)" : "var(--text-secondary)", opacity: canUndo ? 1 : 0.4,
+            transition: "all 0.2s"
+          }}
+          onMouseEnter={(e) => canUndo && (e.currentTarget.style.background = "rgba(0,0,0,0.06)")}
+          onMouseLeave={(e) => canUndo && (e.currentTarget.style.background = "transparent")}
+        >
+          <Undo2 size={20} strokeWidth={2.5} />
+        </button>
+
+        <div style={{ width: 1, background: "rgba(0,0,0,0.1)", margin: "10px 4px" }} />
+
+        <button 
+          onClick={redo} disabled={!canRedo} title="Újra (Ctrl+Y)"
+          style={{
+            width: 44, height: 44, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
+            background: "transparent", border: "none", cursor: canRedo ? "pointer" : "default",
+            color: canRedo ? "var(--text)" : "var(--text-secondary)", opacity: canRedo ? 1 : 0.4,
+            transition: "all 0.2s"
+          }}
+          onMouseEnter={(e) => canRedo && (e.currentTarget.style.background = "rgba(0,0,0,0.06)")}
+          onMouseLeave={(e) => canRedo && (e.currentTarget.style.background = "transparent")}
+        >
+          <Redo2 size={20} strokeWidth={2.5} />
+        </button>
+      </div>
+
     </main>
   );
 }

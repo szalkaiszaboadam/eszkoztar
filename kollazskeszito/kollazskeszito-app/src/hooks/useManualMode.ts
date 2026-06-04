@@ -1,10 +1,10 @@
+// src/hooks/useManualMode.ts
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useCollage } from "@/src/components/CollageContext";
+import { useCollage, LoadedImg } from "@/src/components/CollageContext";
 import { processWhiteBackground, downloadCanvasAsImage } from "@/src/lib/imageProcessing";
 
-// ÚJ: Kikerült a removeBg a LayerState-ből, mert a globálisból vesszük!
 export type LayerState = {
   x: number;
   y: number;
@@ -13,9 +13,13 @@ export type LayerState = {
   visible: boolean;
 };
 
+type HistorySnapshot = {
+  images: LoadedImg[];
+  layers: Record<string, LayerState>;
+};
+
 export function useManualMode() {
-// Így nézzen ki:
-  const { images, removeImage, removeImages, reorderImages, toggleImageBg, setImagesBg, setAllImagesBg, addFiles } = useCollage(); // ÚJ: addFiles
+  const { images, setImages, removeImage, removeImages, reorderImages, toggleImageBg, setImagesBg, setAllImagesBg, addFiles } = useCollage();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [layers, setLayers] = useState<Record<string, LayerState>>({});
@@ -26,14 +30,25 @@ export function useManualMode() {
   const [canvasPixelSize, setCanvasPixelSize] = useState(800);
   const containerRef = useRef<HTMLDivElement>(null);
   const [downloading, setDownloading] = useState(false);
-  const [isSaved, setIsSaved] = useState(false); // <--- EZT ADD HOZZÁ
+  const [isSaved, setIsSaved] = useState(false);
 
   const [showGrid, setShowGrid] = useState(false);
   const [gridDivisions, setGridDivisions] = useState(20);
   const [isSnapEnabled, setIsSnapEnabled] = useState(true);
   const [activeSnapLines, setActiveSnapLines] = useState<{x: number | null, y: number | null}>({ x: null, y: null });
 
-// ÚJ: Bármi változik a vásznon, a Mentés gomb újra aktív lesz!
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
+  const historyRef = useRef<HistorySnapshot[]>([]);
+  const historyIndexRef = useRef(-1);
+  const isRestoringRef = useRef(false); 
+
+  // --- ÚJ: Friss állapot referencia a gyors billentyűparancsokhoz ---
+  const latestStateRef = useRef({ images, layers });
+  useEffect(() => {
+    latestStateRef.current = { images, layers };
+  }, [images, layers]);
+
   useEffect(() => {
     setIsSaved(false);
   }, [images, layers]);
@@ -43,16 +58,13 @@ export function useManualMode() {
       const minDim = Math.min(w, h) - 64;
       setCanvasPixelSize(Math.max(100, minDim));
     };
-
     if (containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
       updateSize(rect.width, rect.height);
     }
-
     const obs = new ResizeObserver((entries) => {
       for (let e of entries) { updateSize(e.contentRect.width, e.contentRect.height); }
     });
-
     if (containerRef.current) obs.observe(containerRef.current);
     return () => obs.disconnect();
   }, []);
@@ -60,12 +72,12 @@ export function useManualMode() {
   const canvasScale = canvasPixelSize / 2000;
 
   useEffect(() => {
+    if (isRestoringRef.current) return; 
     setLayers(prev => {
       const next = { ...prev };
       let changed = false;
       images.forEach(img => {
         if (!next[img.uid]) {
-          // ÚJ: Már nem itt állítjuk be a removeBg-t!
           next[img.uid] = { x: 0, y: 0, zoom: 0.8, rot: 0, visible: true };
           changed = true;
         }
@@ -87,8 +99,101 @@ export function useManualMode() {
   const [isDraggingCanvas, setIsDraggingCanvas] = useState(false);
   const [dragStart, setDragStart] = useState<{ mouseX: number, mouseY: number, itemStarts: Record<string, {x: number, y: number}> }>({ mouseX: 0, mouseY: 0, itemStarts: {} });
 
+  const saveSnapshot = useCallback((currentImages: LoadedImg[], currentLayers: Record<string, LayerState>) => {
+    if (isRestoringRef.current) return;
+
+    const mappedImages = currentImages.map(img => ({ uid: img.uid, removeBg: img.removeBg, el: img.el, src: img.src, name: img.name }));
+    const lastState = historyRef.current[historyIndexRef.current];
+    
+    if (lastState) {
+      const isImagesSame = JSON.stringify(lastState.images.map(i => ({ u: i.uid, b: i.removeBg }))) === JSON.stringify(mappedImages.map(i => ({ u: i.uid, b: i.removeBg })));
+      const isLayersSame = JSON.stringify(lastState.layers) === JSON.stringify(currentLayers);
+      if (isImagesSame && isLayersSame) return; 
+    }
+
+    const newHistory = historyRef.current.slice(0, historyIndexRef.current + 1);
+    newHistory.push({ images: mappedImages as LoadedImg[], layers: JSON.parse(JSON.stringify(currentLayers)) });
+    
+    if (newHistory.length > 30) newHistory.shift(); 
+    
+    historyRef.current = newHistory;
+    historyIndexRef.current = newHistory.length - 1;
+    
+    setCanUndo(historyIndexRef.current > 0);
+    setCanRedo(historyIndexRef.current < historyRef.current.length - 1);
+  }, []);
+
+  useEffect(() => {
+    if (isRestoringRef.current || isDraggingCanvas) return;
+    if (images.length === 0 && historyRef.current.length === 0) return;
+
+    const timer = setTimeout(() => {
+      saveSnapshot(images, layers);
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [images, layers, isDraggingCanvas, saveSnapshot]);
+
+  const undo = useCallback(() => {
+    if (historyIndexRef.current > 0) {
+      isRestoringRef.current = true;
+      historyIndexRef.current -= 1;
+      const state = historyRef.current[historyIndexRef.current];
+      
+      setImages(state.images);
+      setLayers(state.layers);
+      
+      setCanUndo(historyIndexRef.current > 0);
+      setCanRedo(historyIndexRef.current < historyRef.current.length - 1);
+      
+      setTimeout(() => { isRestoringRef.current = false; }, 50);
+    }
+  }, [setImages]);
+
+  const redo = useCallback(() => {
+    if (historyIndexRef.current < historyRef.current.length - 1) {
+      isRestoringRef.current = true;
+      historyIndexRef.current += 1;
+      const state = historyRef.current[historyIndexRef.current];
+      
+      setImages(state.images);
+      setLayers(state.layers);
+      
+      setCanUndo(historyIndexRef.current > 0);
+      setCanRedo(historyIndexRef.current < historyRef.current.length - 1);
+      
+      setTimeout(() => { isRestoringRef.current = false; }, 50);
+    }
+  }, [setImages]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) return;
+
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        // ÚJ: Azonnali mentés a Ctrl+Z lenyomásakor, hogy a legutolsó gyors mozdulat se vesszen el!
+        saveSnapshot(latestStateRef.current.images, latestStateRef.current.layers);
+        if (e.shiftKey) redo(); else undo();
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+        e.preventDefault();
+        saveSnapshot(latestStateRef.current.images, latestStateRef.current.layers);
+        redo();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [undo, redo, saveSnapshot]);
+
   const onPointerDownCanvas = (e: React.PointerEvent, uid: string) => {
     e.stopPropagation();
+
+    // 💥 A FŐ JAVÍTÁS ITT VAN 💥
+    // Mielőtt egy új húzás elkezdődne, belekényszerítjük a legutóbbi állapotot a történetbe.
+    // Így ha a 400ms-es várakozás még nem járt le az előző kép elengedése óta, az is biztosan külön lépés lesz!
+    saveSnapshot(images, layers);
+
     if (layers[uid]?.visible === false) return;
     
     let newActiveUids = [...activeUids];
@@ -224,7 +329,6 @@ export function useManualMode() {
         const w = img.el.width * finalScale;
         const h = img.el.height * finalScale;
         
-        // ÚJ: A 'removeBg' már az 'img'-ből jön, nem a layer-ből!
         const imageToDraw = (img.removeBg && processedImages[img.uid]) ? processedImages[img.uid].el : img.el;
         ctx.drawImage(imageToDraw, -w / 2, -h / 2, w, h);
         ctx.restore();
@@ -232,7 +336,7 @@ export function useManualMode() {
 
       downloadCanvasAsImage(canvas, "kollazs_manualis");
       setDownloading(false);
-      setIsSaved(true); // <--- EZT ADD HOZZÁ A setTimeout VÉGÉRE
+      setIsSaved(true); 
     }, 100);
   }, [images, layers, processedImages]);
 
@@ -244,9 +348,9 @@ return {
     showGrid, setShowGrid, gridDivisions, setGridDivisions,
     isSnapEnabled, setIsSnapEnabled, activeSnapLines,
     isDraggingCanvas, onPointerDownCanvas, onPointerMoveCanvas, onPointerUpCanvas,
-    // JAVÍTÁS: Innen vettük ki az updateAllLayers-t, mert már nincs rá szükség!
     removeImage, removeImages, reorderImages, updateLayer, updateActiveLayers,
     download, activeLayerData, 
-    toggleImageBg, setImagesBg, setAllImagesBg, addFiles, fileInputRef, isSaved
+    toggleImageBg, setImagesBg, setAllImagesBg, addFiles, fileInputRef, isSaved,
+    undo, redo, canUndo, canRedo 
   };
 }
