@@ -3,8 +3,8 @@ import { CollageProvider } from "@/src/components/CollageContext";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Kollázs – Auto Elrendező",
-  description: "Automatikus kollázskészítő",
+  title: "Kollázskészítő",
+  description: "Kollázskészítő",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

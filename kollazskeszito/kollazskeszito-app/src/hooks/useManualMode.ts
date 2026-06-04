@@ -19,7 +19,11 @@ type HistorySnapshot = {
 };
 
 export function useManualMode() {
-  const { images, setImages, removeImage, removeImages, reorderImages, toggleImageBg, setImagesBg, setAllImagesBg, addFiles } = useCollage();
+  const { 
+    images, setImages, removeImage, removeImages, reorderImages, 
+    toggleImageBg, setImagesBg, setAllImagesBg, addFiles,
+    manualLayersOverride, setManualLayersOverride // <--- ÚJ
+  } = useCollage();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [layers, setLayers] = useState<Record<string, LayerState>>({});
@@ -42,62 +46,6 @@ export function useManualMode() {
   const historyRef = useRef<HistorySnapshot[]>([]);
   const historyIndexRef = useRef(-1);
   const isRestoringRef = useRef(false); 
-
-  // --- ÚJ: Friss állapot referencia a gyors billentyűparancsokhoz ---
-  const latestStateRef = useRef({ images, layers });
-  useEffect(() => {
-    latestStateRef.current = { images, layers };
-  }, [images, layers]);
-
-  useEffect(() => {
-    setIsSaved(false);
-  }, [images, layers]);
-
-  useEffect(() => {
-    const updateSize = (w: number, h: number) => {
-      const minDim = Math.min(w, h) - 64;
-      setCanvasPixelSize(Math.max(100, minDim));
-    };
-    if (containerRef.current) {
-      const rect = containerRef.current.getBoundingClientRect();
-      updateSize(rect.width, rect.height);
-    }
-    const obs = new ResizeObserver((entries) => {
-      for (let e of entries) { updateSize(e.contentRect.width, e.contentRect.height); }
-    });
-    if (containerRef.current) obs.observe(containerRef.current);
-    return () => obs.disconnect();
-  }, []);
-
-  const canvasScale = canvasPixelSize / 2000;
-
-  useEffect(() => {
-    if (isRestoringRef.current) return; 
-    setLayers(prev => {
-      const next = { ...prev };
-      let changed = false;
-      images.forEach(img => {
-        if (!next[img.uid]) {
-          next[img.uid] = { x: 0, y: 0, zoom: 0.8, rot: 0, visible: true };
-          changed = true;
-        }
-      });
-      return changed ? next : prev;
-    });
-  }, [images]);
-
-  useEffect(() => {
-    images.forEach(async (img) => {
-      if (!processedRef.current.has(img.uid)) {
-        processedRef.current.add(img.uid);
-        const processed = await processWhiteBackground(img.el);
-        setProcessedImages(prev => ({ ...prev, [img.uid]: processed }));
-      }
-    });
-  }, [images]);
-
-  const [isDraggingCanvas, setIsDraggingCanvas] = useState(false);
-  const [dragStart, setDragStart] = useState<{ mouseX: number, mouseY: number, itemStarts: Record<string, {x: number, y: number}> }>({ mouseX: 0, mouseY: 0, itemStarts: {} });
 
   const saveSnapshot = useCallback((currentImages: LoadedImg[], currentLayers: Record<string, LayerState>) => {
     if (isRestoringRef.current) return;
@@ -122,6 +70,106 @@ export function useManualMode() {
     setCanUndo(historyIndexRef.current > 0);
     setCanRedo(historyIndexRef.current < historyRef.current.length - 1);
   }, []);
+
+
+  // --- ÚJ: Friss állapot referencia a gyors billentyűparancsokhoz ---
+  const latestStateRef = useRef({ images, layers });
+  useEffect(() => {
+    latestStateRef.current = { images, layers };
+  }, [images, layers]);
+
+  useEffect(() => {
+    setIsSaved(false);
+  }, [images, layers]);
+
+
+// 💥 ÚJ, GOLYÓÁLLÓ RESIZEOBSERVER (Nincs több beragadó kicsi vászon!) 💥
+  useEffect(() => {
+    let animationFrameId: number;
+    let observer: ResizeObserver;
+
+    const updateSize = () => {
+      if (!containerRef.current) return;
+      
+      const rect = containerRef.current.getBoundingClientRect();
+      
+      // A FŐ JAVÍTÁS: Ha a Flexbox még nem rendezte el a layoutot (méret = 0), 
+      // akkor ignoráljuk, így nem ugrik össze 100x100-ra!
+      if (rect.width === 0 || rect.height === 0) return;
+      
+      const minDim = Math.min(rect.width, rect.height) - 64;
+      setCanvasPixelSize(Math.max(100, minDim));
+    };
+
+    // 1. Késleltetett első mérés: hagyjuk, hogy a böngésző CSS-e végezzen az elrendezéssel
+    const initTimeout = setTimeout(() => {
+      updateSize();
+      
+      // 2. Csak a stabilizálódás után indítjuk a figyelőt
+      if (containerRef.current) {
+        observer = new ResizeObserver(() => {
+          cancelAnimationFrame(animationFrameId);
+          animationFrameId = requestAnimationFrame(updateSize);
+        });
+        observer.observe(containerRef.current);
+      }
+    }, 50);
+
+    // 3. Biztonsági háló: Ha a ResizeObserver mégis leállna, a sima ablakméretezés is frissít!
+    window.addEventListener("resize", updateSize);
+
+    return () => {
+      clearTimeout(initTimeout);
+      cancelAnimationFrame(animationFrameId);
+      window.removeEventListener("resize", updateSize);
+      if (observer) observer.disconnect();
+    };
+  }, []);
+
+  const canvasScale = canvasPixelSize / 2000;
+
+  useEffect(() => {
+    if (isRestoringRef.current) return; 
+
+    // HA ÉRKEZETT ÁTADOTT ÁLLAPOT AZ AUTOMATA MÓDBÓL:
+    if (manualLayersOverride) {
+      setLayers(manualLayersOverride);
+      
+      // Azonnal elmentjük a történetbe (History), hogy az Undo azonnal működjön rá!
+      setTimeout(() => {
+        saveSnapshot(images, manualLayersOverride);
+      }, 100);
+      
+      setManualLayersOverride(null); // Töröljük a memóriából, hogy ne ragadjon be
+      return;
+    }
+
+   // ALAPÉRTELMEZETT ESET (Sima Manuális mód megnyitása)
+    setLayers(prev => {
+      const next = { ...prev };
+      let changed = false;
+      images.forEach(img => {
+        if (!next[img.uid]) {
+          next[img.uid] = { x: 0, y: 0, zoom: 0.8, rot: 0, visible: true };
+          changed = true;
+        }
+      });
+      return changed ? next : prev;
+    });
+  }, [images, manualLayersOverride, setManualLayersOverride, saveSnapshot]); 
+
+  useEffect(() => {
+    images.forEach(async (img) => {
+      if (!processedRef.current.has(img.uid)) {
+        processedRef.current.add(img.uid);
+        const processed = await processWhiteBackground(img.el);
+        setProcessedImages(prev => ({ ...prev, [img.uid]: processed }));
+      }
+    });
+  }, [images]);
+
+  const [isDraggingCanvas, setIsDraggingCanvas] = useState(false);
+  const [dragStart, setDragStart] = useState<{ mouseX: number, mouseY: number, itemStarts: Record<string, {x: number, y: number}> }>({ mouseX: 0, mouseY: 0, itemStarts: {} });
 
   useEffect(() => {
     if (isRestoringRef.current || isDraggingCanvas) return;

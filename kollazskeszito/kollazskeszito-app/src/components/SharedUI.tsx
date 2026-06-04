@@ -1,15 +1,34 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { renderPreview, AutoLayout } from "@/src/lib/autoLayoutEngine";
 import { LoadedImg } from "./CollageContext"; 
 import { Zap, Target, Wrench, Wand2, Download, Check } from "lucide-react";
+
+
+// 💥 ÚJ HOOK: MOBIL ÉRZÉKELŐ (Hydration-biztos) 💥
+export function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check(); // Kezdeti ellenőrzés
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
+  if (!mounted) return false; 
+  return isMobile;
+}
 
 export function LayoutCard({ layout, index, selected, onSelect }: {
   layout: AutoLayout; index: number; selected: boolean; onSelect: () => void;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const isMobile = useIsMobile(); // 💥 JAVÍTÁS: Lekérdezzük, hogy mobilon vagyunk-e!
 
   useEffect(() => {
     const c = canvasRef.current;
@@ -21,13 +40,15 @@ export function LayoutCard({ layout, index, selected, onSelect }: {
     <button
       onClick={onSelect}
       style={{
-        flex: "1 1 0", minWidth: 0, maxWidth: 380, 
+        // 💥 JAVÍTÁS: Mobilon 100% széles lesz és nem zsugorodik (flex: none), asztalin megosztja a helyet (flex: 1 1 0).
+        flex: isMobile ? "none" : "1 1 0", width: isMobile ? "100%" : "auto", minWidth: 0, maxWidth: 450, 
         display: "flex", flexDirection: "column", alignItems: "stretch", gap: 12,
         background: selected ? "rgba(91,80,232,0.04)" : "var(--bg-panel)",
         border: `2px solid ${selected ? "var(--accent)" : "transparent"}`,
         borderRadius: 16, padding: 16,
         cursor: "pointer", transition: "all 0.2s ease",
         boxShadow: selected ? "0 4px 24px var(--accent-glow)" : "0 4px 12px rgba(0,0,0,0.03)",
+        margin: "0 auto" // Középre igazítás mobilon
       }}
     >
       <div style={{
@@ -46,7 +67,7 @@ export function LayoutCard({ layout, index, selected, onSelect }: {
         }}>
           {selected && <span style={{ color: "#fff", fontSize: 12, lineHeight: 1 }}>✓</span>}
         </div>
-        <span style={{ fontSize: 13, fontWeight: 800, color: selected ? "var(--accent)" : "var(--text-secondary)" }}>
+        <span style={{ fontSize: 13, fontWeight: 800, color: selected ? "var(--accent)" : "var(--text-secondary)", fontFamily: "inherit" }}>
           {index + 1}. változat
         </span>
       </div>
@@ -145,42 +166,53 @@ export function QuickSelect({ label, value, options, onChange }: {
 
 export function TopNavbar({
   currentMode, onDownload, isDownloadDisabled, downloading, imageCount, 
-  isSaved = false // ÚJ: isSaved paraméter (alapértelmezetten false)
+  isSaved = false
 }: {
   currentMode: "automata" | "segitett" | "manualis";
   onDownload: () => void;
   isDownloadDisabled: boolean;
   downloading: boolean;
   imageCount: number;
-  isSaved?: boolean; // ÚJ
+  isSaved?: boolean;
 }) {
   const isAutoDisabled = imageCount > 6; 
+  const isMobile = useIsMobile(); // 💥 Használjuk a hookot!
 
   return (
-    <header style={{ height: 64, flexShrink: 0, borderBottom: "1px solid var(--border)", padding: "0 24px", display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", background: "var(--bg-panel)", zIndex: 30 }}>
-      <Link href="/" style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none", justifySelf: "start" }}>
+    <header style={{ height: 64, flexShrink: 0, borderBottom: "1px solid var(--border)", padding: isMobile ? "0 12px" : "0 24px", display: "flex", justifyContent: "space-between", alignItems: "center", background: "var(--bg-panel)", zIndex: 30 }}>
+      
+      {/* LOGÓ */}
+      <Link href="/" style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none" }}>
         <div style={{ width: 32, height: 32, borderRadius: 8, background: "var(--accent)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16, color: "#fff", fontWeight: 800 }}>⊞</div>
-        <span style={{ fontWeight: 800, fontSize: 18, letterSpacing: "-0.02em", color: "var(--text)" }}>Kollázs</span>
+        {!isMobile && <span style={{ fontWeight: 800, fontSize: 18, letterSpacing: "-0.02em", color: "var(--text)" }}>Kollázs</span>}
       </Link>
 
-      <div style={{ display: "flex", background: "var(--bg-elevated)", padding: 4, borderRadius: 10, border: "1px solid var(--border)", gap: 4, justifySelf: "center" }}>
-        <Link href={isAutoDisabled ? "#" : "/automata"} onClick={(e) => isAutoDisabled && e.preventDefault()} title={isAutoDisabled ? "Maximum 6 kép engedélyezett az Automata módban!" : ""} style={{ padding: "8px 18px", background: currentMode === "automata" ? "var(--bg-panel)" : "transparent", borderRadius: 6, fontSize: 13, fontWeight: currentMode === "automata" ? 700 : 600, color: currentMode === "automata" ? "var(--text)" : "var(--text-secondary)", textDecoration: "none", boxShadow: currentMode === "automata" ? "0 1px 3px rgba(0,0,0,0.06)" : "none", display: "flex", alignItems: "center", gap: 6, opacity: isAutoDisabled ? 0.5 : 1, cursor: isAutoDisabled ? "not-allowed" : "pointer", transition: "all 0.2s" }}>
-          <Zap size={14} /> Automata
-        </Link>
-        <Link href="/segitett" style={{ padding: "8px 18px", background: currentMode === "segitett" ? "var(--bg-panel)" : "transparent", borderRadius: 6, fontSize: 13, fontWeight: currentMode === "segitett" ? 700 : 600, color: currentMode === "segitett" ? "var(--text)" : "var(--text-secondary)", textDecoration: "none", boxShadow: currentMode === "segitett" ? "0 1px 3px rgba(0,0,0,0.06)" : "none", display: "flex", alignItems: "center", gap: 6 }}>
-          <Target size={14} /> Segített
-        </Link>
-        <Link href="/manualis" style={{ padding: "8px 18px", background: currentMode === "manualis" ? "var(--bg-panel)" : "transparent", borderRadius: 6, fontSize: 13, fontWeight: currentMode === "manualis" ? 700 : 600, color: currentMode === "manualis" ? "var(--text)" : "var(--text-secondary)", textDecoration: "none", boxShadow: currentMode === "manualis" ? "0 1px 3px rgba(0,0,0,0.06)" : "none", display: "flex", alignItems: "center", gap: 6 }}>
-          <Wrench size={14} /> Manuális
+      {/* MÓDVÁLASZTÓ (Mobilon csak az Automata látszik) */}
+      <div style={{ display: "flex", background: "var(--bg-elevated)", padding: 4, borderRadius: 10, border: "1px solid var(--border)", gap: 4 }}>
+        
+        {!isMobile && (
+          <>
+          <Link href="/manualis" style={{ padding: "8px 18px", background: currentMode === "manualis" ? "var(--bg-panel)" : "transparent", borderRadius: 6, fontSize: 13, fontWeight: currentMode === "manualis" ? 700 : 600, color: currentMode === "manualis" ? "var(--text)" : "var(--text-secondary)", textDecoration: "none", boxShadow: currentMode === "manualis" ? "0 1px 3px rgba(0,0,0,0.06)" : "none", display: "flex", alignItems: "center", gap: 6 }}>
+              <Wrench size={14} /> Manuális
+            </Link>
+            <Link href="/segitett" style={{ padding: "8px 18px", background: currentMode === "segitett" ? "var(--bg-panel)" : "transparent", borderRadius: 6, fontSize: 13, fontWeight: currentMode === "segitett" ? 700 : 600, color: currentMode === "segitett" ? "var(--text)" : "var(--text-secondary)", textDecoration: "none", boxShadow: currentMode === "segitett" ? "0 1px 3px rgba(0,0,0,0.06)" : "none", display: "flex", alignItems: "center", gap: 6 }}>
+              <Target size={14} /> Segített
+            </Link>
+
+          </>
+        )}
+
+        <Link href={isAutoDisabled ? "#" : "/automata"} onClick={(e) => isAutoDisabled && e.preventDefault()} style={{ padding: "8px 18px", background: currentMode === "automata" ? "var(--bg-panel)" : "transparent", borderRadius: 6, fontSize: 13, fontWeight: currentMode === "automata" ? 700 : 600, color: currentMode === "automata" ? "var(--text)" : "var(--text-secondary)", textDecoration: "none", boxShadow: currentMode === "automata" ? "0 1px 3px rgba(0,0,0,0.06)" : "none", display: "flex", alignItems: "center", gap: 6, opacity: isAutoDisabled ? 0.5 : 1, cursor: isAutoDisabled ? "not-allowed" : "pointer", transition: "all 0.2s" }}>
+          <Zap size={14} /> {isMobile && currentMode !== "automata" ? "" : "Automata"}
         </Link>
       </div>
 
+      {/* LETÖLTÉS GOMB */}
       <button 
         onClick={onDownload} 
         disabled={isDownloadDisabled || downloading || isSaved} 
         style={{ 
-          height: 40, padding: "0 20px", 
-          // JAVÍTÁS: A gomb stílusa aszerint változik, hogy mentve van-e!
+          height: 40, padding: isMobile ? "0 12px" : "0 20px", 
           background: isSaved ? "rgba(16, 185, 129, 0.1)" : (!isDownloadDisabled ? "var(--accent)" : "var(--bg-elevated)"), 
           color: isSaved ? "#10b981" : (!isDownloadDisabled ? "#fff" : "var(--text-secondary)"), 
           border: isSaved ? "1px solid rgba(16, 185, 129, 0.3)" : "1px solid transparent", 
@@ -188,21 +220,10 @@ export function TopNavbar({
           cursor: (!isDownloadDisabled && !isSaved) ? "pointer" : "default", 
           display: "flex", alignItems: "center", gap: 8, 
           boxShadow: (!isDownloadDisabled && !isSaved) ? "0 4px 14px var(--accent-glow)" : "none", 
-          justifySelf: "end", transition: "all 0.2s ease" 
+          transition: "all 0.2s ease" 
         }}
       >
-        {downloading ? (
-          "Mentés..."
-        ) : isSaved ? (
-          <>
-            {/* ÚJ: Sikeres állapot */}
-            <Check size={16} /> Mentve
-          </>
-        ) : (
-          <>
-            <Download size={16} /> Letöltés
-          </>
-        )}
+        {downloading ? "Mentés..." : isSaved ? <><Check size={16} /> {isMobile ? "" : "Mentve"}</> : <><Download size={16} /> {isMobile ? "" : "Letöltés"}</>}
       </button>
     </header>
   );

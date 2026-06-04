@@ -1,27 +1,27 @@
+// src/app/page.tsx
 "use client";
 
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { useCollage, LoadedImg } from "@/src/components/CollageContext";
-// ÚJ IMPORTOK: A módválasztó ikonjai
-import { Wand2, Zap, Target, Wrench, Plus } from "lucide-react"; 
+import { Wand2, Zap, Target, Wrench, MonitorX } from "lucide-react"; 
+import { useIsMobile } from "@/src/components/SharedUI"; 
 
 // --- KOMPONENSEK ---
-// JAVÍTÁS: Az 'icon' típusa most már React.ReactNode, hogy fogadja a Lucide ikonokat
-function ModeCard({ title, badge, desc, href, icon, disabled }: { title: string, badge: string, desc: string, href: string, icon: React.ReactNode, disabled: boolean }) {
+function ModeCard({ title, desc, href, icon, disabled, mobileDisabledMsg }: { title: string, desc: string, href: string, icon: React.ReactNode, disabled: boolean, mobileDisabledMsg?: string }) {
   return (
-    <Link href={disabled ? "#" : href} style={{ textDecoration: "none", opacity: disabled ? 0.5 : 1, pointerEvents: disabled ? "none" : "auto", display: "block", height: "100%" }}>
+    <Link href={disabled ? "#" : href} style={{ textDecoration: "none", opacity: disabled ? 0.6 : 1, pointerEvents: disabled ? "none" : "auto", display: "block", height: "100%" }}>
       <div style={{
         background: "var(--bg-panel)", border: "1px solid var(--border)", borderRadius: 16,
-        padding: 24, display: "flex", flexDirection: "column", gap: 12,
+        padding: 24, display: "flex", flexDirection: "column", gap: 16,
         cursor: disabled ? "not-allowed" : "pointer", transition: "all 0.2s ease", height: "100%",
         boxShadow: "0 4px 12px rgba(0,0,0,0.02)"
       }}
       onMouseEnter={(e) => {
         if (disabled) return;
         e.currentTarget.style.borderColor = "var(--accent)";
-        e.currentTarget.style.transform = "translateY(-4px)";
-        e.currentTarget.style.boxShadow = "0 8px 24px var(--accent-glow)";
+        e.currentTarget.style.transform = "translateY(-6px)";
+        e.currentTarget.style.boxShadow = "0 12px 32px var(--accent-glow)";
       }}
       onMouseLeave={(e) => {
         if (disabled) return;
@@ -30,25 +30,32 @@ function ModeCard({ title, badge, desc, href, icon, disabled }: { title: string,
         e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.02)";
       }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
-          {/* Itt jelenik meg a Lucide ikon */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text)" }}>{icon}</div>
-          <span style={{ fontSize: 10, fontWeight: 800, color: "var(--accent)", background: "rgba(91,80,232,0.1)", borderRadius: 6, padding: "4px 8px", letterSpacing: "0.06em", textTransform: "uppercase" }}>
-            {badge}
-          </span>
         </div>
         <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
-          <h2 style={{ fontSize: 18, fontWeight: 800, color: "var(--text)", marginBottom: 6 }}>{title}</h2>
-          <p style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.5 }}>{desc}</p>
+          <h2 style={{ fontSize: 20, fontWeight: 800, color: "var(--text)", marginBottom: 8 }}>{title}</h2>
+          
+          {disabled && mobileDisabledMsg && (
+            <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#ef4444", fontSize: 13, fontWeight: 700, marginBottom: 8, background: "#fef2f2", padding: "4px 8px", borderRadius: 6, width: "fit-content" }}>
+              <MonitorX size={14} /> {mobileDisabledMsg}
+            </div>
+          )}
+
+          <p style={{ fontSize: 14, color: "var(--text-secondary)", lineHeight: 1.5 }}>{desc}</p>
         </div>
       </div>
     </Link>
   );
 }
+
 // --- FŐ ALKALMAZÁS ---
 export default function HomePage() {
-  const { images, addFiles, removeImage, rotateImage, reorderImages, clearImages, toggleImageBg } = useCollage(); // ÚJ
+  // JAVÍTÁS: Visszahúztuk a reorderImages-t is a Contextből!
+  const { images, addFiles, removeImage, rotateImage, reorderImages, clearImages, toggleImageBg } = useCollage(); 
+  const isMobile = useIsMobile(); 
   
   const [isDragOverDropzone, setIsDragOverDropzone] = useState(false);
+  // JAVÍTÁS: Visszakerültek az állapotok az előnézethez és a drag&drophoz!
   const [previewImg, setPreviewImg] = useState<LoadedImg | null>(null);
   const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
@@ -58,28 +65,24 @@ export default function HomePage() {
   const isAutoDisabled = !hasImages || images.length > 6;
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--bg)", padding: 24, boxSizing: "border-box", overflowY: "auto" }}>
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--bg)", padding: isMobile ? "16px 16px 40px 16px" : "24px 24px 64px 24px", boxSizing: "border-box", overflowY: "auto" }}>
       
-      {/* FEJLÉC */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 16, flexShrink: 0, marginBottom: 24 }}>
-        <div style={{ width: 44, height: 44, borderRadius: 10, background: "var(--accent)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, fontWeight: 800 }}>⊞</div>
-        <h1 style={{ fontSize: 28, fontWeight: 800, color: "var(--text)", letterSpacing: "-0.02em" }}>Kollázs</h1>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: isMobile ? 24 : 48, marginBottom: isMobile ? 32 : 56, textAlign: "center" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 12 : 20, marginBottom: 16 }}>
+          <div style={{ width: isMobile ? 44 : 56, height: isMobile ? 44 : 56, borderRadius: 14, background: "var(--accent)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: isMobile ? 24 : 28, fontWeight: 800, boxShadow: "0 8px 24px var(--accent-glow)" }}>⊞</div>
+          <h1 style={{ fontSize: isMobile ? 36 : 48, fontWeight: 900, color: "var(--text)", letterSpacing: "-0.03em", lineHeight: 1 }}>Kollázs</h1>
+        </div>
+        <p style={{ fontSize: isMobile ? 14 : 16, color: "var(--text-secondary)", fontWeight: 500, padding: "0 16px" }}>Tölts fel képeket, és készíts profi elrendezéseket másodpercek alatt.</p>
       </div>
 
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", gap: 32, maxWidth: 1100, width: "100%", margin: "0 auto", minHeight: 0 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 32 : 48, maxWidth: 1000, width: "100%", margin: "0 auto" }}>
         
-        {/* 1. LÉPÉS: KÉPFELTÖLTÉS */}
-        <div style={{ 
-           flexShrink: 0, height: 224, background: "var(--bg-panel)", border: "1px solid var(--border)", 
-           borderRadius: 16, padding: 24, boxShadow: "0 4px 20px rgba(0,0,0,0.02)",
-          display: "flex", flexDirection: "column"
-        }}>
+        {/* 1. LÉPÉS */}
+        <div style={{ height: isMobile ? "auto" : 240, minHeight: 240, background: "var(--bg-panel)", border: "1px solid var(--border)", borderRadius: 20, padding: isMobile ? 20 : 28, boxShadow: "0 8px 32px rgba(0,0,0,0.03)", display: "flex", flexDirection: "column" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, flexShrink: 0 }}>
-            <h2 style={{ fontSize: 16, fontWeight: 800, color: "var(--text)" }}>1. Lépés: Képek feltöltése {hasImages && <span style={{ color: "var(--text-secondary)", fontSize: 13 }}>({images.length}/30)</span>}</h2>
+            <h2 style={{ fontSize: isMobile ? 16 : 18, fontWeight: 800, color: "var(--text)" }}>1. Lépés: Képek feltöltése {hasImages && <span style={{ color: "var(--text-secondary)", fontSize: 14, fontWeight: 600 }}>({images.length}/30)</span>}</h2>
             {hasImages && (
-              <button onClick={clearImages} style={{ background: "none", border: "none", color: "var(--accent)", fontWeight: 700, cursor: "pointer", textDecoration: "underline", fontSize: 13 }}>
-                Összes törlése
-              </button>
+              <button onClick={clearImages} style={{ background: "none", border: "none", color: "var(--accent)", fontWeight: 700, cursor: "pointer", textDecoration: "underline", fontSize: 14 }}>Törlés</button>
             )}
           </div>
 
@@ -90,23 +93,19 @@ export default function HomePage() {
                 onDragLeave={() => setIsDragOverDropzone(false)}
                 onDrop={(e) => { e.preventDefault(); setIsDragOverDropzone(false); addFiles(e.dataTransfer.files); }}
                 onClick={() => fileInputRef.current?.click()}
-                style={{
-                  width: "100%", height: "100%",
-                  border: `2px dashed ${isDragOverDropzone ? "var(--accent)" : "var(--border-medium)"}`, borderRadius: 12,
-                  display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8, cursor: "pointer",
-                  background: isDragOverDropzone ? "rgba(91,80,232,0.04)" : "var(--bg-elevated)", transition: "all 0.2s ease"
-                }}
+                style={{ width: "100%", height: "100%", minHeight: 140, border: `2px dashed ${isDragOverDropzone ? "var(--accent)" : "var(--border-medium)"}`, borderRadius: 12, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 10, cursor: "pointer", background: isDragOverDropzone ? "rgba(91,80,232,0.04)" : "var(--bg-elevated)", transition: "all 0.2s ease" }}
               >
                 <div style={{ fontSize: 32, color: isDragOverDropzone ? "var(--accent)" : "var(--text-secondary)", lineHeight: 1 }}>↓</div>
-                <div style={{ textAlign: "center" }}>
-                  <div style={{ fontWeight: 700, fontSize: 16, color: "var(--text)", marginBottom: 2 }}>Húzd ide a képeket!</div>
-                  <div style={{ fontSize: 13, color: "var(--text-secondary)" }}>Kattints a böngészéshez (max 30 db)</div>
+                <div style={{ textAlign: "center", padding: "0 16px" }}>
+                  <div style={{ fontWeight: 700, fontSize: 16, color: "var(--text)", marginBottom: 4 }}>Kattints a feltöltéshez!</div>
+                  <div style={{ fontSize: 14, color: "var(--text-secondary)" }}>(max 30 kép)</div>
                 </div>
               </div>
             ) : (
               <div style={{ display: "flex", gap: 16, overflowX: "auto", width: "100%", alignItems: "center", padding: "4px" }}>
                 {images.map((img, i) => (
-                  <div key={img.uid} style={{ width: 76, height: 76, flexShrink: 0 }}>
+                  <div key={img.uid} style={{ width: 88, height: 88, flexShrink: 0 }}>
+                    {/* JAVÍTÁS: Visszakerült a teljes interakciós blokk! */}
                     <div 
                       onClick={() => setPreviewImg(img)}
                       draggable
@@ -131,7 +130,7 @@ export default function HomePage() {
                         setDragOverIdx(null);
                       }}
                       style={{
-                        width: "100%", height: "100%", borderRadius: 8, overflow: "hidden", background: "#fff",
+                        width: "100%", height: "100%", borderRadius: 10, overflow: "hidden", background: "#fff",
                         border: `2px solid ${dragOverIdx === i ? "var(--accent)" : "var(--border-medium)"}`, position: "relative", cursor: "grab",
                         boxShadow: dragOverIdx === i ? "0 4px 16px var(--accent-glow)" : "0 2px 6px rgba(0,0,0,0.03)", transition: "all 0.2s ease",
                         transform: dragOverIdx === i ? "scale(1.05)" : "scale(1)"
@@ -140,9 +139,9 @@ export default function HomePage() {
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={img.src} alt={img.name} style={{ width: "100%", height: "100%", objectFit: "contain", pointerEvents: "none" }} />
                       
-                      {/* Forgatás Gomb */}
+                      {/* VISSZAKERÜLT A FORGATÁS GOMB */}
                       <button onClick={(e) => { e.stopPropagation(); rotateImage(i, 90); }} title="Forgatás" style={{
-                        position: "absolute", top: 4, left: 4, width: 22, height: 22, borderRadius: "50%",
+                        position: "absolute", top: 4, left: 4, width: 24, height: 24, borderRadius: "50%",
                         background: "rgba(255,255,255,0.95)", border: "1px solid var(--border-medium)", color: "var(--text)", 
                         display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, zIndex: 10
                       }}>
@@ -151,20 +150,18 @@ export default function HomePage() {
                         </svg>
                       </button>
 
-                      {/* Törlés Gomb */}
                       <button onClick={(e) => { e.stopPropagation(); removeImage(i); }} title="Törlés" style={{
-                        position: "absolute", top: 4, right: 4, width: 22, height: 22, borderRadius: "50%",
+                        position: "absolute", top: 4, right: 4, width: 24, height: 24, borderRadius: "50%",
                         background: "rgba(255,255,255,0.95)", border: "1px solid #fca5a5", color: "#dc2626", 
                         display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, zIndex: 10
                       }}>
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                           <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
                         </svg>
                       </button>
 
-                      {/* ÚJ: Varázspálca a főképernyőn is! */}
                       <button onClick={(e) => { e.stopPropagation(); toggleImageBg(img.uid); }} title="Háttér eltüntetése" style={{
-                        position: "absolute", bottom: 4, left: 4, width: 22, height: 22, borderRadius: "50%",
+                        position: "absolute", bottom: 4, left: 4, width: 24, height: 24, borderRadius: "50%",
                         background: img.removeBg ? "rgba(91,80,232,0.95)" : "rgba(255,255,255,0.95)",
                         border: `1px solid ${img.removeBg ? "var(--accent)" : "var(--border-medium)"}`,
                         color: img.removeBg ? "#fff" : "var(--text-secondary)",
@@ -173,53 +170,34 @@ export default function HomePage() {
                       }}>
                         <Wand2 size={12} />
                       </button>
-
                     </div>
                   </div>
                 ))}
-                
                 {images.length < 30 && (
-                  <div
-                    onDragOver={(e) => { e.preventDefault(); setIsDragOverDropzone(true); }}
-                    onDragLeave={() => setIsDragOverDropzone(false)}
-                    onDrop={(e) => { e.preventDefault(); setIsDragOverDropzone(false); addFiles(e.dataTransfer.files); }}
-                    onClick={() => fileInputRef.current?.click()}
-                    title="További kép hozzáadása"
-                    style={{
-                      width: 76, height: 76, flexShrink: 0, 
-                      border: `2px dashed ${isDragOverDropzone ? "var(--accent)" : "var(--border-medium)"}`,
-                      borderRadius: 10, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 4,
-                      cursor: "pointer", background: isDragOverDropzone ? "rgba(91,80,232,0.04)" : "transparent",
-                      color: isDragOverDropzone ? "var(--accent)" : "var(--text-secondary)", transition: "all 0.2s ease"
-                    }}
-                  >
-                    <div style={{ fontSize: 28, fontWeight: 300, lineHeight: 1 }}>+</div>
-                  </div>
+                  <div onClick={() => fileInputRef.current?.click()} style={{ width: 88, height: 88, flexShrink: 0, border: "2px dashed var(--border-medium)", borderRadius: 10, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><div style={{ fontSize: 32, fontWeight: 300, lineHeight: 1, color: "var(--text-secondary)" }}>+</div></div>
                 )}
               </div>
             )}
           </div>
         </div>
 
-        {/* 2. LÉPÉS: MÓDVÁLASZTÓ */}
-        <div style={{ display: "flex", flexDirection: "column", flexShrink: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-            <h2 style={{ fontSize: 16, fontWeight: 800, color: "var(--text)" }}>2. Lépés: Válassz kollázs módot</h2>
-            {!hasImages && <span style={{ color: "#ef4444", fontSize: 13, fontWeight: 600, background: "#fef2f2", padding: "2px 8px", borderRadius: 4 }}>Elsőnek tölts fel legalább 1 képet!</span>}
-            {images.length > 6 && <span style={{ color: "#ef4444", fontSize: 13, fontWeight: 600, background: "#fef2f2", padding: "2px 8px", borderRadius: 4 }}>Automata módhoz max 6 kép engedélyezett!</span>}
+        {/* 2. LÉPÉS */}
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "flex-start" : "center", gap: 12, marginBottom: 20 }}>
+            <h2 style={{ fontSize: isMobile ? 16 : 18, fontWeight: 800, color: "var(--text)" }}>2. Lépés: Válassz módot</h2>
+            {!hasImages && <span style={{ color: "#ef4444", fontSize: 13, fontWeight: 700, background: "#fef2f2", padding: "4px 10px", borderRadius: 6 }}>Tölts fel képet a kezdéshez!</span>}
+            {images.length > 6 && <span style={{ color: "#ef4444", fontSize: 13, fontWeight: 700, background: "#fef2f2", padding: "4px 10px", borderRadius: 6 }}>Automata módhoz max 6 kép engedélyezett!</span>}
           </div>
-         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 24 }}>
-            <ModeCard disabled={!hasImages} href="/manualis" icon={<Wrench size={28} strokeWidth={1.5} />} title="Manuális" badge="Pro" desc="Teljes szabadság. Te kezeled a rétegeket, méreteket és a pontos pozíciókat." />
-            <ModeCard disabled={!hasImages} href="/segitett" icon={<Target size={28} strokeWidth={1.5} />} title="Segített" badge="Okos" desc="Szabad mozgástér, de intelligens mágneses rácsvonalakkal a tökéletes illesztésért." />
-            <ModeCard disabled={isAutoDisabled} href="/automata" icon={<Zap size={28} strokeWidth={1.5} />} title="Automata" badge="Gyors" desc="Az algoritmus másodpercek alatt megtalálja a legjobb elrendezést. (Max 6 kép)" />
-            <div style={{ background: "var(--bg-panel)", border: "1px dashed var(--border)", borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-secondary)", fontSize: 14, fontWeight: 600, minHeight: 180, gap: 8 }}>
-                <Plus size={16} /> Új mód érkezik
-            </div>
+          
+          <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 24 }}>
+            <ModeCard disabled={!hasImages || isMobile} mobileDisabledMsg={isMobile ? "Csak számítógépen elérhető" : undefined} href="/manualis" icon={<Wrench size={32} strokeWidth={1.5} />} title="Manuális" desc="Teljes szabadság. Te kezeled a rétegeket, méreteket és a pontos pozíciókat." />
+            <ModeCard disabled={!hasImages || isMobile} mobileDisabledMsg={isMobile ? "Csak számítógépen elérhető" : undefined} href="/segitett" icon={<Target size={32} strokeWidth={1.5} />} title="Segített" desc="Szabad mozgástér, de intelligens mágneses rácsvonalakkal a tökéletes illesztésért." />
+            <ModeCard disabled={isAutoDisabled} href="/automata" icon={<Zap size={32} strokeWidth={1.5} />} title="Automata" desc="Az algoritmus másodpercek alatt megtalálja a legjobb elrendezést. (Max 6 kép)" />
           </div>
         </div>
       </div>
 
-      {/* --- PREVIEW MODAL --- */}
+      {/* JAVÍTÁS: Visszakerült a nagyítási modal (Preview)! */}
       {previewImg && (
         <div 
           onClick={() => setPreviewImg(null)} 

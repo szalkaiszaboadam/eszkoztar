@@ -7,15 +7,16 @@ export interface LoadedImg {
   src: string;
   name: string;
   uid: string;
-  removeBg: boolean; 
+  removeBg: boolean;
 }
 
+// 1. ADD HOZZÁ EZT A KÉT SORT AZ INTERFACE-HEZ
 interface CollageContextType {
   images: LoadedImg[];
   setImages: React.Dispatch<React.SetStateAction<LoadedImg[]>>;
   addFiles: (files: FileList | File[]) => Promise<void>;
   removeImage: (index: number) => void;
-  removeImages: (uidsToRemove: string[]) => void; // <-- ÚJ: Csoportos törlés
+  removeImages: (uidsToRemove: string[]) => void;
   rotateImage: (index: number, degrees: 90 | -90) => void;
   reorderImages: (oldIndex: number, newIndex: number) => void;
   clearImages: () => void;
@@ -23,6 +24,8 @@ interface CollageContextType {
   toggleImageBg: (uid: string) => void;
   setImagesBg: (uids: string[], removeBg: boolean) => void;
   setAllImagesBg: (removeBg: boolean) => void;
+  manualLayersOverride: Record<string, any> | null; // <--- ÚJ
+  setManualLayersOverride: React.Dispatch<React.SetStateAction<Record<string, any> | null>>; // <--- ÚJ
 }
 
 const CollageContext = createContext<CollageContextType | null>(null);
@@ -45,6 +48,7 @@ function loadImageFromFile(file: File): Promise<HTMLImageElement> {
 
 export function CollageProvider({ children }: { children: ReactNode }) {
   const [images, setImages] = useState<LoadedImg[]>([]);
+  const [manualLayersOverride, setManualLayersOverride] = useState<Record<string, any> | null>(null);
 
   const addFiles = useCallback(async (files: FileList | File[]) => {
     const arr = Array.from(files).filter(f => f.type.startsWith("image/"));
@@ -122,7 +126,8 @@ export function CollageProvider({ children }: { children: ReactNode }) {
   return (
     <CollageContext.Provider value={{ 
       images, setImages, addFiles, removeImage, removeImages, rotateImage, reorderImages, clearImages, shuffleImages,
-      toggleImageBg, setImagesBg, setAllImagesBg 
+      toggleImageBg, setImagesBg, setAllImagesBg,
+      manualLayersOverride, setManualLayersOverride // 3. ADD HOZZÁ A PROVIDER EXPORTHOZ
     }}>
       {children}
     </CollageContext.Provider>
