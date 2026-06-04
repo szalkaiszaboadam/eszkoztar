@@ -57,7 +57,8 @@ export function AutoControlBar({ state }: Props) {
         <div style={{ display: "flex", flexDirection: isMobile ? "row" : "column", flexWrap: "wrap", justifyContent: "center", gap: 8, minWidth: 160 }}>
           <label style={{ display: "flex", flex: isMobile ? "1 1 45%" : "auto", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 11, fontWeight: 800, color: isAllBgRemoved ? "var(--accent)" : "var(--text)", padding: "6px 8px", background: isAllBgRemoved ? "rgba(91,80,232,0.08)" : "transparent", borderRadius: 6 }}>
             <input type="checkbox" checked={!!isAllBgRemoved} onChange={(e) => setAllImagesBg(e.target.checked)} style={{ accentColor: "var(--accent)", width: 14, height: 14 }} />
-            <Wand2 size={14} /> Összes háttér
+            {/*<Wand2 size={14} />*/}
+            Minden háttér eltüntetése
           </label>
           <label style={{ display: "flex", flex: isMobile ? "1 1 45%" : "auto", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 11, fontWeight: 800, color: "var(--text)", padding: "4px 8px" }}>
             <input type="checkbox" checked={!!keepOrder} onChange={(e) => setKeepOrder(e.target.checked)} style={{ accentColor: "var(--accent)", width: 14, height: 14 }} />
@@ -65,14 +66,54 @@ export function AutoControlBar({ state }: Props) {
           </label>
           <div style={{ display: "flex", gap: 6, flex: isMobile ? "1 1 100%" : "auto" }}>
             {/* 💥 JAVÍTÁS: Betűtípus és stílus javítása (fontFamily, fontWeight) 💥 */}
-            <button disabled={images.length < 2} onClick={shuffleImages} style={{ flex: 1, height: 28, borderRadius: 6, background: "var(--bg-panel)", border: "1px solid var(--border-medium)", fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer", color: "var(--text)" }}>Keverés</button>
-            <button disabled={images.length === 0} onClick={clearImages} style={{ flex: 1, height: 28, borderRadius: 6, background: "#fef2f2", border: "1px solid #fca5a5", color: "#dc2626", fontFamily: "inherit", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Törlés</button>
+            {/* KEVERÉS GOMB */}
+            <button 
+              disabled={images.length < 2} 
+              onClick={shuffleImages} 
+              title="Képek keverése" 
+              style={{ 
+                flex: 1, height: 28, borderRadius: 6, 
+                background: "var(--bg-panel)", border: "1px solid var(--border-medium)", 
+                display: "flex", alignItems: "center", justifyContent: "center", 
+                cursor: images.length < 2 ? "default" : "pointer", 
+                opacity: images.length < 2 ? 0.4 : 1, color: "var(--text)", 
+                transition: "all 0.15s ease", boxShadow: "0 1px 2px rgba(0,0,0,0.02)" 
+              }}
+              onMouseEnter={(e) => { if(images.length >= 2) e.currentTarget.style.background = "var(--bg-elevated)"; }}
+              onMouseLeave={(e) => { if(images.length >= 2) { e.currentTarget.style.background = "var(--bg-panel)"; e.currentTarget.style.transform = "scale(1)"; } }}
+              onMouseDown={(e) => { if(images.length >= 2) e.currentTarget.style.transform = "scale(0.92)"; }}
+              onMouseUp={(e) => { if(images.length >= 2) e.currentTarget.style.transform = "scale(1)"; }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 3 21 3 21 8"></polyline><line x1="4" y1="20" x2="21" y2="3"></line><polyline points="21 16 21 21 16 21"></polyline><line x1="15" y1="15" x2="21" y2="21"></line><line x1="4" y1="4" x2="9" y2="9"></line></svg>
+            </button>
+
+            {/* TÖRLÉS GOMB */}
+            <button 
+              disabled={images.length === 0} 
+              onClick={clearImages} 
+              title="Összes törlése" 
+              style={{ 
+                flex: 1, height: 28, borderRadius: 6, 
+                background: images.length === 0 ? "var(--bg-panel)" : "#fef2f2", 
+                border: `1px solid ${images.length === 0 ? "var(--border-medium)" : "#fca5a5"}`, 
+                display: "flex", alignItems: "center", justifyContent: "center", 
+                cursor: images.length === 0 ? "default" : "pointer", 
+                opacity: images.length === 0 ? 0.4 : 1, color: images.length === 0 ? "var(--text-secondary)" : "#dc2626", 
+                transition: "all 0.15s ease", boxShadow: "0 1px 2px rgba(0,0,0,0.02)" 
+              }}
+              onMouseEnter={(e) => { if(images.length > 0) e.currentTarget.style.background = "#fee2e2"; }}
+              onMouseLeave={(e) => { if(images.length > 0) { e.currentTarget.style.background = "#fef2f2"; e.currentTarget.style.transform = "scale(1)"; } }}
+              onMouseDown={(e) => { if(images.length > 0) e.currentTarget.style.transform = "scale(0.92)"; }}
+              onMouseUp={(e) => { if(images.length > 0) e.currentTarget.style.transform = "scale(1)"; }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            </button>
           </div>
         </div>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", background: "var(--bg-elevated)", border: "1px solid var(--border-medium)", borderRadius: 12, padding: "12px 20px", gap: 12, flexShrink: 0, width: isMobile ? "100%" : 300 }}>
-        <QuickSelect label="Rés" value={gap} options={[0, 10, 30, 80]} onChange={setGap} />
+        <QuickSelect label="Rés" value={gap} options={[0, 50, 150, 300]} onChange={setGap} />
         <QuickSelect label="Margó" value={margin} options={[0, 50, 150, 300]} onChange={setMargin} />
       </div>
     </div>

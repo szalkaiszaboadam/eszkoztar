@@ -611,7 +611,7 @@ def interaktiv_kollazs_fázis2(ctx: Context, image_map_full, collage_progress_fi
                         <strong style="font-size: 17px; margin-left: 8px; color: #fff;">{kat_id}</strong>
                     </div>
                     <div style="font-size: 15px; font-weight: bold; color: #f1c40f; flex: 1; text-align: center;">
-                        ⏳ Rendezd el, majd kattints a Mentés gombra!
+                        ⏳ Rendezd el, majd kattints a "Letöltés" gombra!
                     </div>
                     <div style="font-size: 14px; flex: 1; text-align: right;">
                         Kész: <b style="color: #fff;">{kesz_kollazs} / {osszes_kollazs}</b>
