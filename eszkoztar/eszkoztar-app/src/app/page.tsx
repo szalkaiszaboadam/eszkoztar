@@ -34,9 +34,9 @@ const toolsData: Tool[] = [
   {
     title: "Kollázskészítő",
     description: "Képek szerkesztése, összeállítása és kollázsok létrehozása közvetlenül a böngészőből.",
-    brandColor: "text-amber-600",
-    bgHover: "hover:bg-amber-50",
-    borderHover: "hover:border-amber-300",
+    brandColor: "text-violet-600",
+    bgHover: "hover:bg-violet-50",
+    borderHover: "hover:border-violet-300",
     icon: ImageIcon,
     actions: [
       { label: "Megnyitás", type: "open", href: "/kollazskeszito" },
@@ -47,7 +47,7 @@ const toolsData: Tool[] = [
     title: "Táblázatkezelő",
     description: "Adatok rendszerezése, szerkesztése és áttekinthető táblázatos megjelenítése.",
     brandColor: "text-emerald-700",
-    bgHover: "hover:bg-emerald-50",
+    bgHover: "hover:bg-emerald-50",   
     borderHover: "hover:border-emerald-300",
     icon: TableProperties,
     actions: [
@@ -58,9 +58,9 @@ const toolsData: Tool[] = [
   {
     title: "Termékkezelő",
     description: "Webshopos folyamatok tömeges gyorsítása: automatikus cikkszámozás, kategóriaépítés és címkézés.",
-    brandColor: "text-violet-600",
-    bgHover: "hover:bg-violet-50",
-    borderHover: "hover:border-violet-300",
+    brandColor: "text-amber-600",
+    bgHover: "hover:bg-amber-50",
+    borderHover: "hover:border-amber-300",
     icon: Boxes,
     actions: [
       { label: "Megnyitás", type: "open", href: "/termekkezelo", disabled: true},
