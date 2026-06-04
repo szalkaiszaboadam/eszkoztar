@@ -19,7 +19,14 @@ const nextConfig: NextConfig = {
         source: '/tablazatkezelo/:path*',
         destination: 'https://tablazatkezelo.vercel.app/tablazatkezelo/:path*',
       },
-      
+       {
+        source: '/kollazskeszito',
+        destination: 'https://kollazskeszito.vercel.app/kollazskeszito',
+      },
+      {
+        source: '/kollazskeszito/:path*',
+        destination: 'https://kollazskeszito.vercel.app/kollazskeszito/:path*',
+      },
     ];
   },
 };
