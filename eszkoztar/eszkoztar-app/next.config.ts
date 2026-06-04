@@ -13,11 +13,11 @@ const nextConfig: NextConfig = {
       },
       {
         source: '/tablazatkezelo',
-        destination: 'https://tablazatkezelo-app.vercel.app/tablazatkezelo',
+        destination: 'https://tablazatkezelo.vercel.app/tablazatkezelo',
       },
       {
         source: '/tablazatkezelo/:path*',
-        destination: 'https://tablazatkezelo-app.vercel.app/tablazatkezelo/:path*',
+        destination: 'https://tablazatkezelo.vercel.app/tablazatkezelo/:path*',
       },
       
     ];
