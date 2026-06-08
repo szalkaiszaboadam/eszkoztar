@@ -127,12 +127,16 @@ def biztonsagos_navigacio(page, url, max_proba=3):
 
 
 def termek_megkereses(page, cikkszam, marka, nev):
-    """
-    Megkeresi a terméket a listában cikkszám, majd márka+név alapján.
-    Visszatér: a sor lokátora, vagy kivételt dob ha nem találja/duplikált.
-    """
     van_cikkszam = cikkszam and cikkszam.lower() != 'nan'
-    keresendo = cikkszam if van_cikkszam else nev
+
+    # Ha nincs cikkszám, készítünk egy "biztonságos" keresőszót a névből.
+    # Levágjuk a stringet az első idézőjel, fokjel vagy egyenlőségjel mentén.
+    biztonsagos_nev = nev
+    if not van_cikkszam:
+        biztonsagos_nev = re.split(r'["°=]', nev)[0].strip()
+
+    # A teljes név helyett a biztonságos nevet használjuk
+    keresendo = cikkszam if van_cikkszam else biztonsagos_nev
 
     sf = page.locator("#searchField_all")
     sf.wait_for(state="visible", timeout=10000)
@@ -141,7 +145,8 @@ def termek_megkereses(page, cikkszam, marka, nev):
     sf.press("Enter")
     time.sleep(1.5)
 
-    sorok = page.locator("tbody tr").filter(has_text=cikkszam if van_cikkszam else nev)
+    # Itt is a biztonságos nevet adjuk át a szűrésnek
+    sorok = page.locator("tbody tr").filter(has_text=cikkszam if van_cikkszam else biztonsagos_nev)
     sorok.first.wait_for(timeout=10000)
     talalat_db = sorok.count()
 

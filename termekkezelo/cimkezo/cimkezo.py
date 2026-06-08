@@ -134,7 +134,14 @@ def termek_megkereses(page, cikkszam, marka, nev):
     Visszatér: a sor lokátora, vagy kivételt dob ha nem találja/duplikált.
     """
     van_cikkszam = cikkszam and cikkszam.lower() != 'nan'
-    keresendo = cikkszam if van_cikkszam else nev
+
+    # Ha nincs cikkszám, készítünk egy "biztonságos" keresőszót a névből.
+    biztonsagos_nev = nev
+    if not van_cikkszam:
+        biztonsagos_nev = re.split(r'["°=]', nev)[0].strip()
+
+    # A teljes név helyett a biztonságos nevet használjuk a keresőmezőben
+    keresendo = cikkszam if van_cikkszam else biztonsagos_nev
 
     search_field = page.locator("#searchField_all")
     search_field.wait_for(state="visible", timeout=10000)
@@ -143,10 +150,11 @@ def termek_megkereses(page, cikkszam, marka, nev):
     search_field.press("Enter")
     time.sleep(1.5)
 
+    # A táblázat szűrésénél is a biztonságos nevet használjuk
     if van_cikkszam:
         sorok = page.locator("tbody tr").filter(has_text=cikkszam)
     else:
-        sorok = page.locator("tbody tr").filter(has_text=nev)
+        sorok = page.locator("tbody tr").filter(has_text=biztonsagos_nev)
 
     sorok.first.wait_for(timeout=10000)
     talalat_db = sorok.count()
@@ -174,6 +182,8 @@ def termek_megkereses(page, cikkszam, marka, nev):
 
     van_nev = nev and nev.lower() != 'nan'
     if van_nev:
+        # A Playwright pontos szűrésénél maradhat az eredeti név, de ha elszáll,
+        # a korábbi filterek (biztonsagos_nev és marka) alapján dönt.
         szurt = szurt.filter(has_text=nev)
 
     szurt_db = szurt.count()

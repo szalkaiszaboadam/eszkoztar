@@ -6,7 +6,9 @@
   <component name="ChangeListManager">
     <list default="true" id="f4d015ee-e875-4790-906f-59e82f48dfe6" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo-programok/kepkinyero/kepkinyero.py" beforeDir="false" afterPath="$PROJECT_DIR$/termekkezelo-programok/kepkinyero/kepkinyero.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/termekkezelo/cimkezo/cimkezo.py" beforeDir="false" afterPath="$PROJECT_DIR$/termekkezelo/cimkezo/cimkezo.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/termekkezelo/kategorizalo/input_tablak/KS_Tools_kategoriak_FINAL.xlsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/termekkezelo/kategorizalo/kategorizalo.py" beforeDir="false" afterPath="$PROJECT_DIR$/termekkezelo/kategorizalo/kategorizalo.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -57,6 +59,7 @@
     "Python.cikkszamozo.executor": "Run",
     "Python.cimkezo.executor": "Run",
     "Python.kategoriaepito.executor": "Run",
+    "Python.kategorizalo (1).executor": "Run",
     "Python.kategorizalo.executor": "Run",
     "Python.kepkinyero.executor": "Run",
     "Python.kepkinyero_es_kollazskeszito_es_feltolto.executor": "Run",
@@ -65,7 +68,7 @@
     "RunOnceActivity.git.unshallow": "true",
     "git-widget-placeholder": "main",
     "junie.onboarding.icon.badge.shown": "true",
-    "last_opened_file_path": "/Users/szalkaiadaam/Documents/GitHub/eszkoztar/reszprogramok/kategoriaepito/feltoltes_alatt",
+    "last_opened_file_path": "/Users/szalkaiadaam/Documents/GitHub/eszkoztar/termekkezelo/kategorizalo/input_tablak",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
@@ -77,18 +80,18 @@
 }]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/termekkezelo/kategorizalo/input_tablak" />
       <recent name="$PROJECT_DIR$/reszprogramok/kategoriaepito/feltoltes_alatt" />
       <recent name="$PROJECT_DIR$/reszprogramok/kategorizalo/input_tablak" />
       <recent name="$PROJECT_DIR$/reszprogramok/kategoriaepito/input_tablak" />
       <recent name="$PROJECT_DIR$/reszprogramok/cimkezo/input_tablak" />
-      <recent name="$PROJECT_DIR$/reszprogramok/cikkszamozo/input_tablak" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/termekkezelo/kategorizalo/input_tablak" />
       <recent name="$PROJECT_DIR$/reszprogramok/kategorizalo/input_tablak" />
       <recent name="$PROJECT_DIR$" />
       <recent name="$PROJECT_DIR$/_archiv" />
       <recent name="$PROJECT_DIR$/kategorizalo/input_tablak" />
-      <recent name="$PROJECT_DIR$/cimkezo/input_tablak" />
     </key>
   </component>
   <component name="RunManager">
@@ -110,6 +113,29 @@
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/reszprogramok/cimkezo/cimkezo.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <configuration name="kategorizalo (1)" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="eszkoztar" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/termekkezelo/kategorizalo" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/termekkezelo/kategorizalo/kategorizalo.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
@@ -166,6 +192,7 @@
     </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.kategorizalo (1)" />
         <item itemvalue="Python.kategorizalo" />
         <item itemvalue="Python.cimkezo" />
         <item itemvalue="JavaScript Debug.gabcsi.html" />
@@ -205,7 +232,8 @@
       <workItem from="1779017519565" duration="5838000" />
       <workItem from="1779291987186" duration="16186000" />
       <workItem from="1779474402448" duration="61000" />
-      <workItem from="1779474503469" duration="51647000" />
+      <workItem from="1779474503469" duration="52397000" />
+      <workItem from="1780638700052" duration="8329000" />
     </task>
     <servers />
   </component>
@@ -218,9 +246,10 @@
     <SUITE FILE_PATH="coverage/eszkoztar$_cimkezoProgram.coverage" NAME="_cimkezoProgram Coverage Results" MODIFIED="1772963438771" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/cimkezo" />
     <SUITE FILE_PATH="coverage/eszkoztar$kategoriaepito.coverage" NAME="kategoriaepito Coverage Results" MODIFIED="1779017955431" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/reszprogramok/kategoriaepito" />
     <SUITE FILE_PATH="coverage/eszkoztar$kategorizalo.coverage" NAME="kategorizalo Coverage Results" MODIFIED="1779022899777" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/reszprogramok/kategorizalo" />
-    <SUITE FILE_PATH="coverage/sorbarendezo_py$kategorizalo.coverage" NAME="kategorizalo Coverage Results" MODIFIED="1780397534193" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/termekkezelo-programok/kategorizalo" />
+    <SUITE FILE_PATH="coverage/sorbarendezo_py$kategorizalo.coverage" NAME="kategorizalo Coverage Results" MODIFIED="1780905149599" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/termekkezelo/kategorizalo" />
     <SUITE FILE_PATH="coverage/eszkoztar$cikkszamozo.coverage" NAME="cikkszamozo Coverage Results" MODIFIED="1778435585288" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/reszprogramok/cikkszamozo" />
     <SUITE FILE_PATH="coverage/eszkoztar$_kep_scraperProgram.coverage" NAME="_kep-scraperProgram Coverage Results" MODIFIED="1774119449342" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/kep-scraper" />
+    <SUITE FILE_PATH="coverage/sorbarendezo_py$kategorizalo__1_.coverage" NAME="kategorizalo (1) Coverage Results" MODIFIED="1780812426401" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/termekkezelo/kategorizalo" />
     <SUITE FILE_PATH="coverage/eszkoztar$_kategorizaloProgram.coverage" NAME="_kategorizaloProgram Coverage Results" MODIFIED="1772867032516" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/kategorizalo" />
     <SUITE FILE_PATH="coverage/eszkoztar$kepkinyero_es_kollazskeszito_es_feltolto.coverage" NAME="kepkinyero_es_kollazskeszito_es_feltolto Coverage Results" MODIFIED="1775590848959" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/kepkinyero" />
     <SUITE FILE_PATH="coverage/eszkoztar$cimkezo.coverage" NAME="cimkezo Coverage Results" MODIFIED="1778767657574" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/reszprogramok/cimkezo" />
