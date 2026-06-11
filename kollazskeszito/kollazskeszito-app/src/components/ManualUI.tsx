@@ -136,24 +136,51 @@ export function LayerSidebar({ state }: Props) {
         )}
       </div>
 
-      {/* 💥 MATRICA HOZZÁADÁSA SZEKCIÓ 💥 */}
-      <div style={{ padding: "12px", borderTop: "1px solid var(--border)", background: "var(--bg-elevated)" }}>
-        <button
-          onClick={() => state.addBadge()}
-          style={{
-            width: "100%", padding: "12px",
-            background: "#FF0000", // 💥 Ugyanaz a tiszta, vibráló piros
-            color: "#ffffff", borderRadius: 8, fontWeight: 900, fontSize: 13,
-            border: "none", cursor: "pointer",
-            boxShadow: "0 4px 14px rgba(255, 0, 0, 0.35)",
-            transition: "transform 0.1s",
-            display: "flex", alignItems: "center", justifyContent: "center", gap: 8
-          }}
-          onMouseDown={e => e.currentTarget.style.transform = "scale(0.96)"}
-          onMouseUp={e => e.currentTarget.style.transform = "scale(1)"}
-        >
-          "ÚJ" Címke hozzáadása
-        </button>
+      {/* 💥 JAVÍTOTT MATRICA HOZZÁADÁSA SZEKCIÓ (KOMPAKT, EGYMÁS MELLETT) 💥 */}
+      <div style={{ padding: "12px", borderTop: "1px solid var(--border)", background: "var(--bg-elevated)", display: "flex", flexDirection: "column", gap: 6 }}>
+        <div style={{ fontSize: 10, fontWeight: 800, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", textAlign: "center", marginBottom: 2 }}>
+          Címkék hozzáadása
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          
+          {/* ÚJ GOMB */}
+          <button 
+            onClick={() => state.addBadge('uj')} 
+            style={{ 
+              flex: 1, padding: "10px 4px", 
+              background: "#FF0000", 
+              color: "#ffffff", borderRadius: 8, fontWeight: 900, fontSize: 12, 
+              border: "none", cursor: "pointer", 
+              boxShadow: "0 2px 8px rgba(255, 0, 0, 0.25)", 
+              transition: "transform 0.1s",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 6
+            }} 
+            onMouseDown={e=>e.currentTarget.style.transform="scale(0.95)"} 
+            onMouseUp={e=>e.currentTarget.style.transform="scale(1)"}
+          >
+            
+            ÚJ
+          </button>
+
+          {/* PRÉMIUM GOMB */}
+          <button 
+            onClick={() => state.addBadge('premium')} 
+            style={{ 
+              flex: 1, padding: "10px 4px", 
+              background: "#111111", 
+              color: "#D4AF37", borderRadius: 8, fontWeight: 900, fontSize: 12, 
+              border: "1px solid #D4AF37", cursor: "pointer", 
+              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)", 
+              transition: "transform 0.1s",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 6
+            }} 
+            onMouseDown={e=>e.currentTarget.style.transform="scale(0.95)"} 
+            onMouseUp={e=>e.currentTarget.style.transform="scale(1)"}
+          >
+            PRÉMIUM
+          </button>
+
+        </div>
       </div>
 
       {/* EREDETI FÁJLFELTÖLTŐ GOMB */}

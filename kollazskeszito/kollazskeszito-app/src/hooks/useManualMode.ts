@@ -48,45 +48,71 @@ export function useManualMode() {
   const isRestoringRef = useRef(false);
 
 
-  // 💥 EGYSZERŰ, ÉLÉNK PIROS KÖR MATRICA (Kisebb, sarkokhoz közelebb) 💥
-  const addBadge = useCallback(() => {
+// 💥 VÉGLEGES MATRICA GENERÁTOR (VÍZSZINTES SZÖVEGEK, PONTOS ILLESZKEDÉS) 💥
+  const addBadge = useCallback((type: 'uj' | 'premium') => {
     const canvas = document.createElement("canvas");
     canvas.width = 400;
     canvas.height = 400;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // 1. Finomabb árnyék, hogy ne sötétítse el a képet
-    ctx.shadowColor = "rgba(0, 0, 0, 0.25)";
+    // 1. Árnyék beállítása a térbeli hatásért
+    ctx.shadowColor = "rgba(0, 0, 0, 0.25)"; 
     ctx.shadowBlur = 12;
     ctx.shadowOffsetY = 6;
 
-    // 2. Piros kör - Tiszta, vibráló, élénk piros! (Semmi rózsaszín, semmi sötét)
+    // 2. Kör alap megrajzolása stílus szerint
     ctx.beginPath();
     ctx.arc(200, 200, 160, 0, Math.PI * 2);
-    ctx.fillStyle = "#FF0000";
-    ctx.fill();
+    
+    if (type === 'uj') {
+      ctx.fillStyle = "#FF0000"; // Élénk vibráló piros
+      ctx.fill();
 
-    // 3. Vékony belső szaggatott vonal
-    ctx.shadowColor = "transparent";
-    ctx.beginPath();
-    ctx.arc(200, 200, 145, 0, Math.PI * 2);
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.6)";
-    ctx.lineWidth = 4;
-    ctx.setLineDash([12, 10]);
-    ctx.stroke();
-    ctx.setLineDash([]);
+      // Belső szaggatott vonal (fehér)
+      ctx.shadowColor = "transparent";
+      ctx.beginPath();
+      ctx.arc(200, 200, 145, 0, Math.PI * 2);
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.6)";
+      ctx.lineWidth = 4;
+      ctx.setLineDash([12, 10]);
+      ctx.stroke();
+      ctx.setLineDash([]);
 
-    // 4. "ÚJ" Szöveg (Középen, picit megdöntve)
-    ctx.translate(200, 200);
-    ctx.rotate(15 * Math.PI / 180);
-    ctx.fillStyle = "#ffffff";
+      // 💥 JAVÍTÁS: Nincs forgatás, teljesen vízszintes a szöveg
+      ctx.translate(200, 200);
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "900 110px 'Arial Black', Impact, system-ui, sans-serif"; 
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      // Szélességi korlát biztos ami biztos
+      ctx.fillText("ÚJ", 0, 5, 250); 
+    } 
+    else {
+      // 💥 PRÉMIUM DIZÁJN: Kör alakú, prémium mélyfekete, arany elemekkel
+      ctx.fillStyle = "#111111"; 
+      ctx.fill();
 
-    // Vaskos, erős betűtípus
-    ctx.font = "900 130px 'Arial Black', Impact, system-ui, sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText("ÚJ", 0, 10);
+      // Belső szaggatott vonal (arany)
+      ctx.shadowColor = "transparent";
+      ctx.beginPath();
+      ctx.arc(200, 200, 145, 0, Math.PI * 2);
+      ctx.strokeStyle = "#D4AF37"; // Elegáns arany szín
+      ctx.lineWidth = 4;
+      ctx.setLineDash([10, 10]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // 💥 JAVÍTÁS: Vízszintes pozíció, arányos méret, és szigorú maxWidth
+      ctx.translate(200, 200);
+      ctx.fillStyle = "#D4AF37";
+      // Kisebb, 48px-es méret a tökéletes illeszkedéshez
+      ctx.font = "900 48px 'Arial Black', Impact, system-ui, sans-serif"; 
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      // A 250-es maxWidth garantálja, hogy sosem lóg ki a keretből!
+      ctx.fillText("PRÉMIUM", 0, 2, 250);
+    }
 
     const dataUrl = canvas.toDataURL("image/png");
     const img = new Image();
@@ -95,24 +121,24 @@ export function useManualMode() {
       const newImg = {
         el: img,
         src: dataUrl,
-        name: `cimke_uj.png`,
+        name: `cimke_${type}.png`,
         uid: newUid,
-        removeBg: false // Fontos: a szöveget ne tüntesse el az algoritmus!
+        removeBg: false
       };
 
-      // 💥 KISEBB MÉRET ÉS KÖZELEBB A SAROKHOZ 💥
+      // 3. OKOS POZICIONÁLÁS: Egymás alá rendeződés átfedés nélkül
       setLayers(prev => ({
         ...prev,
         [newUid]: {
-          x: 675,       // Beljebb a jobb széltől (így már nem ér hozzá!)
-          y: -675,      // Lejjebb a felső széltől
-          zoom: 0.65,   // Maradt a kért kisebb, letisztult méret
-          rot: 0,
+          x: 675, 
+          // 400px átmérő * 0.65 zoom = 260px magasság. -675 + 260 + 10px rés = -405
+          y: type === 'uj' ? -675 : -405, 
+          zoom: 0.65,
+          rot: 0,       
           visible: true
         }
       }));
 
-      // Kép hozzáadása a memóriához
       setImages((prev: any) => [...prev, newImg]);
     };
     img.src = dataUrl;

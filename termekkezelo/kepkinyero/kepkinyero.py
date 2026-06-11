@@ -591,62 +591,97 @@ def interaktiv_kollazs_fázis2(ctx: Context, image_map_full, collage_progress_fi
             hatralevo = max(0, osszes_kollazs - kesz_kollazs - 1)
 
             header_js = f"""() => {{
-                const oldHeader = document.getElementById('bot-header');
-                if (oldHeader) oldHeader.remove();
+                            const oldHeader = document.getElementById('bot-header');
+                            if (oldHeader) oldHeader.remove();
 
-                const styleId = 'bot-header-style';
-                let styleTag = document.getElementById(styleId);
-                if (!styleTag) {{
-                    styleTag = document.createElement('style');
-                    styleTag.id = styleId;
-                    styleTag.innerHTML = `
-                        #bot-header {{
-                            position: fixed; bottom: 0; left: 0; width: 100%;
-                            background: rgba(44, 62, 80, 0.85); color: #ecf0f1;
-                            z-index: 999999; padding: 8px 15px;
-                            font-family: Arial, sans-serif; box-shadow: 0 -4px 15px rgba(0,0,0,0.3);
-                            display: flex; justify-content: space-between; align-items: center;
-                            box-sizing: border-box; backdrop-filter: blur(5px);
-                            font-size: 14px;
-                        }}
-                        #bot-header div {{
-                            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-                        }}
-                        .bh-left {{ flex: 1.5; padding-right: 10px; }}
-                        .bh-center {{ flex: 1; text-align: center; font-weight: bold; color: #f1c40f; }}
-                        .bh-right {{ flex: 1; text-align: right; }}
-                        
-                        /* Reszponzív szabályok kisebb képernyőkre */
-                        @media (max-width: 900px) {{
-                            #bot-header {{ font-size: 12px; padding: 6px 10px; }}
-                            .bh-center {{ font-size: 11px; }}
-                        }}
-                        @media (max-width: 650px) {{
-                            .bh-center {{ display: none; }} /* Kicsi ablaknál eltünteti az utasítást, hogy férjen a lényeg */
-                            .bh-left {{ flex: 2; }}
-                        }}
-                    `;
-                    document.head.appendChild(styleTag);
-                }}
+                            const styleId = 'bot-header-style';
+                            let styleTag = document.getElementById(styleId);
+                            if (!styleTag) {{
+                                styleTag = document.createElement('style');
+                                styleTag.id = styleId;
+                                styleTag.innerHTML = `
+                                    /* 1. A teljes böngészőablak felosztása (Flexbox) */
+                                    html, body {{
+                                        height: 100vh !important;
+                                        margin: 0 !important;
+                                        padding: 0 !important;
+                                        overflow: hidden !important;
+                                        box-sizing: border-box !important;
+                                    }}
+                                    body {{
+                                        display: flex !important;
+                                        flex-direction: column !important;
+                                    }}
 
-                const h = document.createElement('div');
-                h.id = 'bot-header';
-                
-                h.innerHTML = `
-                    <div class="bh-left" title="{kat_id}">
-                        <span style="opacity: 0.7;">Kategória:</span>
-                        <strong style="margin-left: 5px; color: #fff;">{kat_id}</strong>
-                    </div>
-                    <div class="bh-center">
-                        ⏳ Rendezd el, majd "Letöltés"!
-                    </div>
-                    <div class="bh-right">
-                        Kész: <b style="color: #fff;">{kesz_kollazs} / {osszes_kollazs}</b>
-                        <span style="opacity: 0.7; margin-left: 10px;">(Hátra: {hatralevo} db)</span>
-                    </div>
-                `;
-                document.body.appendChild(h);
-            }}"""
+                                    /* 2. Az eredeti alkalmazás tartálya */
+                                    body > *:not(#bot-header) {{
+                                        flex: 1 1 auto !important;
+                                        min-height: 0 !important;
+                                        height: 100% !important;
+                                        overflow: auto !important;
+                                        transform: translateZ(0) !important;
+
+                                        /* Kényszerítjük, hogy az eredeti tartalom a vizuális sorrend elején maradjon */
+                                        order: 1 !important; 
+                                    }}
+
+                                    /* 3. A mi alsó sávunk */
+                                    #bot-header {{
+                                        position: relative !important;
+                                        flex: 0 0 auto !important;
+                                        background: rgba(44, 62, 80, 0.95); color: #ecf0f1;
+                                        padding: 10px 15px;
+                                        font-family: Arial, sans-serif; 
+                                        box-shadow: 0 -4px 15px rgba(0,0,0,0.5);
+                                        display: flex; justify-content: space-between; align-items: center;
+                                        box-sizing: border-box;
+                                        font-size: 14px;
+                                        width: 100%;
+                                        z-index: 999999;
+
+                                        /* EZ A KULCS: Akármi történik, vizuálisan mindig a legutolsó elem lesz! */
+                                        order: 99999 !important; 
+                                    }}
+
+                                    #bot-header div {{
+                                        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+                                    }}
+                                    .bh-left {{ flex: 1.5; padding-right: 10px; }}
+                                    .bh-center {{ flex: 1; text-align: center; font-weight: bold; color: #f1c40f; }}
+                                    .bh-right {{ flex: 1; text-align: right; }}
+
+                                    /* Reszponzív megjelenés */
+                                    @media (max-width: 900px) {{
+                                        #bot-header {{ font-size: 12px; padding: 6px 10px; }}
+                                        .bh-center {{ font-size: 11px; }}
+                                    }}
+                                    @media (max-width: 650px) {{
+                                        .bh-center {{ display: none; }}
+                                        .bh-left {{ flex: 2; }}
+                                    }}
+                                `;
+                                document.head.appendChild(styleTag);
+                            }}
+
+                            const h = document.createElement('div');
+                            h.id = 'bot-header';
+
+                            h.innerHTML = `
+                                <div class="bh-left" title="{kat_id}">
+                                    <span style="opacity: 0.7;">Kategória:</span>
+                                    <strong style="margin-left: 5px; color: #fff;">{kat_id}</strong>
+                                </div>
+                                <div class="bh-center">
+                                    ⏳ Rendezd el, majd "Letöltés"!
+                                </div>
+                                <div class="bh-right">
+                                    Kész: <b style="color: #fff;">{kesz_kollazs} / {osszes_kollazs}</b>
+                                    <span style="opacity: 0.7; margin-left: 10px;">(Hátra: {hatralevo} db)</span>
+                                </div>
+                            `;
+                            document.body.appendChild(h);
+                        }}"""
+
             page.evaluate(header_js)
 
             print("   ⏳ Rendezd el, majd mentsd le a kollázst!")
