@@ -28,7 +28,6 @@ const toolsData: Tool[] = [
     icon: Barcode,
     actions: [
       { label: "Megnyitás", type: "open", href: "/vonalkodolvaso" },
-      { label: "Letöltés", type: "download", href: "/vonalkodolvaso/letoltes", disabled: true }
     ]
   },
   {
@@ -40,7 +39,6 @@ const toolsData: Tool[] = [
     icon: ImageIcon,
     actions: [
       { label: "Megnyitás", type: "open", href: "/kollazskeszito" },
-      { label: "Letöltés", type: "download", href: "/kollazskeszito/letoltes", disabled: true }
     ]
   },
   {
@@ -52,7 +50,7 @@ const toolsData: Tool[] = [
     icon: TableProperties,
     actions: [
       { label: "Megnyitás", type: "open", href: "/tablazatkezelo" },
-      { label: "Letöltés", type: "download", href: "/tablazatkezelo/letoltes", disabled: true }
+     
     ]
   },
   {

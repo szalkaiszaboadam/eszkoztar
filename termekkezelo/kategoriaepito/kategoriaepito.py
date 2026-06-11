@@ -51,9 +51,7 @@ def progress_mentes(progress_fajl, completed_set, failed_list):
 
 
 # ==============================================================================
-# --- NÉZET HELPER ---
-# Ha nem Bizonylatkészítő nézetben van az oldal, egy kattintással átváltja.
-# Mindig hívd meg, mielőtt a store táblázataival dolgozol.
+# --- NÉZET HELPER & ELLENŐRZŐ ---
 # ==============================================================================
 def bizonylatkeszito_nezet(page):
     try:
@@ -65,7 +63,51 @@ def bizonylatkeszito_nezet(page):
             page.locator("#searchField_all").wait_for(state="visible", timeout=10000)
             print("   ✅ Bizonylatkészítő nézet aktív.")
     except Exception:
-        pass  # Már jó nézetben vagyunk, vagy a gomb nem látható
+        pass
+
+
+def kategoria_letezik_az_utvonalon(page, utvonal_lista, base_url):
+    """
+    Végigmegy az adott kategória hierarchián a webshop táblázatában.
+    Ha a megadott útvonal minden eleme létezik egymás alatt, True-val tér vissza.
+    """
+    try:
+        page.goto(f"{base_url}/administrator/index.php?view=store", timeout=30000)
+        time.sleep(1)
+        bizonylatkeszito_nezet(page)
+        
+        for i, part in enumerate(utvonal_lista):
+            asztal = page.locator("table#categoriesList:not(.fixedHeader)").first
+            asztal.wait_for(state="visible", timeout=5000)
+            
+            sorok = asztal.locator("tbody tr")
+            megvan = False
+            
+            for j in range(sorok.count()):
+                try:
+                    sor = sorok.nth(j)
+                    b_elem = sor.locator("b").first
+                    
+                    if b_elem.is_visible() and b_elem.inner_text().strip() == part:
+                        megvan = True
+                        if i == len(utvonal_lista) - 1:
+                            return True  # Megtaláltuk az útvonal legutolsó elemét is!
+                        else:
+                            # Rákattintunk, hogy belépjünk az alkategóriákhoz
+                            sor.locator("a").first.click()
+                            time.sleep(1.5)
+                        break
+                except:
+                    continue
+                    
+            if not megvan:
+                return False  # Ha megszakad az útvonal, akkor biztosan nem létezik
+                
+    except Exception as e:
+        print(f"      ⚠️ Keresési hiba (feltételezzük, hogy új): {e}")
+        return False
+        
+    return False
 
 
 # ==============================================================================
@@ -151,6 +193,7 @@ def run_category_builder(context: Context, struktura, base_url, bemeneti_fajl_ne
         return
 
     utolso_kategoriak = {-1: "Felső szintű kategória"}
+    teljes_utvonal = {}  # szint -> nev (A jelenlegi aktív ág felépítése)
     veglegesen_sikertelen_lista = list(failed_list)
     hibas_ag_szintje = None
     max_proba = 3
@@ -174,16 +217,25 @@ def run_category_builder(context: Context, struktura, base_url, bemeneti_fajl_ne
         szint = elem['level']
         nev = elem['name']
         raw = elem['raw']
+        
+        # Tisztítjuk a mélyebb szinteket, majd hozzáadjuk a mostanit az útvonalhoz
+        keys_to_delete = [k for k in teljes_utvonal.keys() if k >= szint]
+        for k in keys_to_delete:
+            del teljes_utvonal[k]
+        teljes_utvonal[szint] = nev
+        aktualis_utvonal = [teljes_utvonal[k] for k in sorted(teljes_utvonal.keys())]
+
         szulo_nev = utolso_kategoriak.get(szint - 1, "Felső szintű kategória")
 
         print(f"\n[{i + 1}/{osszes}] {'›' * (szint + 1)} {nev}  (Szülő: {szulo_nev})")
 
-        # Hierarchia mindig frissül, hogy az átugrott elemek után is helyes legyen a szülő
+        # Hierarchia mindig frissül, így ha át is ugorjuk a létrehozást, 
+        # a következő elem a meglévőt fogja használni szülőként!
         utolso_kategoriak[szint] = nev
 
-        # ── MÁR KÉSZ: kihagyás ──────────────────────────────────────────────
+        # ── MÁR KÉSZ: progress fájl alapján ─────────────────────────────────
         if raw in completed_set:
-            print(f"   ⏩ MÁR LÉTREHOZVA, kihagyás.")
+            print(f"   ⏩ MÁR LÉTREHOZVA (progress fájl alapján), kihagyás.")
             if hibas_ag_szintje is not None and szint <= hibas_ag_szintje:
                 hibas_ag_szintje = None
             continue
@@ -200,6 +252,14 @@ def run_category_builder(context: Context, struktura, base_url, bemeneti_fajl_ne
             else:
                 hibas_ag_szintje = None
                 print(f"   🔄 Hibás ág elhagyva, folytatás...")
+
+        # ── OKOS ELLENŐRZÉS: Létezik-e már a weben ezen az ágon? ─────────────
+        print("   🔍 Útvonal ellenőrzése a webshopban...")
+        if kategoria_letezik_az_utvonalon(page, aktualis_utvonal, base_url):
+            print("   ✅ MÁR LÉTEZIK ezen a szinten! Hozzácsatolás (nem hozunk létre duplikátumot).")
+            completed_set.add(raw)
+            progress_mentes(progress_fajl, completed_set, veglegesen_sikertelen_lista)
+            continue
 
         # ── LÉTREHOZÁS + KÉP FELTÖLTÉS EGYSZERRE ────────────────────────────
         siker = False

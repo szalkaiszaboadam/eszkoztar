@@ -6,9 +6,8 @@
   <component name="ChangeListManager">
     <list default="true" id="f4d015ee-e875-4790-906f-59e82f48dfe6" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/cimkezo/cimkezo.py" beforeDir="false" afterPath="$PROJECT_DIR$/termekkezelo/cimkezo/cimkezo.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kategorizalo/input_tablak/KS_Tools_kategoriak_FINAL.xlsx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kategorizalo/kategorizalo.py" beforeDir="false" afterPath="$PROJECT_DIR$/termekkezelo/kategorizalo/kategorizalo.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/eszkoztar/eszkoztar-app/src/app/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/eszkoztar/eszkoztar-app/src/app/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/termekkezelo/kepkinyero/kepkinyero.py" beforeDir="false" afterPath="$PROJECT_DIR$/termekkezelo/kepkinyero/kepkinyero.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -233,7 +232,7 @@
       <workItem from="1779291987186" duration="16186000" />
       <workItem from="1779474402448" duration="61000" />
       <workItem from="1779474503469" duration="52397000" />
-      <workItem from="1780638700052" duration="8329000" />
+      <workItem from="1780638700052" duration="11543000" />
     </task>
     <servers />
   </component>

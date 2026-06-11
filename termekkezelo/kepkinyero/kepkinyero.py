@@ -594,28 +594,55 @@ def interaktiv_kollazs_fázis2(ctx: Context, image_map_full, collage_progress_fi
                 const oldHeader = document.getElementById('bot-header');
                 if (oldHeader) oldHeader.remove();
 
+                const styleId = 'bot-header-style';
+                let styleTag = document.getElementById(styleId);
+                if (!styleTag) {{
+                    styleTag = document.createElement('style');
+                    styleTag.id = styleId;
+                    styleTag.innerHTML = `
+                        #bot-header {{
+                            position: fixed; bottom: 0; left: 0; width: 100%;
+                            background: rgba(44, 62, 80, 0.85); color: #ecf0f1;
+                            z-index: 999999; padding: 8px 15px;
+                            font-family: Arial, sans-serif; box-shadow: 0 -4px 15px rgba(0,0,0,0.3);
+                            display: flex; justify-content: space-between; align-items: center;
+                            box-sizing: border-box; backdrop-filter: blur(5px);
+                            font-size: 14px;
+                        }}
+                        #bot-header div {{
+                            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+                        }}
+                        .bh-left {{ flex: 1.5; padding-right: 10px; }}
+                        .bh-center {{ flex: 1; text-align: center; font-weight: bold; color: #f1c40f; }}
+                        .bh-right {{ flex: 1; text-align: right; }}
+                        
+                        /* Reszponzív szabályok kisebb képernyőkre */
+                        @media (max-width: 900px) {{
+                            #bot-header {{ font-size: 12px; padding: 6px 10px; }}
+                            .bh-center {{ font-size: 11px; }}
+                        }}
+                        @media (max-width: 650px) {{
+                            .bh-center {{ display: none; }} /* Kicsi ablaknál eltünteti az utasítást, hogy férjen a lényeg */
+                            .bh-left {{ flex: 2; }}
+                        }}
+                    `;
+                    document.head.appendChild(styleTag);
+                }}
+
                 const h = document.createElement('div');
                 h.id = 'bot-header';
-                Object.assign(h.style, {{
-                    position: 'fixed', bottom: '0', left: '0', width: '100%',
-                    background: 'rgba(44, 62, 80, 0.85)', color: '#ecf0f1',
-                    zIndex: '999999', padding: '12px 25px',
-                    fontFamily: 'Arial, sans-serif', boxShadow: '0 -4px 15px rgba(0,0,0,0.3)',
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    boxSizing: 'border-box', backdropFilter: 'blur(5px)'
-                }});
-
+                
                 h.innerHTML = `
-                    <div style="font-size: 15px; flex: 1;">
-                        <span style="opacity: 0.7;">Aktuális kategória:</span>
-                        <strong style="font-size: 17px; margin-left: 8px; color: #fff;">{kat_id}</strong>
+                    <div class="bh-left" title="{kat_id}">
+                        <span style="opacity: 0.7;">Kategória:</span>
+                        <strong style="margin-left: 5px; color: #fff;">{kat_id}</strong>
                     </div>
-                    <div style="font-size: 15px; font-weight: bold; color: #f1c40f; flex: 1; text-align: center;">
-                        ⏳ Rendezd el, majd kattints a "Letöltés" gombra!
+                    <div class="bh-center">
+                        ⏳ Rendezd el, majd "Letöltés"!
                     </div>
-                    <div style="font-size: 14px; flex: 1; text-align: right;">
+                    <div class="bh-right">
                         Kész: <b style="color: #fff;">{kesz_kollazs} / {osszes_kollazs}</b>
-                        <span style="opacity: 0.7; margin-left: 15px;">Hátralévő: {hatralevo} db</span>
+                        <span style="opacity: 0.7; margin-left: 10px;">(Hátra: {hatralevo} db)</span>
                     </div>
                 `;
                 document.body.appendChild(h);
