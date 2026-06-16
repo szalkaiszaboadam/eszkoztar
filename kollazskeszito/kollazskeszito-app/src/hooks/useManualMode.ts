@@ -47,8 +47,7 @@ export function useManualMode() {
   const historyIndexRef = useRef(-1);
   const isRestoringRef = useRef(false);
 
-
-// 💥 VÉGLEGES MATRICA GENERÁTOR (VÍZSZINTES SZÖVEGEK, PONTOS ILLESZKEDÉS) 💥
+// 💥 VÉGLEGES MATRICA GENERÁTOR (NAGYOBB ÉS VASTAGABB SZÖVEGGEL) 💥
   const addBadge = useCallback((type: 'uj' | 'premium') => {
     const canvas = document.createElement("canvas");
     canvas.width = 400;
@@ -56,62 +55,78 @@ export function useManualMode() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // 1. Árnyék beállítása a térbeli hatásért
-    ctx.shadowColor = "rgba(0, 0, 0, 0.25)"; 
-    ctx.shadowBlur = 12;
-    ctx.shadowOffsetY = 6;
+    // 1. Árnyék beállítása
+    ctx.shadowColor = "rgba(0, 0, 0, 0.35)"; 
+    ctx.shadowBlur = 18;
+    ctx.shadowOffsetY = 8;
 
-    // 2. Kör alap megrajzolása stílus szerint
+    // 2. Cikkcakkos pecsét forma megrajzolása
+    const cx = 200;
+    const cy = 200;
+    const outerRadius = 135; 
+    const innerRadius = 115; 
+    const points = 16;       
+
     ctx.beginPath();
-    ctx.arc(200, 200, 160, 0, Math.PI * 2);
+    for (let i = 0; i < points * 2; i++) {
+      const angle = (i * Math.PI) / points;
+      const r = (i % 2 === 0) ? outerRadius : innerRadius;
+      const x = cx + r * Math.cos(angle);
+      const y = cy + r * Math.sin(angle);
+      if (i === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+
+    // A lekerekített sarkok kialakítása
+    ctx.lineJoin = "round";
+    ctx.lineWidth = 18; 
+    
+    const badgeColor = type === 'uj' ? "#FF0000" : "#F4C430";
+    ctx.strokeStyle = badgeColor;
+    ctx.fillStyle = badgeColor;
+
+    // Körvonal rajzolása és kitöltés
+    ctx.stroke();
+    ctx.shadowColor = "transparent";
+    ctx.fill();
     
     if (type === 'uj') {
-      ctx.fillStyle = "#FF0000"; // Élénk vibráló piros
-      ctx.fill();
-
-      // Belső szaggatott vonal (fehér)
-      ctx.shadowColor = "transparent";
-      ctx.beginPath();
-      ctx.arc(200, 200, 145, 0, Math.PI * 2);
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.6)";
-      ctx.lineWidth = 4;
-      ctx.setLineDash([12, 10]);
-      ctx.stroke();
-      ctx.setLineDash([]);
-
-      // 💥 JAVÍTÁS: Nincs forgatás, teljesen vízszintes a szöveg
-      ctx.translate(200, 200);
-      ctx.fillStyle = "#ffffff";
-      ctx.font = "900 110px 'Arial Black', Impact, system-ui, sans-serif"; 
+      // --- ÚJ MATRICA ---
+      // 💥 JAVÍTÁS: Nagyobb méret (125px)
+      ctx.font = "900 125px 'Montserrat', 'Inter', 'Helvetica Neue', 'Segoe UI', sans-serif"; 
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      // Szélességi korlát biztos ami biztos
-      ctx.fillText("ÚJ", 0, 5, 250); 
+      
+      // 💥 TRÜKK A VASTAGÍTÁSHOZ: Extra fehér körvonal a betűk köré
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 4; // Ettől lesz "kövérebb" a betű
+      ctx.lineJoin = "round"; // A betűk sarkai is szépek maradnak
+      ctx.strokeText("ÚJ", 200, 205); 
+      
+      // Maga a betű kitöltése
+      ctx.fillStyle = "#ffffff";
+      ctx.fillText("ÚJ", 200, 205); 
     } 
     else {
-      // 💥 PRÉMIUM DIZÁJN: Kör alakú, prémium mélyfekete, arany elemekkel
-      ctx.fillStyle = "#111111"; 
-      ctx.fill();
+      // --- PRÉMIUM MATRICA ---
+      const darkColor = "#1A1A1A"; 
 
-      // Belső szaggatott vonal (arany)
-      ctx.shadowColor = "transparent";
-      ctx.beginPath();
-      ctx.arc(200, 200, 145, 0, Math.PI * 2);
-      ctx.strokeStyle = "#D4AF37"; // Elegáns arany szín
-      ctx.lineWidth = 4;
-      ctx.setLineDash([10, 10]);
-      ctx.stroke();
-      ctx.setLineDash([]);
-
-      // 💥 JAVÍTÁS: Vízszintes pozíció, arányos méret, és szigorú maxWidth
-      ctx.translate(200, 200);
-      ctx.fillStyle = "#D4AF37";
-      // Kisebb, 48px-es méret a tökéletes illeszkedéshez
-      ctx.font = "900 48px 'Arial Black', Impact, system-ui, sans-serif"; 
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      // A 250-es maxWidth garantálja, hogy sosem lóg ki a keretből!
-      ctx.fillText("PRÉMIUM", 0, 2, 250);
+      ctx.save();
+      ctx.translate(200, 200); 
+      ctx.scale(7, 7);         
+      ctx.translate(-12, -12); 
+      
+      const crownPath = new Path2D("m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14");
+      
+      ctx.lineJoin = "round";
+      ctx.lineCap = "round";
+      ctx.strokeStyle = darkColor;
+      ctx.lineWidth = 1.5;
+      ctx.stroke(crownPath); 
+      ctx.fillStyle = darkColor;
+      ctx.fill(crownPath);   
+      ctx.restore();
     }
 
     const dataUrl = canvas.toDataURL("image/png");
@@ -126,13 +141,12 @@ export function useManualMode() {
         removeBg: false
       };
 
-      // 3. OKOS POZICIONÁLÁS: Egymás alá rendeződés átfedés nélkül
+      // 3. FIX POZÍCIÓ: Jobb felső sarok
       setLayers(prev => ({
         ...prev,
         [newUid]: {
           x: 675, 
-          // 400px átmérő * 0.65 zoom = 260px magasság. -675 + 260 + 10px rés = -405
-          y: type === 'uj' ? -675 : -405, 
+          y: -675, 
           zoom: 0.65,
           rot: 0,       
           visible: true
