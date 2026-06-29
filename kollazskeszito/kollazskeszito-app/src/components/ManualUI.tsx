@@ -13,18 +13,18 @@ type Props = { state: ManualState };
 // --- 2. BAL OSZLOP (RÉTEGEK) ---
 export function LayerSidebar({ state }: Props) {
   const {
-    images, layers, activeUids, setActiveUids,
+    images, deletedImages, restoreImage, layers, activeUids, setActiveUids, // 💡 Kibővített destruktúrálás
     updateLayer, updateActiveLayers, removeImage, removeImages,
     reorderImages, toggleImageBg, setImagesBg
   } = state;
 
+const hasUj = images.some(i => i.name === 'cimke_uj.png');
+  const hasPremium = images.some(i => i.name === 'cimke_premium.png');
+
   const [draggedListIdx, setDraggedListIdx] = useState<number | null>(null);
   const [dragOverListIdx, setDragOverListIdx] = useState<number | null>(null);
-
-  // ÚJ: Állapot a gombra történő Drag & Drop feltöltéshez
   const [isDragOverUpload, setIsDragOverUpload] = useState(false);
 
-  // Kiszámoljuk, hogy a Kijelöltek közül mi az uralkodó állapot
   const isAllSelectedVisible = activeUids.length > 0 && activeUids.every(uid => layers[uid]?.visible);
   const isAllSelectedBgRemoved = activeUids.length > 0 && activeUids.every(uid => images.find(i => i.uid === uid)?.removeBg);
 
@@ -37,13 +37,13 @@ export function LayerSidebar({ state }: Props) {
 
       {images.length > 0 && (
         <div style={{ padding: "0 12px 12px 12px", display: "flex", gap: "8px", borderBottom: activeUids.length > 1 ? "none" : "1px solid var(--border)" }}>
-          <button onClick={() => setActiveUids(images.map(i => i.uid))} style={{ flex: 1, padding: "8px", background: "var(--bg-elevated)", border: "1px solid var(--border-medium)", borderRadius: "6px", fontSize: "12px", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", color: "var(--text)" }}>
+          <button onClick={() => setActiveUids(images.filter(i => !i.isBadge).map(i => i.uid))} style={{ flex: 1, padding: "8px", background: "var(--bg-elevated)", border: "1px solid var(--border-medium)", borderRadius: "6px", fontSize: "12px", fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px", color: "var(--text)" }}>
             <CheckSquare size={14} /> Összes kijelölése
           </button>
         </div>
       )}
 
-      {/* DEDIKÁLT CSOPORTOS MŰVELETEK SÁV */}
+      {/* CSOPORTOS MŰVELETEK SÁV */}
       {activeUids.length > 1 && (
         <div style={{ padding: "0 12px 12px 12px", borderBottom: "1px solid var(--border)", display: "flex", flexDirection: "column", gap: 8 }}>
           <div style={{ fontSize: 11, fontWeight: 800, color: "var(--accent)", textTransform: "uppercase", letterSpacing: "0.05em", textAlign: "center" }}>
@@ -75,6 +75,7 @@ export function LayerSidebar({ state }: Props) {
         </div>
       )}
 
+      {/* RÉTEGEK LISTÁJA */}
       <div style={{ flex: 1, overflowY: "auto", padding: "12px" }}>
         {images.length === 0 ? (
           <div style={{ padding: 20, textAlign: "center", color: "var(--text-secondary)", fontSize: 13 }}>Nincs még feltöltve kép.</div>
@@ -113,21 +114,19 @@ export function LayerSidebar({ state }: Props) {
                   }}
                 >
                   <div style={{ width: 32, height: 32, borderRadius: 4, background: "#fff", border: "1px solid var(--border-medium)", flexShrink: 0, overflow: "hidden" }}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={img.src} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
                   </div>
                   <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: isActive ? "var(--accent)" : "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Réteg {actualIndex + 1}</span>
 
                   <div style={{ display: "flex", gap: 4 }}>
-                    <button onClick={(e) => { e.stopPropagation(); toggleImageBg(img.uid); }} title="Fehér háttér eltüntetése" style={{ width: 26, height: 26, borderRadius: 4, border: "none", background: img.removeBg ? "rgba(91,80,232,0.1)" : "transparent", color: img.removeBg ? "var(--accent)" : "var(--text-secondary)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s" }}>
-                      <Eraser size={14} />
-                    </button>
-                    <button onClick={(e) => { e.stopPropagation(); updateLayer(img.uid, { visible: !lState.visible }); }} title="Láthatóság" style={{ width: 26, height: 26, borderRadius: 4, border: "none", background: "transparent", color: "var(--text-secondary)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      {lState.visible ? <Eye size={14} /> : <EyeOff size={14} />}
-                    </button>
-                    <button onClick={(e) => { e.stopPropagation(); setActiveUids(prev => prev.filter(id => id !== img.uid)); removeImage(actualIndex); }} title="Törlés" style={{ width: 26, height: 26, borderRadius: 4, border: "none", background: "transparent", color: "#ef4444", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <Trash2 size={14} />
-                    </button>
+                    {/* 💡 A Matricákon nincs szem vagy radír ikon, csak kuka! */}
+                    {!img.isBadge && (
+                      <>
+                        <button onClick={(e) => { e.stopPropagation(); toggleImageBg(img.uid); }} title="Fehér háttér eltüntetése" style={{ width: 26, height: 26, borderRadius: 4, border: "none", background: img.removeBg ? "rgba(91,80,232,0.1)" : "transparent", color: img.removeBg ? "var(--accent)" : "var(--text-secondary)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s" }}><Eraser size={14} /></button>
+                        <button onClick={(e) => { e.stopPropagation(); updateLayer(img.uid, { visible: !lState.visible }); }} title="Láthatóság" style={{ width: 26, height: 26, borderRadius: 4, border: "none", background: "transparent", color: "var(--text-secondary)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>{lState.visible ? <Eye size={14} /> : <EyeOff size={14} />}</button>
+                      </>
+                    )}
+                    <button onClick={(e) => { e.stopPropagation(); setActiveUids(prev => prev.filter(id => id !== img.uid)); removeImage(actualIndex); }} title="Törlés" style={{ width: 26, height: 26, borderRadius: 4, border: "none", background: "transparent", color: "#ef4444", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}><Trash2 size={14} /></button>
                   </div>
                 </div>
               );
@@ -136,46 +135,64 @@ export function LayerSidebar({ state }: Props) {
         )}
       </div>
 
-      {/* 💥 JAVÍTOTT MATRICA HOZZÁADÁSA SZEKCIÓ (KOMPAKT, EGYMÁS MELLETT) 💥 */}
+      {/* 💡 ÚJ: LOMTÁR SZEKCIÓ (Közvetlenül a rétegek alatt, de fixen lenn) */}
+      {deletedImages && deletedImages.length > 0 && (
+        <div style={{ padding: "12px", borderTop: "1px solid var(--border)", background: "rgba(0,0,0,0.02)" }}>
+          <div style={{ fontSize: 10, fontWeight: 800, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8, textAlign: "center" }}>
+            Lomtár (Kattints a visszaállításhoz)
+          </div>
+          <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4, paddingLeft: 2, paddingRight: 2 }}>
+            {deletedImages.map((img) => (
+              <div
+                key={img.uid}
+                onClick={() => restoreImage(img.uid)}
+                title="Kattints a visszaállításhoz"
+                style={{ width: 44, height: 44, borderRadius: 6, background: "#fff", border: "1px solid var(--border-medium)", flexShrink: 0, cursor: "pointer", overflow: "hidden", opacity: 0.7, transition: "all 0.15s ease", boxShadow: "0 2px 4px rgba(0,0,0,0.04)" }}
+                onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.transform = "scale(1.05)"; }}
+                onMouseLeave={e => { e.currentTarget.style.opacity = "0.7"; e.currentTarget.style.borderColor = "var(--border-medium)"; e.currentTarget.style.transform = "scale(1)"; }}
+              >
+                <img src={img.src} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 💡 DISZKRÉT MATRICA HOZZÁADÁSA SZEKCIÓ */}
       <div style={{ padding: "12px", borderTop: "1px solid var(--border)", background: "var(--bg-elevated)", display: "flex", flexDirection: "column", gap: 6 }}>
         <div style={{ fontSize: 10, fontWeight: 800, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", textAlign: "center", marginBottom: 2 }}>
-          Címkék hozzáadása
+          Címkék be- és kikapcsolása
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           
-          {/* ÚJ GOMB */}
+          {/* Diszkrét ÚJ gomb */}
           <button 
-            onClick={() => state.addBadge('uj')} 
+            onClick={() => state.toggleBadge('uj')} 
             style={{ 
-              flex: 1, padding: "10px 4px", 
-              background: "#FF0000", 
-              color: "#ffffff", borderRadius: 8, fontWeight: 900, fontSize: 12, 
-              border: "none", cursor: "pointer", 
-              boxShadow: "0 2px 8px rgba(255, 0, 0, 0.25)", 
-              transition: "transform 0.1s",
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 6
+              flex: 1, padding: "8px 4px", 
+              background: hasUj ? "#fef2f2" : "transparent", 
+              color: hasUj ? "#dc2626" : "var(--text-secondary)", 
+              borderRadius: 6, fontWeight: 800, fontSize: 11, 
+              border: `1px solid ${hasUj ? "#fca5a5" : "var(--border-medium)"}`, 
+              cursor: "pointer", transition: "all 0.15s ease",
+              display: "flex", alignItems: "center", justifyContent: "center"
             }} 
-            onMouseDown={e=>e.currentTarget.style.transform="scale(0.95)"} 
-            onMouseUp={e=>e.currentTarget.style.transform="scale(1)"}
           >
-            
             ÚJ
           </button>
 
-          {/* PRÉMIUM GOMB */}
+          {/* Diszkrét PRÉMIUM gomb */}
           <button 
-            onClick={() => state.addBadge('premium')} 
+            onClick={() => state.toggleBadge('premium')} 
             style={{ 
-              flex: 1, padding: "10px 4px", 
-              background: "#111111", 
-              color: "#D4AF37", borderRadius: 8, fontWeight: 900, fontSize: 12, 
-              border: "1px solid #D4AF37", cursor: "pointer", 
-              boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)", 
-              transition: "transform 0.1s",
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 6
+              flex: 1, padding: "8px 4px", 
+              background: hasPremium ? "#fdfbf0" : "transparent", 
+              color: hasPremium ? "#D4AF37" : "var(--text-secondary)", 
+              borderRadius: 6, fontWeight: 800, fontSize: 11, 
+              border: `1px solid ${hasPremium ? "#D4AF37" : "var(--border-medium)"}`, 
+              cursor: "pointer", transition: "all 0.15s ease",
+              display: "flex", alignItems: "center", justifyContent: "center"
             }} 
-            onMouseDown={e=>e.currentTarget.style.transform="scale(0.95)"} 
-            onMouseUp={e=>e.currentTarget.style.transform="scale(1)"}
           >
             PRÉMIUM
           </button>
@@ -183,7 +200,7 @@ export function LayerSidebar({ state }: Props) {
         </div>
       </div>
 
-      {/* EREDETI FÁJLFELTÖLTŐ GOMB */}
+      {/* FÁJLFELTÖLTŐ GOMB */}
       <div
         onDragOver={(e) => { e.preventDefault(); setIsDragOverUpload(true); }}
         onDragLeave={() => setIsDragOverUpload(false)}
@@ -196,41 +213,23 @@ export function LayerSidebar({ state }: Props) {
         }}
         style={{ padding: "12px", borderTop: "1px solid var(--border)", background: isDragOverUpload ? "rgba(91,80,232,0.05)" : "var(--bg-panel)", transition: "all 0.2s" }}
       >
-        <button
-          onClick={() => state.fileInputRef.current?.click()}
-          style={{
-            width: "100%", padding: "10px",
-            background: isDragOverUpload ? "transparent" : "var(--bg-elevated)",
-            border: `2px dashed ${isDragOverUpload ? "var(--accent)" : "var(--border-medium)"}`,
-            borderRadius: 8,
-            color: isDragOverUpload ? "var(--accent)" : "var(--text)",
-            fontSize: 13, fontWeight: 700, cursor: "pointer",
-            display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "all 0.2s",
-            pointerEvents: isDragOverUpload ? "none" : "auto"
-          }}
-          onMouseEnter={(e) => e.currentTarget.style.borderColor = "var(--accent)"}
-          onMouseLeave={(e) => e.currentTarget.style.borderColor = isDragOverUpload ? "var(--accent)" : "var(--border-medium)"}
-        >
+        <button onClick={() => state.fileInputRef.current?.click()} style={{ width: "100%", padding: "10px", background: isDragOverUpload ? "transparent" : "var(--bg-elevated)", border: `2px dashed ${isDragOverUpload ? "var(--accent)" : "var(--border-medium)"}`, borderRadius: 8, color: isDragOverUpload ? "var(--accent)" : "var(--text)", fontSize: 13, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, transition: "all 0.2s", pointerEvents: isDragOverUpload ? "none" : "auto" }} onMouseEnter={(e) => e.currentTarget.style.borderColor = "var(--accent)"} onMouseLeave={(e) => e.currentTarget.style.borderColor = isDragOverUpload ? "var(--accent)" : "var(--border-medium)"}>
           <Plus size={16} /> {isDragOverUpload ? "Húzd ide a fájlokat!" : "Új kép feltöltése"}
         </button>
-        <input
-          ref={state.fileInputRef}
-          type="file" multiple accept="image/*" style={{ display: "none" }}
-          onChange={(e) => { if (e.target.files) state.addFiles(e.target.files); e.target.value = ''; }}
-        />
+        <input ref={state.fileInputRef} type="file" multiple accept="image/*" style={{ display: "none" }} onChange={(e) => { if (e.target.files) state.addFiles(e.target.files); e.target.value = ''; }} />
       </div>
-
     </aside>
   );
 }
 
+// --- 3. KÖZÉPSŐ OSZLOP (VÁSZON) ÉS LEBEGŐ ESZKÖZTÁR ---
 // --- 3. KÖZÉPSŐ OSZLOP (VÁSZON) ÉS LEBEGŐ ESZKÖZTÁR ---
 export function WorkspaceCanvas({ state }: Props) {
   const {
     containerRef, canvasPixelSize, canvasScale, showGrid, gridDivisions, activeSnapLines,
     images, layers, activeUids, setActiveUids, processedImages,
     onPointerDownCanvas, onPointerMoveCanvas, onPointerUpCanvas, isDraggingCanvas,
-    undo, redo, canUndo, canRedo // Húzzuk be az Undo/Redo elemeket
+    undo, redo, canUndo, canRedo
   } = state;
 
   return (
@@ -238,18 +237,21 @@ export function WorkspaceCanvas({ state }: Props) {
       ref={containerRef} onPointerDown={() => setActiveUids([])}
       style={{ flex: 1, background: "var(--bg)", position: "relative", overflow: "hidden", userSelect: "none", WebkitUserSelect: "none", touchAction: "none" }}
     >
-      {/* 1. MAGA A VÁSZON */}
       <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", width: canvasPixelSize, height: canvasPixelSize, background: "#ffffff", boxShadow: "0 10px 40px rgba(0,0,0,0.08)", overflow: "hidden" }}>
         <div style={{ width: 2000, height: 2000, transformOrigin: "top left", transform: `scale(${canvasScale})`, position: "absolute", top: 0, left: 0 }}>
+          
+          {/* 1. VALÓDI KÉPEK KIRAJZOLÁSA (Matricákat átugorjuk) */}
           {images.map((img, index) => {
-            const l = layers[img.uid];
-            if (!l || !l.visible) return null;
+            if (img.isBadge) return null; // 💡 A matricákat nem itt, hanem lejjebb rajzoljuk ki!
+            
+            // 💡 GOLYÓÁLLÓ JAVÍTÁS: Ha véletlenül hiányzik a réteg a memóriából, generálunk egy üreset, így SOSEM omlik össze!
+            const l = layers[img.uid] || { x: 0, y: 0, zoom: 0.8, rot: 0, visible: true };
+            if (!l.visible) return null;
+            
             const isActive = activeUids.includes(img.uid);
-
             const baseScale = Math.min(2000 / img.el.width, 2000 / img.el.height) * 0.5;
             const w = img.el.width * baseScale;
             const h = img.el.height * baseScale;
-
             const currentSrc = (img.removeBg && processedImages[img.uid]) ? processedImages[img.uid].src : img.src;
 
             return (
@@ -273,6 +275,22 @@ export function WorkspaceCanvas({ state }: Props) {
             );
           })}
 
+          {/* 💡 MATRICÁK MEGJELENÍTÉSE FIXEN A SAROKBAN (Gombok nélkül) */}
+          {images.filter(img => img.isBadge).map((img, i) => (
+            <div key={img.uid} style={{
+              position: "absolute",
+              top: 40 + i * 620, 
+              right: 40,
+              width: 600, height: 600, 
+              zIndex: 9999,
+              pointerEvents: "none" // 💥 Semmilyen kattintást nem fogad be!
+            }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={img.src} alt="" style={{ width: "100%", height: "100%", display: "block" }} />
+            </div>
+          ))}
+
+          {/* 3. RÁCS ÉS SEGÉDVONALAK */}
           <div style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 10000 }}>
             {showGrid && (
               <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" shapeRendering="crispEdges">
@@ -292,9 +310,9 @@ export function WorkspaceCanvas({ state }: Props) {
         </div>
       </div>
 
-      {/* 2. ÚJ: LEBEGŐ ESZKÖZTÁR (Glassmorphism effekt) */}
+      {/* 4. LEBEGŐ ESZKÖZTÁR (Undo/Redo) */}
       <div
-        onPointerDown={(e) => e.stopPropagation()} // Ne törölje a kijelölést, ha az eszköztárra kattint
+        onPointerDown={(e) => e.stopPropagation()} 
         style={{
           position: "absolute", bottom: 24, left: "50%", transform: "translateX(-50%)",
           background: "rgba(255, 255, 255, 0.75)",
@@ -334,7 +352,6 @@ export function WorkspaceCanvas({ state }: Props) {
           <Redo2 size={20} strokeWidth={2.5} />
         </button>
       </div>
-
     </main>
   );
 }

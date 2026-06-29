@@ -19,10 +19,11 @@ type HistorySnapshot = {
 };
 
 export function useManualMode() {
-  const {
-    images, setImages, removeImage, removeImages, reorderImages,
+const {
+    images, deletedImages, setImages, removeImage, removeImages, restoreImage, reorderImages,
     toggleImageBg, setImagesBg, setAllImagesBg, addFiles,
-    manualLayersOverride, setManualLayersOverride, // <--- ÚJ
+    manualLayersOverride, setManualLayersOverride, 
+    toggleBadge // 💡 addBadge HELYETT toggleBadge
   } = useCollage();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -47,121 +48,13 @@ export function useManualMode() {
   const historyIndexRef = useRef(-1);
   const isRestoringRef = useRef(false);
 
-// 💥 VÉGLEGES MATRICA GENERÁTOR (NAGYOBB ÉS VASTAGABB SZÖVEGGEL) 💥
-  const addBadge = useCallback((type: 'uj' | 'premium') => {
-    const canvas = document.createElement("canvas");
-    canvas.width = 400;
-    canvas.height = 400;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
 
-    // 1. Árnyék beállítása
-    ctx.shadowColor = "rgba(0, 0, 0, 0.35)"; 
-    ctx.shadowBlur = 18;
-    ctx.shadowOffsetY = 8;
 
-    // 2. Cikkcakkos pecsét forma megrajzolása
-    const cx = 200;
-    const cy = 200;
-    const outerRadius = 135; 
-    const innerRadius = 115; 
-    const points = 16;       
-
-    ctx.beginPath();
-    for (let i = 0; i < points * 2; i++) {
-      const angle = (i * Math.PI) / points;
-      const r = (i % 2 === 0) ? outerRadius : innerRadius;
-      const x = cx + r * Math.cos(angle);
-      const y = cy + r * Math.sin(angle);
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    }
-    ctx.closePath();
-
-    // A lekerekített sarkok kialakítása
-    ctx.lineJoin = "round";
-    ctx.lineWidth = 18; 
-    
-    const badgeColor = type === 'uj' ? "#FF0000" : "#F4C430";
-    ctx.strokeStyle = badgeColor;
-    ctx.fillStyle = badgeColor;
-
-    // Körvonal rajzolása és kitöltés
-    ctx.stroke();
-    ctx.shadowColor = "transparent";
-    ctx.fill();
-    
-    if (type === 'uj') {
-      // --- ÚJ MATRICA ---
-      // 💥 JAVÍTÁS: Nagyobb méret (125px)
-      ctx.font = "900 125px 'Montserrat', 'Inter', 'Helvetica Neue', 'Segoe UI', sans-serif"; 
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      
-      // 💥 TRÜKK A VASTAGÍTÁSHOZ: Extra fehér körvonal a betűk köré
-      ctx.strokeStyle = "#ffffff";
-      ctx.lineWidth = 4; // Ettől lesz "kövérebb" a betű
-      ctx.lineJoin = "round"; // A betűk sarkai is szépek maradnak
-      ctx.strokeText("ÚJ", 200, 205); 
-      
-      // Maga a betű kitöltése
-      ctx.fillStyle = "#ffffff";
-      ctx.fillText("ÚJ", 200, 205); 
-    } 
-    else {
-      // --- PRÉMIUM MATRICA ---
-      const darkColor = "#1A1A1A"; 
-
-      ctx.save();
-      ctx.translate(200, 200); 
-      ctx.scale(7, 7);         
-      ctx.translate(-12, -12); 
-      
-      const crownPath = new Path2D("m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14");
-      
-      ctx.lineJoin = "round";
-      ctx.lineCap = "round";
-      ctx.strokeStyle = darkColor;
-      ctx.lineWidth = 1.5;
-      ctx.stroke(crownPath); 
-      ctx.fillStyle = darkColor;
-      ctx.fill(crownPath);   
-      ctx.restore();
-    }
-
-    const dataUrl = canvas.toDataURL("image/png");
-    const img = new Image();
-    img.onload = () => {
-      const newUid = Math.random().toString(36).slice(2);
-      const newImg = {
-        el: img,
-        src: dataUrl,
-        name: `cimke_${type}.png`,
-        uid: newUid,
-        removeBg: false
-      };
-
-      // 3. FIX POZÍCIÓ: Jobb felső sarok
-      setLayers(prev => ({
-        ...prev,
-        [newUid]: {
-          x: 675, 
-          y: -675, 
-          zoom: 0.65,
-          rot: 0,       
-          visible: true
-        }
-      }));
-
-      setImages((prev: any) => [...prev, newImg]);
-    };
-    img.src = dataUrl;
-  }, [setImages]);
-
-  const saveSnapshot = useCallback((currentImages: LoadedImg[], currentLayers: Record<string, LayerState>) => {
+const saveSnapshot = useCallback((currentImages: LoadedImg[], currentLayers: Record<string, LayerState>) => {
     if (isRestoringRef.current) return;
 
-    const mappedImages = currentImages.map(img => ({ uid: img.uid, removeBg: img.removeBg, el: img.el, src: img.src, name: img.name }));
+    // 💥 A FŐ JAVÍTÁS: img.isBadge bekerült a listába, így az Undo sosem felejti el, hogy ez egy matrica!
+    const mappedImages = currentImages.map(img => ({ uid: img.uid, removeBg: img.removeBg, el: img.el, src: img.src, name: img.name, isBadge: img.isBadge }));
     const lastState = historyRef.current[historyIndexRef.current];
 
     if (lastState) {
@@ -170,7 +63,7 @@ export function useManualMode() {
       if (isImagesSame && isLayersSame) return;
     }
 
-    const newHistory = historyRef.current.slice(0, historyIndexRef.current + 1);
+const newHistory = historyRef.current.slice(0, historyIndexRef.current + 1);
     newHistory.push({ images: mappedImages as LoadedImg[], layers: JSON.parse(JSON.stringify(currentLayers)) });
 
     if (newHistory.length > 30) newHistory.shift();
@@ -261,7 +154,8 @@ export function useManualMode() {
       const next = { ...prev };
       let changed = false;
       images.forEach(img => {
-        if (!next[img.uid]) {
+        // 💡 Ha matrica, NEM HOZUNK LÉTRE RÉTEGET HOZZÁ!
+        if (!img.isBadge && !next[img.uid]) {
           next[img.uid] = { x: 0, y: 0, zoom: 0.8, rot: 0, visible: true };
           changed = true;
         }
@@ -472,38 +366,44 @@ export function useManualMode() {
       const canvas = document.createElement("canvas");
       canvas.width = 2000; canvas.height = 2000;
       const ctx = canvas.getContext("2d")!;
+      ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, 2000, 2000);
 
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, 2000, 2000);
-
+      // Képek megrajzolása
       images.forEach(img => {
+        if (img.isBadge) return; // 💡 A matricákat átugorjuk
         const l = layers[img.uid];
         if (!l || !l.visible) return;
-
         ctx.save();
         ctx.translate(1000 + l.x, 1000 + l.y);
         ctx.rotate(l.rot * Math.PI / 180);
-
         const baseScale = Math.min(2000 / img.el.width, 2000 / img.el.height) * 0.5;
         const finalScale = baseScale * l.zoom;
-        const w = img.el.width * finalScale;
-        const h = img.el.height * finalScale;
-
+        const w = img.el.width * finalScale; const h = img.el.height * finalScale;
         const imageToDraw = (img.removeBg && processedImages[img.uid]) ? processedImages[img.uid].el : img.el;
         ctx.drawImage(imageToDraw, -w / 2, -h / 2, w, h);
         ctx.restore();
       });
 
+      // 💡 Matricák rárajzolása a JOBB FELSŐ SAROKBA
+      let badgeIndex = 0;
+      images.forEach(img => {
+        if (!img.isBadge) return;
+        const w = 400; const h = 400;
+        const x = 2000 - w - 40; // 40px táv a jobb széltől
+        const y = 40 + (badgeIndex * (h + 20)); // Több matrica esetén egymás alá kerülnek
+        ctx.drawImage(img.el, x, y, w, h);
+        badgeIndex++;
+      });
+
       downloadCanvasAsImage(canvas, "kollazs_manualis");
-      setDownloading(false);
-      setIsSaved(true);
+      setDownloading(false); setIsSaved(true);
     }, 100);
   }, [images, layers, processedImages]);
 
   const activeLayerData = activeUids.length > 0 ? layers[activeUids[0]] : null;
 
   return {
-    images, layers, activeUids, setActiveUids, processedImages,
+    images, deletedImages, restoreImage, layers, activeUids, setActiveUids, processedImages, // 💡 Egészítse ki ezt a sort is
     containerRef, canvasPixelSize, canvasScale, downloading,
     showGrid, setShowGrid, gridDivisions, setGridDivisions,
     isSnapEnabled, setIsSnapEnabled, activeSnapLines,
@@ -511,6 +411,6 @@ export function useManualMode() {
     removeImage, removeImages, reorderImages, updateLayer, updateActiveLayers,
     download, activeLayerData,
     toggleImageBg, setImagesBg, setAllImagesBg, addFiles, fileInputRef, isSaved,
-    addBadge, undo, redo, canUndo, canRedo // <--- EZT ADD HOZZÁ A LISTÁHOZ
+    toggleBadge, undo, redo, canUndo, canRedo
   };
 }

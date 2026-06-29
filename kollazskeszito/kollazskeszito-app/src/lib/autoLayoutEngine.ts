@@ -1,4 +1,5 @@
 import { processWhiteBackground } from "./imageProcessing";
+import { LoadedImg } from "../components/CollageContext";
 // ── TÍPUSOK ────────────────────────────────────────────────
 
 export interface CroppedImage {
@@ -212,7 +213,23 @@ export function computeLayouts(images: CroppedImage[], gap: number, margin: numb
   let allPerms: CroppedImage[][];
   if (keepOrder) {
     allPerms = [images];
+  } else if (images.length > 5) {
+    // 💡 HEURISZTIKA SOK KÉPHEZ: Megakadályozza a böngésző lefagyását (N! komplexitás kilövése)
+    const sortedAsc = [...images].sort((a, b) => a.ar - b.ar);
+    const sortedDesc = [...images].sort((a, b) => b.ar - a.ar);
+    allPerms = [images, sortedAsc, sortedDesc];
+
+    // Hozzáadunk 8 darab véletlenszerű keverést, hogy változatos elrendezések szülessenek fagyás nélkül
+    for (let k = 0; k < 8; k++) {
+      const shuffled = [...images];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      allPerms.push(shuffled);
+    }
   } else {
+    // 5 vagy kevesebb képnél maradhat a tökéletes teljes kiértékelés
     const perms = getPermutations(images);
     const sortedAsc = [...images].sort((a, b) => a.ar - b.ar);
     const sortedDesc = [...images].sort((a, b) => b.ar - a.ar);
@@ -294,24 +311,32 @@ function drawLayout(
   }
 }
 
-/** Végleges 2000×2000 px export */
-export function renderToCanvas(canvas: HTMLCanvasElement, layout: AutoLayout, bgColor = "#ffffff") {
-  canvas.width = 2000;
-  canvas.height = 2000;
-  const ctx = canvas.getContext("2d")!;
-  drawLayout(ctx, layout, 2000, 2000, bgColor, layout.externalMargin);
+// 💡 Készítsünk egy új segédfüggvényt a matricák rajzolására:
+function drawBadges(ctx: CanvasRenderingContext2D, images: LoadedImg[], canvasSize: number, marginPx: number, scale: number = 1) {
+  let badgeIndex = 0;
+  const badges = images.filter(img => img.isBadge);
+  for (const img of badges) {
+    const w = 600 * scale; // 💡 400 helyett 600
+    const h = 600 * scale; // 💡 400 helyett 600
+    const x = canvasSize - w - Math.max(marginPx, 40 * scale);
+    const y = Math.max(marginPx, 40 * scale) + (badgeIndex * (h + 20 * scale));
+    ctx.drawImage(img.el, x, y, w, h);
+    badgeIndex++;
+  }
 }
 
-/** Preview: a canvas mindig fix 1:1 arányú négyzet, akárcsak a 2000x2000-es letöltés */
-export function renderPreview(canvas: HTMLCanvasElement, layout: AutoLayout, bgColor = "#ffffff", size = 800) {
-  // 1. Kőbe vésett négyzet méret
-  canvas.width = size;
-  canvas.height = size;
+// 💡 Frissítsd a két render függvényt (paraméter és rajzolás módosult):
+export function renderToCanvas(canvas: HTMLCanvasElement, layout: AutoLayout, images: LoadedImg[], bgColor = "#ffffff") {
+  canvas.width = 2000; canvas.height = 2000;
   const ctx = canvas.getContext("2d")!;
-  
-  // 2. A margót arányosítjuk a 2000-es célmérethez képest a preview méretére
+  drawLayout(ctx, layout, 2000, 2000, bgColor, layout.externalMargin);
+  drawBadges(ctx, images, 2000, layout.externalMargin);
+}
+
+export function renderPreview(canvas: HTMLCanvasElement, layout: AutoLayout, images: LoadedImg[], bgColor = "#ffffff", size = 800) {
+  canvas.width = size; canvas.height = size;
+  const ctx = canvas.getContext("2d")!;
   const marginPx = (layout.externalMargin / 2000) * size;
-  
-  // 3. A drawLayout funkció magától középre rendezi a tartalmat a négyzeten belül!
   drawLayout(ctx, layout, size, size, bgColor, marginPx);
+  drawBadges(ctx, images, size, marginPx, size / 2000);
 }

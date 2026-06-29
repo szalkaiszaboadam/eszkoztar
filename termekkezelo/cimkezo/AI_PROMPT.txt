@@ -20,4 +20,4 @@ Akkor a helyes kimenet (a Címke oszlopban):
 forgácsolószerszám, kúpsüllyesztő, hengeresszárú kúpsüllyesztő
 
 **KIMENET:**
-Miután végigértél az összes soron, mentsd el a módosított táblázatot, és add oda nekem egy letölthető Excel (.xlsx) vagy CSV fájlként!
+Miután végigértél az összes soron, mentsd el a módosított táblázatot, és add oda nekem egy letölthető Excel (.xlsx) fájlként!

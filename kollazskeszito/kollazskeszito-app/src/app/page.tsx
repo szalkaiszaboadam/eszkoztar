@@ -4,8 +4,8 @@
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { useCollage, LoadedImg } from "@/src/components/CollageContext";
-import { Wand2, Zap, Eraser, Target, Wrench, Hand, MonitorX } from "lucide-react"; 
-import { useIsMobile } from "@/src/components/SharedUI"; 
+import { Wand2, Zap, Eraser, Target, Wrench, Hand, MonitorX } from "lucide-react";
+import { useIsMobile } from "@/src/components/SharedUI";
 
 // --- KOMPONENSEK ---
 function ModeCard({ title, desc, href, icon, disabled, mobileDisabledMsg }: { title: string, desc: string, href: string, icon: React.ReactNode, disabled: boolean, mobileDisabledMsg?: string }) {
@@ -17,24 +17,24 @@ function ModeCard({ title, desc, href, icon, disabled, mobileDisabledMsg }: { ti
         cursor: disabled ? "not-allowed" : "pointer", transition: "all 0.2s ease", height: "100%",
         boxShadow: "0 4px 12px rgba(0,0,0,0.02)"
       }}
-      onMouseEnter={(e) => {
-        if (disabled) return;
-        e.currentTarget.style.borderColor = "var(--accent)";
-        e.currentTarget.style.transform = "translateY(-6px)";
-        e.currentTarget.style.boxShadow = "0 12px 32px var(--accent-glow)";
-      }}
-      onMouseLeave={(e) => {
-        if (disabled) return;
-        e.currentTarget.style.borderColor = "var(--border)";
-        e.currentTarget.style.transform = "translateY(0)";
-        e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.02)";
-      }}>
+        onMouseEnter={(e) => {
+          if (disabled) return;
+          e.currentTarget.style.borderColor = "var(--accent)";
+          e.currentTarget.style.transform = "translateY(-6px)";
+          e.currentTarget.style.boxShadow = "0 12px 32px var(--accent-glow)";
+        }}
+        onMouseLeave={(e) => {
+          if (disabled) return;
+          e.currentTarget.style.borderColor = "var(--border)";
+          e.currentTarget.style.transform = "translateY(0)";
+          e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.02)";
+        }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text)" }}>{icon}</div>
         </div>
         <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
           <h2 style={{ fontSize: 20, fontWeight: 800, color: "var(--text)", marginBottom: 8 }}>{title}</h2>
-          
+
           {disabled && mobileDisabledMsg && (
             <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#ef4444", fontSize: 13, fontWeight: 700, marginBottom: 8, background: "#fef2f2", padding: "4px 8px", borderRadius: 6, width: "fit-content" }}>
               <MonitorX size={14} /> {mobileDisabledMsg}
@@ -50,23 +50,29 @@ function ModeCard({ title, desc, href, icon, disabled, mobileDisabledMsg }: { ti
 
 // --- FŐ ALKALMAZÁS ---
 export default function HomePage() {
-  // JAVÍTÁS: Visszahúztuk a reorderImages-t is a Contextből!
-  const { images, addFiles, removeImage, rotateImage, reorderImages, clearImages, toggleImageBg } = useCollage(); 
-  const isMobile = useIsMobile(); 
-  
+  const {
+    images, deletedImages, restoreImage, addFiles, removeImage, rotateImage,
+    reorderImages, clearImages, toggleImageBg
+  } = useCollage();
+
+  const isMobile = useIsMobile();
+
   const [isDragOverDropzone, setIsDragOverDropzone] = useState(false);
   // JAVÍTÁS: Visszakerültek az állapotok az előnézethez és a drag&drophoz!
   const [previewImg, setPreviewImg] = useState<LoadedImg | null>(null);
   const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
-  const hasImages = images.length > 0;
-  const isAutoDisabled = !hasImages;
+
+// Keresse meg a változókat a fájl elején, a renderelés fölött:
+  const photoCount = images.filter(img => !img.isBadge).length; // 💡 ÚJ SZÁMLÁLÓ
+  const hasImages = photoCount > 0;
+  const isOverLimit = photoCount > 8; 
+  const isModeDisabled = !hasImages || isOverLimit;
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--bg)", padding: isMobile ? "16px 16px 40px 16px" : "24px 24px 64px 24px", boxSizing: "border-box", overflowY: "auto" }}>
-      
+
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: isMobile ? 24 : 48, marginBottom: isMobile ? 32 : 56, textAlign: "center" }}>
         <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 12 : 20, marginBottom: 16 }}>
           <div style={{ width: isMobile ? 44 : 56, height: isMobile ? 44 : 56, borderRadius: 14, background: "var(--accent)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontSize: isMobile ? 24 : 28, fontWeight: 800, boxShadow: "0 8px 24px var(--accent-glow)" }}>⊞</div>
@@ -76,7 +82,7 @@ export default function HomePage() {
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: isMobile ? 32 : 48, maxWidth: 1000, width: "100%", margin: "0 auto" }}>
-        
+
         {/* 1. LÉPÉS */}
         <div style={{ height: isMobile ? "auto" : 240, minHeight: 240, background: "var(--bg-panel)", border: "1px solid var(--border)", borderRadius: 20, padding: isMobile ? 20 : 28, boxShadow: "0 8px 32px rgba(0,0,0,0.03)", display: "flex", flexDirection: "column" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, flexShrink: 0 }}>
@@ -102,11 +108,13 @@ export default function HomePage() {
                 </div>
               </div>
             ) : (
-              <div style={{ display: "flex", gap: 16, overflowX: "auto", width: "100%", alignItems: "center", padding: "4px" }}>
-                {images.map((img, i) => (
-                  <div key={img.uid} style={{ width: 88, height: 88, flexShrink: 0 }}>
+<div style={{ display: "flex", gap: 16, overflowX: "auto", width: "100%", alignItems: "center", padding: "4px" }}>
+                {images.map((img, i) => {
+                  if (img.isBadge) return null; // 💡 ÚJ: A matricák nem jelennek meg a főoldali listában!
+                  return (
+                    <div key={img.uid} style={{ width: 88, height: 88, flexShrink: 0 }}>
                     {/* JAVÍTÁS: Visszakerült a teljes interakciós blokk! */}
-                    <div 
+                    <div
                       onClick={() => setPreviewImg(img)}
                       draggable
                       onDragStart={(e) => {
@@ -138,11 +146,11 @@ export default function HomePage() {
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={img.src} alt={img.name} style={{ width: "100%", height: "100%", objectFit: "contain", pointerEvents: "none" }} />
-                      
+
                       {/* VISSZAKERÜLT A FORGATÁS GOMB */}
                       <button onClick={(e) => { e.stopPropagation(); rotateImage(i, 90); }} title="Forgatás" style={{
                         position: "absolute", top: 4, left: 4, width: 24, height: 24, borderRadius: "50%",
-                        background: "rgba(255,255,255,0.95)", border: "1px solid var(--border-medium)", color: "var(--text)", 
+                        background: "rgba(255,255,255,0.95)", border: "1px solid var(--border-medium)", color: "var(--text)",
                         display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, zIndex: 10
                       }}>
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
@@ -152,7 +160,7 @@ export default function HomePage() {
 
                       <button onClick={(e) => { e.stopPropagation(); removeImage(i); }} title="Törlés" style={{
                         position: "absolute", top: 4, right: 4, width: 24, height: 24, borderRadius: "50%",
-                        background: "rgba(255,255,255,0.95)", border: "1px solid #fca5a5", color: "#dc2626", 
+                        background: "rgba(255,255,255,0.95)", border: "1px solid #fca5a5", color: "#dc2626",
                         display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, zIndex: 10
                       }}>
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
@@ -168,12 +176,15 @@ export default function HomePage() {
                         display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, zIndex: 10,
                         transition: "all 0.2s ease"
                       }}>
-                        <Eraser size={12} />
+                       <Eraser size={12} />
                       </button>
                     </div>
                   </div>
-                ))}
-                {images.length < 30 && (
+                ); // 💡 ÚJ: A return-t egy pontosvesszővel és zárójellel zárjuk
+              })}
+                
+              {/* Ide is bekerülhet a photoCount a pontosság kedvéért: */}
+              {photoCount < 30 && (
                   <div onClick={() => fileInputRef.current?.click()} style={{ width: 88, height: 88, flexShrink: 0, border: "2px dashed var(--border-medium)", borderRadius: 10, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><div style={{ fontSize: 32, fontWeight: 300, lineHeight: 1, color: "var(--text-secondary)" }}>+</div></div>
                 )}
               </div>
@@ -185,22 +196,47 @@ export default function HomePage() {
         <div style={{ display: "flex", flexDirection: "column" }}>
           <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "flex-start" : "center", gap: 12, marginBottom: 20 }}>
             <h2 style={{ fontSize: isMobile ? 16 : 18, fontWeight: 800, color: "var(--text)" }}>2. Lépés: Válassz módot</h2>
+
             {!hasImages && <span style={{ color: "#ef4444", fontSize: 13, fontWeight: 700, background: "#fef2f2", padding: "4px 10px", borderRadius: 6 }}>Tölts fel képet a kezdéshez!</span>}
 
+           {isOverLimit && <span style={{ color: "#ef4444", fontSize: 13, fontWeight: 700, background: "#fef2f2", padding: "4px 10px", borderRadius: 6 }}>Túl sok az aktív kép! Kérjük, töröljön {photoCount - 8} darabot a folytatáshoz.</span>}
           </div>
-          
+
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 24 }}>
-            <ModeCard disabled={!hasImages || isMobile} mobileDisabledMsg={isMobile ? "Csak számítógépen elérhető" : undefined} href="/manualis" icon={<Hand size={32} strokeWidth={1.5} />} title="Manuális" desc="Teljes szabadság. Te kezeled a rétegeket, méreteket és a pontos pozíciókat." />
-            <ModeCard disabled={!hasImages || isMobile} mobileDisabledMsg={isMobile ? "Csak számítógépen elérhető" : undefined} href="/segitett" icon={<Target size={32} strokeWidth={1.5} />} title="Segített" desc="Szabad mozgástér, de intelligens mágneses rácsvonalakkal a tökéletes illesztésért." />
-            <ModeCard disabled={isAutoDisabled} href="/automata" icon={<Zap size={32} strokeWidth={1.5} />} title="Automata" desc="Az algoritmus másodpercek alatt megtalálja a legjobb elrendezést." />
+            <ModeCard disabled={isModeDisabled || isMobile} mobileDisabledMsg={isMobile ? "Csak számítógépen elérhető" : undefined} href="/manualis" icon={<Hand size={32} strokeWidth={1.5} />} title="Manuális" desc="Teljes szabadság. Te kezeled a rétegeket, méreteket és a pontos pozíciókat." />
+            <ModeCard disabled={isModeDisabled || isMobile} mobileDisabledMsg={isMobile ? "Csak számítógépen elérhető" : undefined} href="/segitett" icon={<Target size={32} strokeWidth={1.5} />} title="Segített" desc="Szabad mozgástér, de intelligens mágneses rácsvonalakkal a tökéletes illesztésért." />
+            <ModeCard disabled={isModeDisabled} href="/automata" icon={<Zap size={32} strokeWidth={1.5} />} title="Automata" desc="Az algoritmus másodpercek alatt megtalálja a legjobb elrendezést." />
           </div>
+
+
+          {/* LOMTÁR SZEKCIÓ MEGJELENÍTÉSE A KÁRTYÁK ALATT */}
+          {deletedImages.length > 0 && (
+            <div style={{ marginTop: 32, padding: 20, background: "rgba(0,0,0,0.02)", borderRadius: 16, border: "1px dashed var(--border-medium)" }}>
+              <h3 style={{ fontSize: 14, fontWeight: 800, color: "var(--text-secondary)", marginBottom: 12 }}>Törölt képek (Kattintson a visszaállításhoz)</h3>
+              <div style={{ display: "flex", gap: 12, overflowX: "auto" }}>
+                {deletedImages.map(img => (
+                  <div
+                    key={img.uid}
+                    onClick={() => restoreImage(img.uid)}
+                    style={{ width: 64, height: 64, borderRadius: 8, background: "#fff", border: "1px solid var(--border)", cursor: "pointer", opacity: 0.6, transition: "opacity 0.2s" }}
+                    onMouseEnter={e => e.currentTarget.style.opacity = "1"}
+                    onMouseLeave={e => e.currentTarget.style.opacity = "0.6"}
+                    title="Visszaállítás"
+                  >
+                    <img src={img.src} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
 
       {/* JAVÍTÁS: Visszakerült a nagyítási modal (Preview)! */}
       {previewImg && (
-        <div 
-          onClick={() => setPreviewImg(null)} 
+        <div
+          onClick={() => setPreviewImg(null)}
           style={{
             position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh",
             background: "rgba(0, 0, 0, 0.85)", backdropFilter: "blur(4px)",
@@ -208,8 +244,8 @@ export default function HomePage() {
             zIndex: 9999, cursor: "zoom-out", padding: 40
           }}
         >
-          <button 
-             onClick={() => setPreviewImg(null)}
+          <button
+            onClick={() => setPreviewImg(null)}
             style={{
               position: "absolute", top: 24, right: 32, width: 44, height: 44, borderRadius: "50%",
               background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff",
@@ -224,7 +260,7 @@ export default function HomePage() {
         </div>
       )}
 
-      <input ref={fileInputRef} type="file" multiple accept="image/*" style={{ display: "none" }} onChange={(e) => { if(e.target.files) addFiles(e.target.files); e.target.value = ''; }} />
+      <input ref={fileInputRef} type="file" multiple accept="image/*" style={{ display: "none" }} onChange={(e) => { if (e.target.files) addFiles(e.target.files); e.target.value = ''; }} />
     </div>
   );
 }

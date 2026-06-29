@@ -1,0 +1,24 @@
+Címkék hozzáadásával kapcsolatos tudnivalók
+A termékekhez hozzáadott címkék az oldal különböző funkcióinak hatékonyabb működését segítik elő (pl. termékkereső), emiatt erősen ajánlott a használatuk.
+
+Olyan címkéket kell hozzáadni egy termékhez, amik egyértelműen azonosítják, hogy milyen termékről van szó. Több címke használata javasolt, a tágabb termékkört azonosító címkéktől kezdve az egyre specifikusabb címkékig.
+Például egy áramfejlesztő esetén mindenképpen hozzá kell adni az "áramfejlesztő" címkét, továbbá a "benzinmotoros áramfejlesztő" és a "honda motoros áramfejlesztő" címkéket is.
+
+A címkéket mindig egyes számban kell használni!
+
+A címkékben tilos megadni a termék márkáját! A márkát a márka mezőben kell beállítani, így a címkéknél már felesleges a használatuk.
+
+A címkékben tilos használni a termék cikkszámát! A címkék nem a konkrét termékek azonosítására szolgálnak, hanem annak a termékkörnek a megadására, amibe az adott termék beletartozik.
+
+Nagyon fontos, hogy azonos termékek mindig pontosan ugyanazt a címkét kapják meg! Például ha áramfejlesztők vannak feltöltve, akkor mindegyik az "áramfejlesztő" címkét kapja meg, és egyik se kapjon "generátor" címkét. Vagy a benzinmotoros áramfejlesztők közül mind a "benzinmotoros áramfejlesztő" címkét kapja, ne forduljon elő, hogy valamelyiknél a "benzines áramfejlesztő" van használva.
+A címkék következetes használatában segítséget nyújt, ha a legördülő menüből választjuk ki a hozzáadandó címéket, és csak akkor írjuk be a címkét manuálisan, ha az még nem szerepel a választható címkék között. A legördülő menü az oldal más termékeinél már használatban lévő címkéket tartalmazza.
+
+A címkékkel rendelkező termékeket a termékkereső előnyben részesíti a címke nélküli termékekkel szemben.
+
+---
+
+Q: Hogyan szeretnéd, hogy elkészüljenek a címkék a 9393 termékhez?
+A: Automatikusan, a 'Név' oszlop alapján (terméktípus-mintákra építve), Excelbe írva
+
+Q: A 'Címke' oszlopba egy cellában több címkét hogyan írjunk, ha többet adunk egy termékhez?
+A: Vesszővel elválasztva egy cellában (pl. 'fúró, spirálfúró, HSS fúró')

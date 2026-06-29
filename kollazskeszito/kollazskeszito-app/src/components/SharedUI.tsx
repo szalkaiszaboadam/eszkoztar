@@ -24,17 +24,17 @@ export function useIsMobile() {
   return isMobile;
 }
 
-export function LayoutCard({ layout, index, selected, onSelect }: {
-  layout: AutoLayout; index: number; selected: boolean; onSelect: () => void;
+export function LayoutCard({ layout, index, selected, onSelect, images }: {
+  layout: AutoLayout; index: number; selected: boolean; onSelect: () => void; images: LoadedImg[];
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const isMobile = useIsMobile(); // 💥 JAVÍTÁS: Lekérdezzük, hogy mobilon vagyunk-e!
+  const isMobile = useIsMobile(); 
 
   useEffect(() => {
     const c = canvasRef.current;
     if (!c) return;
-    renderPreview(c, layout, "#ffffff", 800);
-  }, [layout]);
+    renderPreview(c, layout, images, "#ffffff", 800); // 💡 Passzoljuk az 'images'-t
+  }, [layout, images]);
 
   return (
     <button

@@ -5,18 +5,17 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="f4d015ee-e875-4790-906f-59e82f48dfe6" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/termekkezelo/cimkezo/AI_PROMPT_2.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/kollazskeszito/kollazskeszito-app/src/app/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/kollazskeszito/kollazskeszito-app/src/app/page.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/kollazskeszito/kollazskeszito-app/src/components/AutoUI.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/kollazskeszito/kollazskeszito-app/src/components/AutoUI.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kollazskeszito/kollazskeszito-app/src/components/CollageContext.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/kollazskeszito/kollazskeszito-app/src/components/CollageContext.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kollazskeszito/kollazskeszito-app/src/components/ManualUI.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/kollazskeszito/kollazskeszito-app/src/components/ManualUI.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/kollazskeszito/kollazskeszito-app/src/components/SharedUI.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/kollazskeszito/kollazskeszito-app/src/components/SharedUI.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/kollazskeszito/kollazskeszito-app/src/hooks/useAutoMode.ts" beforeDir="false" afterPath="$PROJECT_DIR$/kollazskeszito/kollazskeszito-app/src/hooks/useAutoMode.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/termekkezelo/.gitignore" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/cikkszamozo(meg nem modositott)/cikkszamozo.py" beforeDir="false" afterPath="$PROJECT_DIR$/termekkezelo/cikkszamozo(meg nem modositott)/cikkszamozo.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/cikkszamozo(meg nem modositott)/input_tablak/MINTA.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/cimkezo/input_tablak/MINTA.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kategoriaepito/input_tablak/MINTA.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kategorizalo/input_tablak/MINTA.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kategorizalo/input_tablak/kategorizalt_kennedy_termekek.xlsx" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/kollazskeszito/kollazskeszito-app/src/hooks/useManualMode.ts" beforeDir="false" afterPath="$PROJECT_DIR$/kollazskeszito/kollazskeszito-app/src/hooks/useManualMode.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/kollazskeszito/kollazskeszito-app/src/lib/autoLayoutEngine.ts" beforeDir="false" afterPath="$PROJECT_DIR$/kollazskeszito/kollazskeszito-app/src/lib/autoLayoutEngine.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/termekkezelo/cimkezo/AI_PROMPT.txt" beforeDir="false" afterPath="$PROJECT_DIR$/termekkezelo/cimkezo/AI_PROMPT.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/termekkezelo/kepkinyero/kepkinyero.py" beforeDir="false" afterPath="$PROJECT_DIR$/termekkezelo/kepkinyero/kepkinyero.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -66,6 +65,7 @@
     "Python._kep-scraperProgram.executor": "Run",
     "Python._kep-scraper_kollazsoloProgram.executor": "Run",
     "Python.cikkszamozo.executor": "Run",
+    "Python.cimkezo (1).executor": "Run",
     "Python.cimkezo.executor": "Run",
     "Python.kategoriaepito.executor": "Run",
     "Python.kategorizalo (1).executor": "Run",
@@ -78,7 +78,7 @@
     "RunOnceActivity.git.unshallow": "true",
     "git-widget-placeholder": "main",
     "junie.onboarding.icon.badge.shown": "true",
-    "last_opened_file_path": "/Users/szalkaiadaam/Documents/GitHub/eszkoztar/termekkezelo/cikkszamozo(meg nem modositott)/input_tablak",
+    "last_opened_file_path": "/Users/szalkaiadaam/Documents/GitHub/eszkoztar/termekkezelo/cimkezo/input_tablak",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
@@ -90,22 +90,42 @@
 }]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/termekkezelo/cimkezo/input_tablak" />
       <recent name="$PROJECT_DIR$/termekkezelo/cikkszamozo(meg nem modositott)/input_tablak" />
       <recent name="$PROJECT_DIR$/termekkezelo/kategorizalo/input_tablak" />
       <recent name="$PROJECT_DIR$/reszprogramok/kategoriaepito/feltoltes_alatt" />
       <recent name="$PROJECT_DIR$/reszprogramok/kategorizalo/input_tablak" />
-      <recent name="$PROJECT_DIR$/reszprogramok/kategoriaepito/input_tablak" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/termekkezelo/cimkezo" />
       <recent name="$PROJECT_DIR$/termekkezelo/cikkszamozo(meg nem modositott)/input_tablak" />
       <recent name="$PROJECT_DIR$/termekkezelo/kategorizalo/input_tablak" />
       <recent name="$PROJECT_DIR$/reszprogramok/kategorizalo/input_tablak" />
       <recent name="$PROJECT_DIR$" />
-      <recent name="$PROJECT_DIR$/_archiv" />
     </key>
   </component>
-  <component name="RunManager" selected="Python.kepkinyero (1)">
-    <configuration name="gabcsi.html" type="JavascriptDebugType" temporary="true" nameIsGenerated="true" uri="http://localhost:63342/eszkoztar/_teszt_tajekoztato_oldal/gabcsi.html" useBuiltInWebServerPort="true">
+  <component name="RunManager" selected="Python.cimkezo (1)">
+    <configuration name="cimkezo (1)" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="eszkoztar" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/termekkezelo/cimkezo" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/termekkezelo/cimkezo/cimkezo.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
       <method v="2" />
     </configuration>
     <configuration name="cimkezo" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
@@ -202,11 +222,11 @@
     </configuration>
     <recent_temporary>
       <list>
+        <item itemvalue="Python.cimkezo (1)" />
         <item itemvalue="Python.kepkinyero (1)" />
         <item itemvalue="Python.kategorizalo (1)" />
         <item itemvalue="Python.kategorizalo" />
         <item itemvalue="Python.cimkezo" />
-        <item itemvalue="JavaScript Debug.gabcsi.html" />
       </list>
     </recent_temporary>
   </component>
@@ -245,7 +265,7 @@
       <workItem from="1779474503469" duration="52397000" />
       <workItem from="1780638700052" duration="17189000" />
       <workItem from="1782028494872" duration="11529000" />
-      <workItem from="1782157945715" duration="22069000" />
+      <workItem from="1782157945715" duration="30754000" />
     </task>
     <servers />
   </component>
@@ -261,9 +281,10 @@
     <SUITE FILE_PATH="coverage/sorbarendezo_py$kategorizalo.coverage" NAME="kategorizalo Coverage Results" MODIFIED="1780905149599" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/termekkezelo/kategorizalo" />
     <SUITE FILE_PATH="coverage/eszkoztar$cikkszamozo.coverage" NAME="cikkszamozo Coverage Results" MODIFIED="1778435585288" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/reszprogramok/cikkszamozo" />
     <SUITE FILE_PATH="coverage/sorbarendezo_py$cikkszamozo.coverage" NAME="cikkszamozo Coverage Results" MODIFIED="1782236692420" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/termekkezelo/cikkszamozo(meg nem modositott)" />
+    <SUITE FILE_PATH="coverage/sorbarendezo_py$cimkezo__1_.coverage" NAME="cimkezo (1) Coverage Results" MODIFIED="1782733465969" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/termekkezelo/cimkezo" />
     <SUITE FILE_PATH="coverage/eszkoztar$_kep_scraperProgram.coverage" NAME="_kep-scraperProgram Coverage Results" MODIFIED="1774119449342" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/kep-scraper" />
     <SUITE FILE_PATH="coverage/sorbarendezo_py$kategorizalo__1_.coverage" NAME="kategorizalo (1) Coverage Results" MODIFIED="1780812426401" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/termekkezelo/kategorizalo" />
-    <SUITE FILE_PATH="coverage/sorbarendezo_py$kepkinyero__1_.coverage" NAME="kepkinyero (1) Coverage Results" MODIFIED="1782719653349" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/termekkezelo/kepkinyero" />
+    <SUITE FILE_PATH="coverage/sorbarendezo_py$kepkinyero__1_.coverage" NAME="kepkinyero (1) Coverage Results" MODIFIED="1782725036568" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/termekkezelo/kepkinyero" />
     <SUITE FILE_PATH="coverage/eszkoztar$_kategorizaloProgram.coverage" NAME="_kategorizaloProgram Coverage Results" MODIFIED="1772867032516" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/kategorizalo" />
     <SUITE FILE_PATH="coverage/eszkoztar$kepkinyero_es_kollazskeszito_es_feltolto.coverage" NAME="kepkinyero_es_kollazskeszito_es_feltolto Coverage Results" MODIFIED="1775590848959" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/kepkinyero" />
     <SUITE FILE_PATH="coverage/eszkoztar$cimkezo.coverage" NAME="cimkezo Coverage Results" MODIFIED="1778767657574" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/reszprogramok/cimkezo" />

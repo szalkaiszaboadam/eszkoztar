@@ -116,16 +116,45 @@ def feltoltes_progress_mentes(progress_file, feltoltott_kategoriak):
 # ==============================================================================
 # --- MATH ---
 # ==============================================================================
-def indexek_kiszamitasa(osszes_termek, kivan_db=10, mod="random"):
+def kalkulalt_kep_db(osszes_termek):
+    """Dinamikus képszám: bővebb mintavételezés a gazdagabb kollázsokhoz."""
+    if osszes_termek <= 6: return osszes_termek
+    if osszes_termek <= 15: return 8
+    if osszes_termek <= 30: return 12
+    if osszes_termek <= 60: return 18
+    if osszes_termek <= 120: return 24
+    return 30
+
+
+def indexek_kiszamitasa(osszes_termek, kivan_db=None, mod=None):
+    """
+    Okos, rétegzett mintavétel: egyenletesen fedi le a listát,
+    de minden szegmensből véletlenszerűen választ egy elemet.
+    A 'mod' paramétert a visszafelé kompatibilitás miatt hagytuk meg.
+    """
+    if kivan_db is None:
+        kivan_db = kalkulalt_kep_db(osszes_termek)
+
     if osszes_termek <= kivan_db:
         return list(range(osszes_termek))
-    if mod == "random":
-        veletlen_indexek = random.sample(range(osszes_termek), kivan_db)
-        veletlen_indexek.sort()
-        return veletlen_indexek
-    else:
-        lepes = (osszes_termek - 1) / (kivan_db - 1)
-        return [round(lepes * i) for i in range(kivan_db)]
+
+    indexek = []
+
+    # Kiszámoljuk egy blokk alapméretét és a maradékot
+    alap_meret, maradek = divmod(osszes_termek, kivan_db)
+
+    aktualis_start = 0
+    for i in range(kivan_db):
+        # A maradékot elosztjuk az első néhány blokk között, hogy hajszálpontosan fedjük a listát
+        blokk_meret = alap_meret + (1 if i < maradek else 0)
+        blokk_vege = aktualis_start + blokk_meret - 1
+
+        # Húzunk egy véletlen elemet az aktuális blokkból
+        indexek.append(random.randint(aktualis_start, blokk_vege))
+
+        aktualis_start += blokk_meret
+
+    return indexek
 
 
 # ==============================================================================
@@ -188,7 +217,22 @@ def letoltes_vegrehajtasa_fajl_visszaadas(page, p_url, mappa_path, fallback_idx,
     kepek_ful.click()
     time.sleep(1.0)
 
-    cikkszam = page.locator("input#sku").input_value().strip()
+    # ÚJ JAVÍTÁS: Hibatűrő azonosító kinyerés (termékváltozatok támogatása)
+    cikkszam = ""
+    try:
+        # 1. Próbáljuk a normál termékek cikkszámát
+        if page.locator("input#sku").count() > 0:
+            cikkszam = page.locator("input#sku").input_value().strip()
+        # 2. Ha nincs, nézzük meg a gyűjtőtermék rejtett azonosítóját
+        elif page.locator("input#itemSku").count() > 0:
+            cikkszam = page.locator("input#itemSku").input_value().strip()
+
+        # 3. Ha azonosító nincs, használjuk a termék nevét a fájlnévhez
+        if not cikkszam and page.locator("input#name").count() > 0:
+            cikkszam = page.locator("input#name").input_value().strip()
+    except Exception:
+        pass  # Ha bármi hiba történik, csendben továbbmegyünk
+
     fajlnev = tiszta_nev(cikkszam) if cikkszam else f"kep_{fallback_idx}"
 
     kep_lista = page.locator("ul#productImages li.thumbImage a")
@@ -230,7 +274,7 @@ def letoltes_vegrehajtasa_fajl_visszaadas(page, p_url, mappa_path, fallback_idx,
         return None
 
 
-def termek_letolto_fázis1(page, url, kategoria_utvonal, letoltendo_db, eloszlas_mod, progress_file,
+def termek_letolto_fázis1(page, url, kategoria_utvonal, letoltendo_db, progress_file,
                           befejezett_kategoriak, retry_list, base_url):
     """
     Letölti egy levél-kategória képeit.
@@ -277,15 +321,21 @@ def termek_letolto_fázis1(page, url, kategoria_utvonal, letoltendo_db, eloszlas
     if osszes_termek == 0:
         return [], []
 
+    vegleges_kivan_db = kalkulalt_kep_db(osszes_termek) if letoltendo_db is None else letoltendo_db
+
     print(f"   ⚙️ Képek letöltése: {kat_azonosito}")
-    cel_indexek = indexek_kiszamitasa(osszes_termek, letoltendo_db, eloszlas_mod)
+    # KIVÉVE: eloszlas_mod paraméter
+    cel_indexek = indexek_kiszamitasa(osszes_termek, vegleges_kivan_db)
+
     kiprobalatlan_indexek = [i for i in range(osszes_termek) if i not in cel_indexek]
-    if eloszlas_mod == "random":
-        random.shuffle(kiprobalatlan_indexek)
+    # KIVÉVE: if eloszlas_mod == "random" feltétel. Mostantól mindig keverjük a maradékot!
+    random.shuffle(kiprobalatlan_indexek)
 
     vonal = [osszes_termek_link[idx] for idx in cel_indexek]
     lokalis_fajlok = []
-    szukseges_db = min(letoltendo_db, osszes_termek)
+
+    # JAVÍTÁS: A min() függvény immár két számot kap
+    szukseges_db = min(vegleges_kivan_db, osszes_termek)
     probalkozas_szam = 0
 
     while len(lokalis_fajlok) < szukseges_db and vonal:
@@ -314,7 +364,7 @@ def termek_letolto_fázis1(page, url, kategoria_utvonal, letoltendo_db, eloszlas
     return osszes_termek_link, lokalis_fajlok
 
 
-def kategoria_bejaro_fázis1(page, url, kategoria_utvonal, alap_letoltendo_db, eloszlas_mod, progress_file,
+def kategoria_bejaro_fázis1(page, url, kategoria_utvonal, alap_letoltendo_db, progress_file,
                             befejezett_kategoriak, retry_list, letolt_koztes, base_url):
     """Rekurzívan bejárja a kategória-fát és letölti a képeket."""
     print(f"\n📂 Bejárás: {' > '.join(kategoria_utvonal)}")
@@ -333,6 +383,7 @@ def kategoria_bejaro_fázis1(page, url, kategoria_utvonal, alap_letoltendo_db, e
     bizonylatkeszito_nezet(page)
     alkategoriak_vannak = page.locator("table#categoriesList tbody tr").count() > 0
     osszes_osszegujtott_link = []
+    kiemelt_osszesito_linkek = []  # ÚJ: Ide gyűjtjük a reprezentatív főkategória linkeket
     max_gyerek_melyseg = 0
 
     if alkategoriak_vannak:
@@ -344,8 +395,16 @@ def kategoria_bejaro_fázis1(page, url, kategoria_utvonal, alap_letoltendo_db, e
                 nev_cella = row.locator("td").nth(2)
                 cat_nev = nev_cella.inner_text().strip()
                 href = nev_cella.locator("a").get_attribute("href")
-                alkat_db = int(re.sub(r'\D', '', row.locator("td").nth(7).inner_text()) or 0)
-                termek_db = int(re.sub(r'\D', '', row.locator("td").nth(8).inner_text()) or 0)
+
+                # ÚJ JAVÍTÁS: Nem az oszlop sorszámára építünk, hanem a gombok szövegére
+                db_gombok = row.locator("a:has-text(' db')").all()
+                alkat_db = 0
+                termek_db = 0
+
+                # Az első gomb mindig az alkategória, a második a termék
+                if len(db_gombok) >= 2:
+                    alkat_db = int(re.sub(r'\D', '', db_gombok[0].inner_text()) or 0)
+                    termek_db = int(re.sub(r'\D', '', db_gombok[1].inner_text()) or 0)
                 if alkat_db > 0 or termek_db > 0:
                     bejarando_linkek.append({
                         "url": f"{base_url}/administrator/" + href,
@@ -360,17 +419,24 @@ def kategoria_bejaro_fázis1(page, url, kategoria_utvonal, alap_letoltendo_db, e
             uj_utvonal = list(kategoria_utvonal) + [link["nev"]]
             if link["alkat_db"] > 0:
                 melyseg, gyerek_linkek, gyerek_map = kategoria_bejaro_fázis1(
-                    page, link["url"], uj_utvonal, alap_letoltendo_db, eloszlas_mod,
+                    page, link["url"], uj_utvonal, alap_letoltendo_db,
                     progress_file, befejezett_kategoriak, retry_list, letolt_koztes, base_url)
                 max_gyerek_melyseg = max(max_gyerek_melyseg, melyseg)
                 osszes_osszegujtott_link.extend(gyerek_linkek)
+                # Kiveszünk pár képet ebből az alkategóriából az összesítőnek
+                if gyerek_linkek:
+                    kiemelt_osszesito_linkek.extend(random.sample(gyerek_linkek, min(3, len(gyerek_linkek))))
                 image_map.update(gyerek_map)
+
             elif link["termek_db"] > 0:
                 gyerek_linkek, lokalis_fajlok = termek_letolto_fázis1(
                     page, link["url"], uj_utvonal, alap_letoltendo_db,
-                    eloszlas_mod, progress_file, befejezett_kategoriak, retry_list, base_url)
+                    progress_file, befejezett_kategoriak, retry_list, base_url)
                 max_gyerek_melyseg = max(max_gyerek_melyseg, 1)
-                if gyerek_linkek: osszes_osszegujtott_link.extend(gyerek_linkek)
+                if gyerek_linkek:
+                    osszes_osszegujtott_link.extend(gyerek_linkek)
+                    # Kiveszünk pár képet a közvetlen termékekből is az összesítőnek
+                    kiemelt_osszesito_linkek.extend(random.sample(gyerek_linkek, min(3, len(gyerek_linkek))))
                 if lokalis_fajlok: image_map[" > ".join(uj_utvonal)] = lokalis_fajlok
 
         sajat_melyseg = max_gyerek_melyseg + 1
@@ -381,7 +447,7 @@ def kategoria_bejaro_fázis1(page, url, kategoria_utvonal, alap_letoltendo_db, e
             time.sleep(2.5)
             if page.locator("table#productsList tbody tr").count() > 0:
                 kozvetlen_linkek, kozvetlen_fajlok = termek_letolto_fázis1(
-                    page, url, kategoria_utvonal, alap_letoltendo_db, eloszlas_mod,
+                    page, url, kategoria_utvonal, alap_letoltendo_db,
                     progress_file, befejezett_kategoriak, retry_list, base_url)
                 if kozvetlen_linkek: osszes_osszegujtott_link.extend(kozvetlen_linkek)
                 if kozvetlen_fajlok:
@@ -392,9 +458,14 @@ def kategoria_bejaro_fázis1(page, url, kategoria_utvonal, alap_letoltendo_db, e
 
         egyedi_linkek = list(set(osszes_osszegujtott_link))
 
+        # ÚJ: A főkategória (összesítő) a kiegyensúlyozott mintát kapja meg
+        kiegyensulyozott_osszesito_linkek = list(
+            set(kiemelt_osszesito_linkek)) if kiemelt_osszesito_linkek else egyedi_linkek
+
         # Összesítő szint letöltése (ha be van kapcsolva)
-        if letolt_koztes and egyedi_linkek:
-            aktualis_db = alap_letoltendo_db * sajat_melyseg
+        if letolt_koztes and kiegyensulyozott_osszesito_linkek:
+            # Nem szorzunk mélységgel, hanem fixen letöltjük a mintavételezett listát
+            aktualis_db = len(kiegyensulyozott_osszesito_linkek)
             tiszta_utvonal = [tiszta_nev(p) for p in kategoria_utvonal]
             mappa_path = os.path.join("kollazs_kepek", *tiszta_utvonal)
             kat_azonosito_full = " > ".join(kategoria_utvonal) + " (Összesítő)"
@@ -403,10 +474,10 @@ def kategoria_bejaro_fázis1(page, url, kategoria_utvonal, alap_letoltendo_db, e
                 print(f"\n   📦 [Összesítő] Letöltés: {' > '.join(kategoria_utvonal)}")
                 os.makedirs(mappa_path, exist_ok=True)
 
-                cel_indexek = indexek_kiszamitasa(len(egyedi_linkek), aktualis_db, eloszlas_mod)
-                kiprobalatlan_indexek = [i for i in range(len(egyedi_linkek)) if i not in cel_indexek]
-                if eloszlas_mod == "random":
-                    random.shuffle(kiprobalatlan_indexek)
+                cel_indexek = indexek_kiszamitasa(len(kiegyensulyozott_osszesito_linkek), aktualis_db)
+                kiprobalatlan_indexek = [i for i in range(len(kiegyensulyozott_osszesito_linkek)) if
+                                         i not in cel_indexek]
+                random.shuffle(kiprobalatlan_indexek)
 
                 vonal = [egyedi_linkek[idx] for idx in cel_indexek]
                 szukseges_db = min(aktualis_db, len(egyedi_linkek))
@@ -449,10 +520,14 @@ def kategoria_bejaro_fázis1(page, url, kategoria_utvonal, alap_letoltendo_db, e
 
         return sajat_melyseg, egyedi_linkek, image_map
 
+
     else:
+
         gyerek_linkek, lokalis_fajlok = termek_letolto_fázis1(
+
             page, url, kategoria_utvonal, alap_letoltendo_db,
-            eloszlas_mod, progress_file, befejezett_kategoriak, retry_list, base_url)
+
+            progress_file, befejezett_kategoriak, retry_list, base_url)
         if lokalis_fajlok:
             image_map[" > ".join(kategoria_utvonal)] = lokalis_fajlok
         return 1, (gyerek_linkek or []), image_map
@@ -537,12 +612,13 @@ def interaktiv_kollazs_fázis2(ctx: Context, image_map_full, collage_progress_fi
     page = ctx.new_page()
 
     try:
-        page.goto("https://eszkoztar.vercel.app/kollazskeszito/", timeout=60000)
-        time.sleep(1)
-
         for kat_id, fajl_list in image_map_full.items():
             if kat_id in befejezett_kollazsok:
                 continue
+
+            # ÚJ: Minden új kategória előtt tiszta lappal (frissítve) indul a kollázskészítő
+            page.goto("https://eszkoztar.vercel.app/kollazskeszito/", timeout=60000)
+            time.sleep(1.5)
 
             print(f"\n🎨 Kollázs: {kat_id} ({len(fajl_list)} kép)")
 
@@ -999,12 +1075,10 @@ if __name__ == "__main__":
             print("   🗑️ Menetfájlok törölve. Képek megmaradtak.")
 
     if elso_indit or (not elso_indit and "valasz" in dir() and valasz == "4") or elso_indit:
-        db_input = input("\nMax hány képet letölteni alap kategóriánként? (Alap: 10): ").strip()
-        kivan_db = int(db_input) if db_input.isdigit() else 10
-        print("\n--- Letöltési mód ---")
-        print("  1: Véletlenszerű (ajánlott)  2: Arányos")
-        mod_v = input("Választás (1-2): ").strip()
-        kivalasztott_mod = "random" if mod_v != "2" else "even"
+        # A rendszer mostantól teljesen automatikusan, okos rétegzett mintavétellel dolgozik.
+        # Nincs szükség sem képszám, sem módszer bekérésére.
+        kivan_db = None
+        kivalasztott_mod = None
 
     letolt_koztes = True
     final_image_map = {}
@@ -1036,9 +1110,10 @@ if __name__ == "__main__":
                         full_kezdo_link = f"{BASE_URL}/administrator/" + kezdo_link
                         print(f"✅ Főkategória megtalálva. Indulás...\n")
 
+                        # A kivalasztott_mod paramétert kivettük a hívásból
                         _, _, final_image_map = kategoria_bejaro_fázis1(
                             page, full_kezdo_link, [fokategoria], kivan_db,
-                            kivalasztott_mod, scr_prog_f,
+                            scr_prog_f,
                             befejezett_kategoriak, retry_list, letolt_koztes, BASE_URL)
 
                         # Retry körök a sikertelen letöltésekhez

@@ -8,15 +8,17 @@ export interface LoadedImg {
   name: string;
   uid: string;
   removeBg: boolean;
+  isBadge?: boolean; // 💡 Ebből tudja a rendszer, hogy ez nem valódi kép
 }
 
-// 1. ADD HOZZÁ EZT A KÉT SORT AZ INTERFACE-HEZ
 interface CollageContextType {
   images: LoadedImg[];
+  deletedImages: LoadedImg[];
   setImages: React.Dispatch<React.SetStateAction<LoadedImg[]>>;
   addFiles: (files: FileList | File[]) => Promise<void>;
   removeImage: (index: number) => void;
   removeImages: (uidsToRemove: string[]) => void;
+  restoreImage: (uid: string) => void;
   rotateImage: (index: number, degrees: 90 | -90) => void;
   reorderImages: (oldIndex: number, newIndex: number) => void;
   clearImages: () => void;
@@ -24,10 +26,10 @@ interface CollageContextType {
   toggleImageBg: (uid: string) => void;
   setImagesBg: (uids: string[], removeBg: boolean) => void;
   setAllImagesBg: (removeBg: boolean) => void;
-  manualLayersOverride: Record<string, any> | null; // <--- ÚJ
-  setManualLayersOverride: React.Dispatch<React.SetStateAction<Record<string, any> | null>>; // <--- ÚJ
+  manualLayersOverride: Record<string, any> | null;
+  setManualLayersOverride: React.Dispatch<React.SetStateAction<Record<string, any> | null>>;
+  toggleBadge: (type: 'uj' | 'premium') => void; // 💡 addBadge helyett
 }
-
 const CollageContext = createContext<CollageContextType | null>(null);
 
 function uid() { return Math.random().toString(36).slice(2); }
@@ -48,7 +50,84 @@ function loadImageFromFile(file: File): Promise<HTMLImageElement> {
 
 export function CollageProvider({ children }: { children: ReactNode }) {
   const [images, setImages] = useState<LoadedImg[]>([]);
+  const [deletedImages, setDeletedImages] = useState<LoadedImg[]>([]);
   const [manualLayersOverride, setManualLayersOverride] = useState<Record<string, any> | null>(null);
+
+
+const toggleBadge = useCallback((type: 'uj' | 'premium') => {
+    const badgeName = `cimke_${type}.png`;
+    let existed = false;
+
+    // 💡 ELLENŐRZÉS ÉS TÖRLÉS: Ha már van ilyen matrica, akkor letöröljük (Toggle)
+    setImages(prev => {
+      if (prev.some(img => img.name === badgeName)) {
+        existed = true;
+        return prev.filter(img => img.name !== badgeName);
+      }
+      return prev;
+    });
+
+    if (existed) return; // Ha letöröltük, nincs más dolgunk!
+
+    // HA NINCS, AKKOR LEGENERÁLJUK:
+    const canvas = document.createElement("canvas");
+    canvas.width = 600; // 💡 NAGYOBB MÉRET (400 helyett 600)
+    canvas.height = 600;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    ctx.scale(1.5, 1.5); // 💡 Felnagyítjuk az eddigi rajzolást másfélszeresére!
+
+    ctx.shadowColor = "rgba(0, 0, 0, 0.35)"; ctx.shadowBlur = 18; ctx.shadowOffsetY = 8;
+    const cx = 200; const cy = 200; const outerRadius = 135; const innerRadius = 115; const points = 16;       
+    ctx.beginPath();
+    for (let i = 0; i < points * 2; i++) {
+      const angle = (i * Math.PI) / points;
+      const r = (i % 2 === 0) ? outerRadius : innerRadius;
+      const x = cx + r * Math.cos(angle); const y = cy + r * Math.sin(angle);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.lineJoin = "round"; ctx.lineWidth = 18; 
+    const badgeColor = type === 'uj' ? "#FF0000" : "#F4C430";
+    ctx.strokeStyle = badgeColor; ctx.fillStyle = badgeColor;
+    ctx.stroke(); ctx.shadowColor = "transparent"; ctx.fill();
+    
+    if (type === 'uj') {
+      ctx.font = "900 125px 'Montserrat', 'Inter', 'Helvetica Neue', 'Segoe UI', sans-serif"; 
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 4; ctx.lineJoin = "round";
+      ctx.strokeText("ÚJ", 200, 205); ctx.fillStyle = "#ffffff"; ctx.fillText("ÚJ", 200, 205); 
+    } else {
+    // --- 💡 ÚJ PRÉMIUM MATRICA: Elegáns Ötágú Csillag ---
+      const darkColor = "#1A1A1A"; 
+
+      ctx.save();
+      ctx.translate(200, 200); 
+      ctx.scale(7, 7); // A csillag méretezése
+      
+      // Tökéletes, klasszikus 5 ágú csillag SVG útvonala
+      const starPath = new Path2D("M 0 -10 L 3.09 -3.74 L 10 -2.73 L 5 2.14 L 6.18 9.02 L 0 5.77 L -6.18 9.02 L -5 2.14 L -10 -2.73 L -3.09 -3.74 Z");
+      
+      ctx.lineJoin = "round";
+      ctx.lineCap = "round";
+      ctx.strokeStyle = darkColor;
+      ctx.lineWidth = 1.5;
+      ctx.stroke(starPath); 
+      ctx.fillStyle = darkColor;
+      ctx.fill(starPath);   
+      ctx.restore();
+    }
+
+    const dataUrl = canvas.toDataURL("image/png");
+    const img = new Image();
+    img.onload = () => {
+      const newImg = { el: img, src: dataUrl, name: badgeName, uid: Math.random().toString(36).slice(2), removeBg: false, isBadge: true };
+      setImages(prev => prev.some(p => p.name === badgeName) ? prev : [...prev, newImg]); // Duplikáció védelem
+    };
+    img.src = dataUrl;
+  }, []);
+
 
   const addFiles = useCallback(async (files: FileList | File[]) => {
     const arr = Array.from(files).filter(f => f.type.startsWith("image/"));
@@ -64,13 +143,56 @@ export function CollageProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const removeImage = useCallback((index: number) => {
-    setImages(prev => prev.filter((_, i) => i !== index));
+    setImages(prev => {
+      const next = [...prev];
+      const [removed] = next.splice(index, 1);
+
+      if (removed) {
+        setDeletedImages(del => {
+          // Strict Mode védelem: csak akkor adjuk hozzá, ha még nincs a kukában
+          if (del.some(img => img.uid === removed.uid)) return del;
+          return [...del, removed].slice(-30);
+        });
+      }
+      return next;
+    });
   }, []);
 
-  // --- ÚJ FÜGGVÉNY: Csoportos Törlés Uid alapján ---
   const removeImages = useCallback((uidsToRemove: string[]) => {
-    setImages(prev => prev.filter(img => !uidsToRemove.includes(img.uid)));
+    setImages(prev => {
+      const toTrash = prev.filter(img => uidsToRemove.includes(img.uid));
+
+      if (toTrash.length > 0) {
+        setDeletedImages(del => {
+          // Kiszűrjük azokat, amik már esetleg benne vannak a Strict Mode miatt
+          const newToAdd = toTrash.filter(t => !del.some(d => d.uid === t.uid));
+          return [...del, ...newToAdd].slice(-30);
+        });
+      }
+      return prev.filter(img => !uidsToRemove.includes(img.uid));
+    });
   }, []);
+
+  // A korábbi restoreImage helyett ezt másolja be:
+  const restoreImage = useCallback((uid: string) => {
+    // 💡 1. Szigorú ellenőrzés: ha már van 8 képünk, megállítjuk a folyamatot!
+    if (images.length >= 8) {
+      alert("Elérted a maximum 8 képet! Kérlek, törölj egyet a visszaállításhoz.");
+      return;
+    }
+
+    const found = deletedImages.find(img => img.uid === uid);
+    if (!found) return;
+
+    setImages(curr => {
+      if (curr.some(img => img.uid === uid)) return curr;
+      return [...curr, found];
+    });
+
+    setDeletedImages(del => del.filter(img => img.uid !== uid));
+  }, [images, deletedImages]); // 💡 Fontos: a függőségi tömbbe bekerült az 'images' és 'deletedImages'
+
+  // --- HIÁNYZÓ FÜGGVÉNYEK VISSZAPÓTLÁSA ---
 
   const rotateImage = useCallback((index: number, degrees: 90 | -90) => {
     setImages(prev => {
@@ -98,7 +220,13 @@ export function CollageProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const clearImages = useCallback(() => setImages([]), []);
+  // ----------------------------------------
+
+
+  const clearImages = useCallback(() => {
+    setImages([]);
+    setDeletedImages([]);
+  }, []);
 
   const shuffleImages = useCallback(() => {
     setImages(prev => {
@@ -124,10 +252,10 @@ export function CollageProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <CollageContext.Provider value={{ 
-      images, setImages, addFiles, removeImage, removeImages, rotateImage, reorderImages, clearImages, shuffleImages,
+    <CollageContext.Provider value={{
+      images, deletedImages, setImages, addFiles, removeImage, removeImages, restoreImage, rotateImage, reorderImages, clearImages, shuffleImages,
       toggleImageBg, setImagesBg, setAllImagesBg,
-      manualLayersOverride, setManualLayersOverride // 3. ADD HOZZÁ A PROVIDER EXPORTHOZ
+      manualLayersOverride, setManualLayersOverride, toggleBadge
     }}>
       {children}
     </CollageContext.Provider>

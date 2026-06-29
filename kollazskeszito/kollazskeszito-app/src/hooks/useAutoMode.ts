@@ -7,62 +7,62 @@ import { downloadCanvasAsImage } from "@/src/lib/imageProcessing";
 import { useRouter } from "next/navigation";
 
 export function useAutoMode() {
-    const router = useRouter(); // <--- ÚJ
-    const { images, addFiles, removeImage, rotateImage, reorderImages, clearImages, shuffleImages, toggleImageBg, setAllImagesBg, setManualLayersOverride } = useCollage(); // <--- setManualLayersOverride behúzása
+  const router = useRouter(); // <--- ÚJ
+
+  const { images, deletedImages, restoreImage, addFiles, removeImage, rotateImage, reorderImages, clearImages, shuffleImages, toggleImageBg, setAllImagesBg, setManualLayersOverride, toggleBadge } = useCollage();
+
+  const [layouts, setLayouts] = useState<AutoLayout[]>([]);
+  const [selectedIdx, setSelectedIdx] = useState<number>(0);
+  const [gap, setGap] = useState(0);
+  const [margin, setMargin] = useState(0);
+  const [keepOrder, setKeepOrder] = useState(false);
+
+  const [downloading, setDownloading] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [isDragOverDropzone, setIsDragOverDropzone] = useState(false);
+  const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
 
-    const [layouts, setLayouts] = useState<AutoLayout[]>([]);
-    const [selectedIdx, setSelectedIdx] = useState<number>(0);
-    const [gap, setGap] = useState(0);
-    const [margin, setMargin] = useState(0);
-    const [keepOrder, setKeepOrder] = useState(false);
-
-    const [downloading, setDownloading] = useState(false);
-    const [isSaved, setIsSaved] = useState(false);
-    const [isDragOverDropzone, setIsDragOverDropzone] = useState(false);
-    const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
-    const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
-    const fileInputRef = useRef<HTMLInputElement>(null);
-
-
-// 💥 ÚJ FUNKCIÓ: ÁTKÜLDÉS MANUÁLIS MÓDBA 💥
+// 💥 JAVÍTOTT FUNKCIÓ: ÁTKÜLDÉS MANUÁLIS MÓDBA 💥
   const handleEditInManual = useCallback(() => {
     if (!layouts[selectedIdx]) return;
     const layout = layouts[selectedIdx];
     const newLayers: Record<string, any> = {};
     
+    // 💡 1. BIZTONSÁGI JAVÍTÁS: Először minden képnek (matricáknak is) adunk egy alap réteget!
+    images.forEach(img => {
+      newLayers[img.uid] = { x: 0, y: 0, zoom: 0.8, rot: 0, visible: true };
+    });
+    
     const canvasW = 2000;
     const canvasH = 2000;
     const marginPx = layout.externalMargin;
     
-    // Kiszámoljuk a belső rajzolási területet és a skálázást, pont ahogy a renderelő motor teszi!
     const drawW = canvasW - marginPx * 2;
     const drawH = canvasH - marginPx * 2;
     const scale = Math.min(drawW / layout.totalW, drawH / layout.totalH);
     const offX = (canvasW - layout.totalW * scale) / 2;
     const offY = (canvasH - layout.totalH * scale) / 2;
 
-    // Belső segédfüggvény a dobozok transzformálásához
     const processItem = (item: any, boxX: number, boxY: number, boxW: number, boxH: number) => {
-      const origImg = images[item.originalIndex];
+      // 💡 2. BIZTONSÁGI JAVÍTÁS: Biztosítjuk, hogy megtalálja az eredeti képet a listában
+      const origIndex = item.originalIndex !== undefined ? item.originalIndex : layout.perm.indexOf(item);
+      const origImg = images[origIndex];
       if (!origImg) return;
       const uid = origImg.uid;
       
-      // A Manuális mód alap skálázása
       const baseScale = Math.min(2000 / origImg.el.width, 2000 / origImg.el.height) * 0.5;
-      
-      // Milyen arányban kell lennie a képnek, hogy kitöltse a dobozt?
       const actualScale = boxW / item.cropW;
       const zoom = actualScale / baseScale;
 
       const boxCenterX = boxX + boxW / 2;
       const boxCenterY = boxY + boxH / 2;
 
-      // Hol volt a képzeletbeli doboz közepe a vágás előtt?
       const cropCenterX = item.cropOffsetX + item.cropW / 2;
       const cropCenterY = item.cropOffsetY + item.cropH / 2;
 
-      // Eltolás az eredeti kép közepe és a vágott doboz közepe között
       const dx = (origImg.el.width / 2) - cropCenterX;
       const dy = (origImg.el.height / 2) - cropCenterY;
 
@@ -106,7 +106,6 @@ export function useAutoMode() {
       }
     }
 
-    // Elmentjük a memóriába és átirányítjuk a felhasználót!
     setManualLayersOverride(newLayers);
     router.push("/manualis");
 
@@ -114,33 +113,49 @@ export function useAutoMode() {
 
 
 
+  // ÚJ: Bármi változik az automatánál, újra lehessen menteni
+  useEffect(() => {
+    setIsSaved(false);
+  }, [images, selectedIdx, gap, margin, keepOrder]);
 
-    // ÚJ: Bármi változik az automatánál, újra lehessen menteni
-    useEffect(() => {
-        setIsSaved(false);
-    }, [images, selectedIdx, gap, margin, keepOrder]);
-
-    // EREDETI HELYETT EZ LEGYEN:
 const handleAutoUpload = useCallback((files: FileList | File[]) => {
-    const filesArray = Array.from(files);
-    addFiles(filesArray);
-}, [addFiles]);
+        // 💡 Csak a valódi képeket számoljuk!
+        const photoCount = images.filter(img => !img.isBadge).length; 
+        const slotsLeft = 8 - photoCount;
+        
+        if (slotsLeft <= 0) {
+            alert("A szerkesztőkben maximum 8 kép engedélyezett! Törölj párat a Lomtárba az új képek hozzáadásához.");
+            return;
+        }
+        const filesArray = Array.from(files);
+        if (filesArray.length > slotsLeft) {
+            alert(`Maximum 8 kép lehet! Ebből a feltöltésből csak az első ${slotsLeft} képet adjuk hozzá.`);
+        }
+        addFiles(filesArray.slice(0, slotsLeft));
+    }, [images, addFiles]);
 
-    useEffect(() => {
-        if (!images.length) { setLayouts([]); return; }
+  useEffect(() => {
+    if (!images.length) { setLayouts([]); return; }
 
-        let isCancelled = false;
+    let isCancelled = false;
 
-        const generate = async () => {
+const generate = async () => {
             try {
-                // ÚJ: A globális img.removeBg-t olvassuk!
+                // 💡 Szűrjük a listát: a matricákat kihagyjuk a vágásból és a rácsból, 
+                // de az indexeket megtartjuk, hogy visszatérésnél a Manuális mód felismerje őket.
                 const cropped = await Promise.all(
-                    images.map((img, i) => processAndCrop(img.el, i, img.removeBg))
+                    images.map(async (img, i) => {
+                        if (img.isBadge) return null; 
+                        return await processAndCrop(img.el, i, img.removeBg);
+                    })
                 );
 
                 if (isCancelled) return;
 
-                const computed = computeLayouts(cropped, gap, margin, keepOrder);
+                // Kiszedjük a null értékeket
+                const validCropped = cropped.filter(c => c !== null) as any[];
+                
+                const computed = computeLayouts(validCropped, gap, margin, keepOrder);
                 setLayouts(computed);
                 setSelectedIdx(s => Math.min(s, computed.length - 1));
             } catch (error) {
@@ -148,34 +163,41 @@ const handleAutoUpload = useCallback((files: FileList | File[]) => {
             }
         };
 
-        const timer = setTimeout(generate, 80);
-        return () => {
-            isCancelled = true;
-            clearTimeout(timer);
-        };
-    }, [images, gap, margin, keepOrder]); // Mivel a `images` frissül a removeBg állításakor, újra lefut!
+    const timer = setTimeout(generate, 80);
+    return () => {
+      isCancelled = true;
+      clearTimeout(timer);
+    };
+  }, [images, gap, margin, keepOrder]); // Mivel a `images` frissül a removeBg állításakor, újra lefut!
 
-    const download = useCallback(() => {
+const download = useCallback(() => {
         if (!layouts[selectedIdx]) return;
         setDownloading(true);
         setTimeout(() => {
             const canvas = document.createElement("canvas");
-            renderToCanvas(canvas, layouts[selectedIdx], "#ffffff");
+            renderToCanvas(canvas, layouts[selectedIdx], images, "#ffffff"); // 💡 Passzoljuk az 'images'-t
 
             downloadCanvasAsImage(canvas, "kollazs_automata");
             setDownloading(false);
-            setIsSaved(true); // <--- EZT ADD HOZZÁ
+            setIsSaved(true);
         }, 60);
-    }, [selectedIdx, layouts]);
+    }, [selectedIdx, layouts, images]);
 
-    const hasLayouts = layouts.length > 0;
+  const hasLayouts = layouts.length > 0;
 
-    return {
-        images, layouts, selectedIdx, setSelectedIdx, gap, setGap, margin, setMargin,
-        keepOrder, setKeepOrder, downloading,
+return {
+        // Állapotok, memóriák és lomtár
+        images, deletedImages, restoreImage, layouts, selectedIdx, setSelectedIdx, 
+        gap, setGap, margin, setMargin, keepOrder, setKeepOrder, downloading,
+        
+        // Drag & Drop és fájlfeltöltés állapotok
         isDragOverDropzone, setIsDragOverDropzone, draggedIdx, setDraggedIdx,
         dragOverIdx, setDragOverIdx, fileInputRef, handleAutoUpload, download,
-        hasLayouts, removeImage, rotateImage,
-        reorderImages, clearImages, shuffleImages, toggleImageBg, setAllImagesBg, isSaved, handleEditInManual // ÚJ
+        
+        // Műveletek és egyéb funkciók
+        hasLayouts, removeImage, rotateImage, reorderImages, clearImages, 
+        shuffleImages, toggleImageBg, setAllImagesBg, isSaved, handleEditInManual,
+
+        toggleBadge
     };
 }
