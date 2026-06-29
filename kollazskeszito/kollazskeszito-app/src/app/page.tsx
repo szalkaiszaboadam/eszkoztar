@@ -65,11 +65,10 @@ export default function HomePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
 // Keresse meg a változókat a fájl elején, a renderelés fölött:
-  const photoCount = images.filter(img => !img.isBadge).length; // 💡 ÚJ SZÁMLÁLÓ
+const photoCount = images.filter(img => !img.isBadge).length; 
   const hasImages = photoCount > 0;
   const isOverLimit = photoCount > 8; 
   const isModeDisabled = !hasImages || isOverLimit;
-
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--bg)", padding: isMobile ? "16px 16px 40px 16px" : "24px 24px 64px 24px", boxSizing: "border-box", overflowY: "auto" }}>
 
@@ -86,7 +85,7 @@ export default function HomePage() {
         {/* 1. LÉPÉS */}
         <div style={{ height: isMobile ? "auto" : 240, minHeight: 240, background: "var(--bg-panel)", border: "1px solid var(--border)", borderRadius: 20, padding: isMobile ? 20 : 28, boxShadow: "0 8px 32px rgba(0,0,0,0.03)", display: "flex", flexDirection: "column" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, flexShrink: 0 }}>
-            <h2 style={{ fontSize: isMobile ? 16 : 18, fontWeight: 800, color: "var(--text)" }}>1. Lépés: Képek feltöltése {hasImages && <span style={{ color: "var(--text-secondary)", fontSize: 14, fontWeight: 600 }}>({images.length}/30)</span>}</h2>
+            <h2 style={{ fontSize: isMobile ? 16 : 18, fontWeight: 800, color: "var(--text)" }}>1. Lépés: Képek feltöltése {hasImages && <span style={{ color: "var(--text-secondary)", fontSize: 14, fontWeight: 600 }}>({photoCount} kép)</span>}</h2>
             {hasImages && (
               <button onClick={clearImages} style={{ background: "none", border: "none", color: "var(--accent)", fontWeight: 700, cursor: "pointer", textDecoration: "underline", fontSize: 14 }}>Törlés</button>
             )}
@@ -104,7 +103,7 @@ export default function HomePage() {
                 <div style={{ fontSize: 32, color: isDragOverDropzone ? "var(--accent)" : "var(--text-secondary)", lineHeight: 1 }}>↓</div>
                 <div style={{ textAlign: "center", padding: "0 16px" }}>
                   <div style={{ fontWeight: 700, fontSize: 16, color: "var(--text)", marginBottom: 4 }}>Kattints a feltöltéshez!</div>
-                  <div style={{ fontSize: 14, color: "var(--text-secondary)" }}>(max 30 kép)</div>
+                  
                 </div>
               </div>
             ) : (
@@ -184,9 +183,9 @@ export default function HomePage() {
               })}
                 
               {/* Ide is bekerülhet a photoCount a pontosság kedvéért: */}
-              {photoCount < 30 && (
-                  <div onClick={() => fileInputRef.current?.click()} style={{ width: 88, height: 88, flexShrink: 0, border: "2px dashed var(--border-medium)", borderRadius: 10, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><div style={{ fontSize: 32, fontWeight: 300, lineHeight: 1, color: "var(--text-secondary)" }}>+</div></div>
-                )}
+              {images.length < 150 && (
+  <div onClick={() => fileInputRef.current?.click()} style={{ width: 88, height: 88, flexShrink: 0, border: "2px dashed var(--border-medium)", borderRadius: 10, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><div style={{ fontSize: 32, fontWeight: 300, lineHeight: 1, color: "var(--text-secondary)" }}>+</div></div>
+)}
               </div>
             )}
           </div>
@@ -196,13 +195,15 @@ export default function HomePage() {
         <div style={{ display: "flex", flexDirection: "column" }}>
           <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "flex-start" : "center", gap: 12, marginBottom: 20 }}>
             <h2 style={{ fontSize: isMobile ? 16 : 18, fontWeight: 800, color: "var(--text)" }}>2. Lépés: Válassz módot</h2>
-
+            
             {!hasImages && <span style={{ color: "#ef4444", fontSize: 13, fontWeight: 700, background: "#fef2f2", padding: "4px 10px", borderRadius: 6 }}>Tölts fel képet a kezdéshez!</span>}
-
-           {isOverLimit && <span style={{ color: "#ef4444", fontSize: 13, fontWeight: 700, background: "#fef2f2", padding: "4px 10px", borderRadius: 6 }}>Túl sok az aktív kép! Kérjük, töröljön {photoCount - 8} darabot a folytatáshoz.</span>}
+            
+            {/* 💡 ÚJ: Közös 8 képes hibaüzenet minden módra! */}
+            {isOverLimit && <span style={{ color: "#ef4444", fontSize: 13, fontWeight: 700, background: "#fef2f2", padding: "4px 10px", borderRadius: 6 }}>Túl sok az aktív kép! Kérjük, töröljön a lomtárba {photoCount - 8} darabot a folytatáshoz.</span>}
           </div>
-
+          
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 24 }}>
+            {/* 💡 MIND A HÁROM KÁRTYA MEGKAPJA AZ 'isModeDisabled' TILTÁST */}
             <ModeCard disabled={isModeDisabled || isMobile} mobileDisabledMsg={isMobile ? "Csak számítógépen elérhető" : undefined} href="/manualis" icon={<Hand size={32} strokeWidth={1.5} />} title="Manuális" desc="Teljes szabadság. Te kezeled a rétegeket, méreteket és a pontos pozíciókat." />
             <ModeCard disabled={isModeDisabled || isMobile} mobileDisabledMsg={isMobile ? "Csak számítógépen elérhető" : undefined} href="/segitett" icon={<Target size={32} strokeWidth={1.5} />} title="Segített" desc="Szabad mozgástér, de intelligens mágneses rácsvonalakkal a tökéletes illesztésért." />
             <ModeCard disabled={isModeDisabled} href="/automata" icon={<Zap size={32} strokeWidth={1.5} />} title="Automata" desc="Az algoritmus másodpercek alatt megtalálja a legjobb elrendezést." />

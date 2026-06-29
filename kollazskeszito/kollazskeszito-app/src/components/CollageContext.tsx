@@ -139,7 +139,7 @@ const toggleBadge = useCallback((type: 'uj' | 'premium') => {
         newImgs.push({ el, src: el.src, name: file.name, uid: uid(), removeBg: true });
       } catch { /* skip */ }
     }
-    setImages(prev => [...prev, ...newImgs].slice(0, 30));
+    setImages(prev => [...prev, ...newImgs].slice(0, 150));
   }, []);
 
   const removeImage = useCallback((index: number) => {
@@ -149,9 +149,8 @@ const toggleBadge = useCallback((type: 'uj' | 'premium') => {
 
       if (removed) {
         setDeletedImages(del => {
-          // Strict Mode védelem: csak akkor adjuk hozzá, ha még nincs a kukában
           if (del.some(img => img.uid === removed.uid)) return del;
-          return [...del, removed].slice(-30);
+          return [...del, removed].slice(-150); // 💡 -30 helyett -150
         });
       }
       return next;
@@ -164,9 +163,8 @@ const toggleBadge = useCallback((type: 'uj' | 'premium') => {
 
       if (toTrash.length > 0) {
         setDeletedImages(del => {
-          // Kiszűrjük azokat, amik már esetleg benne vannak a Strict Mode miatt
           const newToAdd = toTrash.filter(t => !del.some(d => d.uid === t.uid));
-          return [...del, ...newToAdd].slice(-30);
+          return [...del, ...newToAdd].slice(-150); // 💡 -30 helyett -150
         });
       }
       return prev.filter(img => !uidsToRemove.includes(img.uid));
@@ -176,21 +174,18 @@ const toggleBadge = useCallback((type: 'uj' | 'premium') => {
   // A korábbi restoreImage helyett ezt másolja be:
   const restoreImage = useCallback((uid: string) => {
     // 💡 1. Szigorú ellenőrzés: ha már van 8 képünk, megállítjuk a folyamatot!
-    if (images.length >= 8) {
-      alert("Elérted a maximum 8 képet! Kérlek, törölj egyet a visszaállításhoz.");
-      return;
-    }
+    
 
     const found = deletedImages.find(img => img.uid === uid);
     if (!found) return;
 
     setImages(curr => {
       if (curr.some(img => img.uid === uid)) return curr;
-      return [...curr, found];
+      return [...curr, found].slice(0, 150); // 💡 30 helyett 150
     });
 
-    setDeletedImages(del => del.filter(img => img.uid !== uid));
-  }, [images, deletedImages]); // 💡 Fontos: a függőségi tömbbe bekerült az 'images' és 'deletedImages'
+   setDeletedImages(del => del.filter(img => img.uid !== uid));
+  }, [deletedImages]); // 💡 Fontos: a függőségi tömbbe bekerült az 'images' és 'deletedImages'
 
   // --- HIÁNYZÓ FÜGGVÉNYEK VISSZAPÓTLÁSA ---
 
