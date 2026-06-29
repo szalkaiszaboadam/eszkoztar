@@ -120,18 +120,11 @@ export function useAutoMode() {
         setIsSaved(false);
     }, [images, selectedIdx, gap, margin, keepOrder]);
 
-    const handleAutoUpload = useCallback((files: FileList | File[]) => {
-        const slotsLeft = 6 - images.length;
-        if (slotsLeft <= 0) {
-            alert("Az Automata módban maximum 6 kép engedélyezett!");
-            return;
-        }
-        const filesArray = Array.from(files);
-        if (filesArray.length > slotsLeft) {
-            alert(`Az Automata módban maximum 6 kép lehet! Ebből a feltöltésből csak az első ${slotsLeft} képet adjuk hozzá.`);
-        }
-        addFiles(filesArray.slice(0, slotsLeft));
-    }, [images.length, addFiles]);
+    // EREDETI HELYETT EZ LEGYEN:
+const handleAutoUpload = useCallback((files: FileList | File[]) => {
+    const filesArray = Array.from(files);
+    addFiles(filesArray);
+}, [addFiles]);
 
     useEffect(() => {
         if (!images.length) { setLayouts([]); return; }

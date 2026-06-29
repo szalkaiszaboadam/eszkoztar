@@ -62,7 +62,7 @@ export default function HomePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const hasImages = images.length > 0;
-  const isAutoDisabled = !hasImages || images.length > 6;
+  const isAutoDisabled = !hasImages;
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--bg)", padding: isMobile ? "16px 16px 40px 16px" : "24px 24px 64px 24px", boxSizing: "border-box", overflowY: "auto" }}>
@@ -186,13 +186,13 @@ export default function HomePage() {
           <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "flex-start" : "center", gap: 12, marginBottom: 20 }}>
             <h2 style={{ fontSize: isMobile ? 16 : 18, fontWeight: 800, color: "var(--text)" }}>2. Lépés: Válassz módot</h2>
             {!hasImages && <span style={{ color: "#ef4444", fontSize: 13, fontWeight: 700, background: "#fef2f2", padding: "4px 10px", borderRadius: 6 }}>Tölts fel képet a kezdéshez!</span>}
-            {images.length > 6 && <span style={{ color: "#ef4444", fontSize: 13, fontWeight: 700, background: "#fef2f2", padding: "4px 10px", borderRadius: 6 }}>Automata módhoz max 6 kép engedélyezett!</span>}
+
           </div>
           
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 24 }}>
             <ModeCard disabled={!hasImages || isMobile} mobileDisabledMsg={isMobile ? "Csak számítógépen elérhető" : undefined} href="/manualis" icon={<Hand size={32} strokeWidth={1.5} />} title="Manuális" desc="Teljes szabadság. Te kezeled a rétegeket, méreteket és a pontos pozíciókat." />
             <ModeCard disabled={!hasImages || isMobile} mobileDisabledMsg={isMobile ? "Csak számítógépen elérhető" : undefined} href="/segitett" icon={<Target size={32} strokeWidth={1.5} />} title="Segített" desc="Szabad mozgástér, de intelligens mágneses rácsvonalakkal a tökéletes illesztésért." />
-            <ModeCard disabled={isAutoDisabled} href="/automata" icon={<Zap size={32} strokeWidth={1.5} />} title="Automata" desc="Az algoritmus másodpercek alatt megtalálja a legjobb elrendezést. (Max 6 kép)" />
+            <ModeCard disabled={isAutoDisabled} href="/automata" icon={<Zap size={32} strokeWidth={1.5} />} title="Automata" desc="Az algoritmus másodpercek alatt megtalálja a legjobb elrendezést." />
           </div>
         </div>
       </div>

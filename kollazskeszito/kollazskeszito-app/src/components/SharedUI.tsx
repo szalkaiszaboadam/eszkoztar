@@ -175,7 +175,7 @@ export function TopNavbar({
   imageCount: number;
   isSaved?: boolean;
 }) {
-  const isAutoDisabled = imageCount > 6; 
+  const isAutoDisabled = false;
   const isMobile = useIsMobile(); // 💥 Használjuk a hookot!
 
   return (

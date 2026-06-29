@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cikkszám Összefűző App</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            color: #333;
+            max-width: 700px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+        .card {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px dashed #bdc3c7;
+            border-radius: 8px;
+            background-color: #fafbfc;
+        }
+        label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 10px;
+            color: #34495e;
+        }
+        input[type="file"] {
+            display: block;
+            width: 100%;
+        }
+        button {
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            padding: 15px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            transition: background 0.3s ease;
+        }
+        button:hover {
+            background-color: #219150;
+        }
+        #status {
+            margin-top: 20px;
+            font-weight: bold;
+            text-align: center;
+            color: #d35400;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h1>📊 Excel Cikkszám Összefűző</h1>
+        <p style="text-align:center; margin-bottom: 30px;">
+            Ez az app megkeresi az "A" fájl cikkszámait a "B" fájlban, majd átemeli a neveket és hozzáfűzi a másodlagos cikkszámokat a Gyártói oszlophoz.
+        </p>
+
+        <div class="form-group">
+            <label for="fileA">📁 "A" Fájl (Amit frissíteni szeretnél):</label>
+            <input type="file" id="fileA" accept=".xlsx, .xls, .csv">
+            <small>Kötelező oszlopok: <b>Cikkszám</b>, <b>Gyártói</b></small>
+        </div>
+
+        <div class="form-group">
+            <label for="fileB">📁 "B" Fájl (Az adatbázis/kereső tábla):</label>
+            <input type="file" id="fileB" accept=".xlsx, .xls, .csv">
+            <small>Kötelező oszlopok: <b>Másodlagos Cikkszám</b>, <b>Teilebezeichnung</b></small>
+        </div>
+
+        <button onclick="processFiles()" id="btnProcess">⚙️ Adatok Feldolgozása és Letöltés</button>
+
+        <div id="status"></div>
+    </div>
+
+    <script>
+        function updateStatus(message, color = "#d35400") {
+            const statusDiv = document.getElementById("status");
+            statusDiv.innerText = message;
+            statusDiv.style.color = color;
+        }
+
+        // Fájl beolvasása Promise alapokon
+        function readExcel(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const firstSheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[firstSheetName];
+                        // Fejlécekkel együtt JSON tömbbé alakítjuk
+                        const json = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+                        resolve(json);
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+                reader.onerror = (error) => reject(error);
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        async function processFiles() {
+            const fileAInput = document.getElementById('fileA');
+            const fileBInput = document.getElementById('fileB');
+
+            if (!fileAInput.files[0] || !fileBInput.files[0]) {
+                updateStatus("Kérlek, töltsd fel mindkét (A és B) fájlt!", "red");
+                return;
+            }
+
+            updateStatus("Feldolgozás folyamatban...", "#2980b9");
+            document.getElementById("btnProcess").disabled = true;
+
+            try {
+                // 1. Fájlok beolvasása JSON formátumba
+                const dataA = await readExcel(fileAInput.files[0]);
+                const dataB = await readExcel(fileBInput.files[0]);
+
+                // 2. Kereső "szótár" (Map) építése a B fájlból a gyorsabb kereséshez
+                const bLookupMap = {};
+                dataB.forEach(row => {
+                    const masodlagosCikkszam = row["Másodlagos Cikkszám"];
+                    if (masodlagosCikkszam) {
+                        // Kisbetűssé tesszük és levágjuk a szóközöket a biztos egyezésért
+                        const key = String(masodlagosCikkszam).trim().toLowerCase();
+                        bLookupMap[key] = {
+                            teilebezeichnung: row["Teilebezeichnung"] || "",
+                            eredetiMasodlagos: String(masodlagosCikkszam).trim()
+                        };
+                    }
+                });
+
+                // 3. Az A fájl adatainak módosítása
+                let modositottSorokDb = 0;
+
+                dataA.forEach(row => {
+                    const cikkszam = row["Cikkszám"];
+                    if (cikkszam) {
+                        const searchKey = String(cikkszam).trim().toLowerCase();
+                        
+                        // Ha megvan a B fájlban:
+                        if (bLookupMap[searchKey]) {
+                            const bAdat = bLookupMap[searchKey];
+
+                            // Új oszlop hozzáadása (vagy meglévő felülírása)
+                            row["Új Név (Teilebezeichnung)"] = bAdat.teilebezeichnung;
+
+                            // Meglévő Gyártói adat kinyerése
+                            let meglevoGyartoi = row["Gyártói"] ? String(row["Gyártói"]).trim() : "";
+                            let hozzafuzendo = bAdat.eredetiMasodlagos;
+
+                            // Hozzáfűzés pontosvesszővel, ha van már adat
+                            if (meglevoGyartoi === "") {
+                                row["Gyártói"] = hozzafuzendo;
+                            } else {
+                                // Csak akkor fűzzük hozzá, ha még nincs benne (elkerüljük a duplikációt)
+                                if (!meglevoGyartoi.includes(hozzafuzendo)) {
+                                    row["Gyártói"] = meglevoGyartoi + "; " + hozzafuzendo;
+                                }
+                            }
+                            modositottSorokDb++;
+                        }
+                    }
+                });
+
+                // 4. Módosított adatok visszaalakítása Excel fájllá
+                const newSheet = XLSX.utils.json_to_sheet(dataA);
+                const newWorkbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(newWorkbook, newSheet, "Frissített Adatok");
+
+                // 5. Letöltés indítása
+                XLSX.writeFile(newWorkbook, "A_fajl_frissitve.xlsx");
+
+                updateStatus(`✅ Kész! ${modositottSorokDb} termék frissítve. A letöltés elindult.`, "#27ae60");
+
+            } catch (error) {
+                console.error(error);
+                updateStatus("❌ Hiba történt a feldolgozás során. Kérlek ellenőrizd az oszlopneveket!", "red");
+            } finally {
+                document.getElementById("btnProcess").disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>

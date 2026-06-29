@@ -6,7 +6,20 @@ import datetime
 import os
 import json
 import re
+import unicodedata
 from dotenv import load_dotenv
+
+
+# --- ÉKEZET- ÉS SZÓKÖZ GYALU ---
+def eltavolit_ekezet(szoveg):
+    if not szoveg:
+        return ""
+    # Kisbetűsítjük és levágjuk a szélső szóközöket
+    sz = str(szoveg).strip().lower()
+    # Porszívó: minden dupla/tripla szóközből és rejtett karakterből 1 sima szóköz lesz
+    sz = re.sub(r'\s+', ' ', sz)
+    # Ékezet eltávolító varázslat (NFD normalizálás, majd a mellékjelek eldobása)
+    return ''.join(c for c in unicodedata.normalize('NFD', sz) if unicodedata.category(c) != 'Mn')
 
 
 # --- 1. LÉPÉS: Adatbeolvasás ---
@@ -17,7 +30,7 @@ def adatok_beolvasasa(excel_fajl_neve):
         print(f"HIBA az Excel beolvasása közben: {e}")
         return None
 
-    szukseges_oszlopok = ["Régi cikkszám", "Új cikkszám", "Név", "Márka"]
+    szukseges_oszlopok = ["Régi cikkszám", "Új cikkszám", "Név", "Márka", "Alternatív cikkszám"]
     hianyzo_oszlopok = [oszlop for oszlop in szukseges_oszlopok if oszlop not in df.columns]
 
     if hianyzo_oszlopok:
@@ -26,33 +39,23 @@ def adatok_beolvasasa(excel_fajl_neve):
 
     feldolgozando_lista = []
 
-    # Belső segédfüggvény a cikkszámok és az Excel dátum-hibák tisztítására
-    def tisztit_cikkszam(ertek):
+    def tisztit_szoveg(ertek):
         ertek = str(ertek).strip()
         if ertek.lower() == 'nan':
             return ""
-
-        # 1. eset: Excel YYYY-MM formátumot YYYY-MM-01 00:00:00-ra alakította
         ertek = re.sub(r'-01 00:00:00$', '', ertek)
-
-        # 2. eset: Sima dátummá alakítás (pl. hozzácsapta csak a 00:00:00-t)
         ertek = re.sub(r' 00:00:00$', '', ertek)
-
+        ertek = re.sub(r'\s+', ' ', ertek).strip()
         return ertek
 
     for index, row in df.iterrows():
-        regi_cikkszam = tisztit_cikkszam(row.get("Régi cikkszám", ""))
-        uj_cikkszam = tisztit_cikkszam(row.get("Új cikkszám", ""))
-        alt_cikkszam = tisztit_cikkszam(row.get("Alternatív cikkszám", ""))
+        regi_cikkszam = tisztit_szoveg(row.get("Régi cikkszám", ""))
+        uj_cikkszam = tisztit_szoveg(row.get("Új cikkszám", ""))
+        alt_cikkszam = tisztit_szoveg(row.get("Alternatív cikkszám", ""))
+        nev = tisztit_szoveg(row.get("Név", ""))
+        marka = tisztit_szoveg(row.get("Márka", ""))
 
-        nev = str(row.get("Név", "")).strip()
-        if nev.lower() == 'nan': nev = ""
-
-        marka = str(row.get("Márka", "")).strip()
-        if marka.lower() == 'nan': marka = ""
-
-        # Ha nincs új cikkszám, nincs mit cserélni
-        if not uj_cikkszam:
+        if not uj_cikkszam and not alt_cikkszam:
             continue
 
         feldolgozando_lista.append({
@@ -73,7 +76,6 @@ def run_processor(context: Context, termek_lista, bemeneti_fajl_neve, base_url, 
     sikertelen_lista_elso_kor = []
     veglegesen_sikertelen_lista = []
 
-    # --- ÁLLAPOT BETÖLTÉSE ---
     if os.path.exists(progress_file_path):
         try:
             with open(progress_file_path, "r", encoding="utf-8") as f:
@@ -106,9 +108,6 @@ def run_processor(context: Context, termek_lista, bemeneti_fajl_neve, base_url, 
     start_index = mar_kesz_db
     feldolgozando_maradek = termek_lista[start_index:]
 
-    # ==========================================
-    # --- FŐ CIKLUS (1. KÖR) ---
-    # ==========================================
     if feldolgozando_maradek:
         print("\n" + "=" * 50)
         print(f" 1. KÖR: Hátralévő {len(feldolgozando_maradek)} termék feldolgozása")
@@ -125,99 +124,154 @@ def run_processor(context: Context, termek_lista, bemeneti_fajl_neve, base_url, 
             keresendo = regi_cikkszam if regi_cikkszam else nev
             kereses_tipusa = "Cikkszám" if regi_cikkszam else "Név"
 
+            biztonsagos_keresendo = re.split(r'["\']', keresendo)[0].strip()
+
             print(f"\n[{aktualis_sorszam}/{len(termek_lista)}] Feldolgozás...")
-            print(f"  Keresés ({kereses_tipusa}): '{keresendo}' -> Új: '{uj_cikkszam}'")
+            if biztonsagos_keresendo != keresendo:
+                print(f"  Keresés ({kereses_tipusa}): '{biztonsagos_keresendo}' (Rövidítve)")
+            else:
+                print(f"  Keresés ({kereses_tipusa}): '{keresendo}'")
 
             try:
                 page.goto(f"{base_url}/administrator/", timeout=60000)
 
-                # --- NÉZET ELLENŐRZÉSE ÉS VÁLTÁSA ---
                 nezet_valto_gomb = page.locator("li.modeSwitch[onclick*='switchMode(2)']")
                 if nezet_valto_gomb.is_visible(timeout=5000):
                     page.evaluate("switchMode(2);")
-                    time.sleep(4)  # Biztos ami biztos várunk az újratöltésre
+                    time.sleep(4)
 
-                # Keresés
                 search_field = page.locator("#searchField_all")
-                search_field.wait_for(state="visible", timeout=20000)  # Megnövelt várakozás
-                search_field.fill(keresendo)
-                time.sleep(0.5)  # Kicsi szünet a gépelés után
+                search_field.wait_for(state="visible", timeout=20000)
+                search_field.fill(biztonsagos_keresendo)
+                time.sleep(0.5)
                 search_field.press("Enter")
-                time.sleep(3)  # BIZTONSÁGI VÁRAKOZÁS: Hagyjuk a szervert dolgozni a keresés után
 
-                keresendo_regex = re.compile(f"^\\s*{re.escape(keresendo)}\\s*$", re.IGNORECASE)
-                sorok = page.locator("tr").filter(has=page.locator("td", has_text=keresendo_regex)).filter(visible=True)
+                talalat_megvan = False
+                sor = None
+                oldal_szamlalo = 1
+                max_oldal = 30
 
-                # Ha lassú a net, megvárjuk, amíg felbukkan legalább egy sor (max 10 mp-ig)
-                try:
-                    sorok.first.wait_for(state="visible", timeout=10000)
-                except:
-                    pass
+                # --- 100% ÉKEZETMENTES KERESŐ LÉTREHOZÁSA ---
+                keresendo_norm = eltavolit_ekezet(keresendo)
+                nev_norm = eltavolit_ekezet(nev)
+                marka_norm = eltavolit_ekezet(marka)
 
-                talalat_db = sorok.count()
+                while not talalat_megvan and oldal_szamlalo <= max_oldal:
+                    time.sleep(3)
 
-                if talalat_db == 0:
-                    lazabb_sorok = page.locator("tr").filter(has=page.locator("td", has_text=keresendo)).filter(
-                        visible=True)
-                    lazabb_db = lazabb_sorok.count()
-                    if lazabb_db == 0:
-                        raise Exception(f"Egyáltalán nem található a rendszerben!")
-                    elif lazabb_db == 1:
-                        sor = lazabb_sorok.first
+                    for _ in range(8):
+                        page.keyboard.press("PageDown")
+                        time.sleep(0.2)
+                    page.keyboard.press("Home")
+                    time.sleep(0.5)
+
+                    # Minden látható sort kiszedünk a táblázatból
+                    minden_sor = page.locator("table#productsList tbody tr").filter(visible=True)
+
+                    try:
+                        minden_sor.first.wait_for(state="visible", timeout=3000)
+                    except:
+                        pass
+
+                    sor_count = minden_sor.count()
+
+                    if sor_count > 0:
+                        jo_sorok_indexei = []
+
+                        for idx in range(sor_count):
+                            aktualis_sor = minden_sor.nth(idx)
+                            cellak = aktualis_sor.locator("td").all_inner_texts()
+
+                            is_match = False
+                            for cella_szoveg in cellak:
+                                # Webshopos cella lebutítása (ékezet és szóköz nélkül)
+                                cella_norm = eltavolit_ekezet(cella_szoveg)
+
+                                # PONTOS EGYEZÉS az ékezetmentesített verziók között
+                                if keresendo_norm == cella_norm:
+                                    is_match = True
+                                    break
+
+                            if is_match:
+                                sor_teljes = " ".join([eltavolit_ekezet(c) for c in cellak])
+                                biztonsagos = True
+
+                                # Csak akkor legyünk szigorúak a névvel és márkával, ha NÉV alapján kerestünk.
+                                # Ha cikkszám alapján van meg az egyezés, bízunk a cikkszám egyediségében.
+                                if kereses_tipusa == "Név":
+                                    if nev_norm and nev_norm not in sor_teljes:
+                                        biztonsagos = False
+                                    if marka_norm and marka_norm not in sor_teljes:
+                                        biztonsagos = False
+
+                                if biztonsagos:
+                                    jo_sorok_indexei.append(idx)
+
+                        if len(jo_sorok_indexei) == 1:
+                            sor = minden_sor.nth(jo_sorok_indexei[0])
+                            talalat_megvan = True
+                        elif len(jo_sorok_indexei) > 1:
+                            raise Exception(
+                                f"DUPLIKÁCIÓ: {len(jo_sorok_indexei)} db teljesen azonos nevű termék van az oldalon!")
+
+                    if not talalat_megvan:
+                        kovetkezo_gomb = page.locator("li.paginationButton").filter(
+                            has_text=re.compile("Következő", re.IGNORECASE))
+                        if kovetkezo_gomb.is_visible(timeout=1000):
+                            print(f"   -> Nincs pontos egyezés a(z) {oldal_szamlalo}. oldalon. Lapozás...")
+                            kovetkezo_gomb.first.click()
+                            oldal_szamlalo += 1
+                        else:
+                            break
+
+                if not talalat_megvan:
+                    if oldal_szamlalo > max_oldal:
+                        raise Exception(f"Túl sok oldal ({max_oldal}), keresés megszakítva.")
                     else:
-                        raise Exception(f"Nincs pontos egyezés, lazább kereséssel pedig {lazabb_db} találat is van!")
-                elif talalat_db == 1:
-                    sor = sorok.first
-                else:
-                    maradek_sorok = sorok
-                    if nem_ures(nev):
-                        szurt_nev = maradek_sorok.filter(has=page.locator("td", has_text=nev))
-                        if szurt_nev.count() >= 1: maradek_sorok = szurt_nev
-                    if maradek_sorok.count() > 1 and nem_ures(marka):
-                        marka_regex = re.compile(f"^\\s*{re.escape(marka)}\\s*$", re.IGNORECASE)
-                        szurt_marka = maradek_sorok.filter(has=page.locator("td", has_text=marka_regex))
-                        if szurt_marka.count() >= 1: maradek_sorok = szurt_marka
+                        raise Exception(f"A termék pontos névvel egyáltalán nem található a rendszerben!")
 
-                    vegso_db = maradek_sorok.count()
-                    if vegso_db == 1:
-                        sor = maradek_sorok.first
-                    elif vegso_db > 1:
-                        raise Exception(f"DUPLIKÁCIÓ: Név és Márka szűrés után is {vegso_db} db azonos termék maradt!")
-                    else:
-                        raise Exception("SZŰRÉSI HIBA.")
-
-                # Belépés a termékbe
                 termek_link = sor.locator("a[href*='view=product']")
                 termek_link.wait_for(state="visible", timeout=15000)
+                termek_link.scroll_into_view_if_needed()
                 termek_link.click()
 
-                # BIZTONSÁGI VÁRAKOZÁS: Kifejezetten megvárjuk, hogy a cikkszám mező megjelenjen a termékoldalon
-                cikkszam_mezo = page.locator("input#sku")
-                cikkszam_mezo.wait_for(state="visible", timeout=25000)
-                time.sleep(1)  # Plusz egy másodperc, hogy a JS scriptek is lezárjanak
+                # Várakozás a termékoldal betöltésére
+                page.locator("a#save_close").wait_for(state="visible", timeout=20000)
+                time.sleep(2)
 
-                # Új cikkszám beírása
-                cikkszam_mezo.fill(uj_cikkszam)
+                if nem_ures(uj_cikkszam):
+                    cikkszam_mezo = page.locator("input#sku")
+                    cikkszam_mezo.wait_for(state="visible", timeout=10000)
+                    cikkszam_mezo.fill(uj_cikkszam)
+                    print(f"   -> Fő cikkszám módosítva erre: {uj_cikkszam}")
 
-                # Alternatív cikkszám (Vonalkód) hozzáadása
-                if alt_cikkszam:
-                    try:
-                        page.locator("label.tabLabel[for='vonalkodok']").click(timeout=10000)
-                        time.sleep(1)  # BIZTONSÁGI VÁRAKOZÁS: Fülváltás animáció
-                        barcode_input = page.locator("input#newBarcode")
-                        barcode_input.wait_for(state="visible", timeout=10000)
-                        barcode_input.fill(alt_cikkszam)
-                        page.locator("div.addBarcode div.pure-button", has_text="Hozzáadás").first.click()
-                        time.sleep(1)  # Mentés ideje a memóriába
-                    except Exception as ex:
-                        print(f"   ⚠️ Hiba a vonalkód hozzáadásánál: {ex}")
+                # VONALKÓD HOZZÁADÁS
+                if nem_ures(alt_cikkszam):
+                    tab_label = page.locator("label.tabLabel[for='vonalkodok']")
+                    tab_label.wait_for(state="visible", timeout=10000)
+                    tab_label.click(force=True)
 
-                # Mentés és bezárás
+                    time.sleep(1.5)
+
+                    barcode_input = page.locator("input#newBarcode")
+                    barcode_input.wait_for(state="visible", timeout=10000)
+
+                    vonalkodok_lista = [v.strip() for v in alt_cikkszam.split(';') if v.strip()]
+
+                    for vonalkod in vonalkodok_lista:
+                        barcode_input.fill(vonalkod)
+                        time.sleep(0.5)
+
+                        add_btn = page.locator("div.addBarcode div.pure-button").filter(
+                            has_text=re.compile("Hozzáadás", re.IGNORECASE)).first
+                        add_btn.click(force=True)
+                        time.sleep(1)
+                        print(f"      + Másodlagos cikkszám beírva: {vonalkod}")
+
+                # Mentés és kilépés
                 page.locator("a#save_close").click(timeout=10000)
-
-                # BIZTONSÁGI VÁRAKOZÁS: A mentés szerveroldali processzálása eltarthat egy darabig
                 page.locator("#searchField_all").wait_for(state="visible", timeout=35000)
-                time.sleep(2)  # "Kifújjuk magunkat" a következő ciklus előtt
+                time.sleep(2)
 
                 print(f"   ✅ Sikeresen mentve.")
                 sikeres_db += 1
@@ -248,9 +302,10 @@ def run_processor(context: Context, termek_lista, bemeneti_fajl_neve, base_url, 
             alt_cikkszam = termek["alt_cikkszam"]
 
             keresendo = regi_cikkszam if regi_cikkszam else nev
-            print(f"\n[{i + 1}/{len(feldolgozando_retry)}] Retry: '{keresendo}'")
+            biztonsagos_keresendo = re.split(r'["\']', keresendo)[0].strip()
 
-            # Ha az első körben egyértelmű hiba volt, átugorjuk
+            print(f"\n[{i + 1}/{len(feldolgozando_retry)}] Retry: '{biztonsagos_keresendo}'")
+
             if "DUPLIKÁCIÓ" in termek["hiba_oka"] or "Egyáltalán nem található" in termek["hiba_oka"]:
                 print("   ⚠️ Újrapróbálkozás átugorva az előző egyértelmű hiba miatt.")
                 veglegesen_sikertelen_lista.append(termek)
@@ -267,72 +322,120 @@ def run_processor(context: Context, termek_lista, bemeneti_fajl_neve, base_url, 
 
                 search_field = page.locator("#searchField_all")
                 search_field.wait_for(state="visible", timeout=20000)
-                search_field.fill(keresendo)
+                search_field.fill(biztonsagos_keresendo)
                 time.sleep(0.5)
                 search_field.press("Enter")
-                time.sleep(3)  # BIZTONSÁGI VÁRAKOZÁS
 
-                keresendo_regex = re.compile(f"^\\s*{re.escape(keresendo)}\\s*$", re.IGNORECASE)
-                sorok = page.locator("tr").filter(has=page.locator("td", has_text=keresendo_regex)).filter(visible=True)
+                talalat_megvan = False
+                sor = None
+                oldal_szamlalo = 1
+                max_oldal = 30
 
-                try:
-                    sorok.first.wait_for(state="visible", timeout=10000)
-                except:
-                    pass
+                keresendo_norm = eltavolit_ekezet(keresendo)
+                nev_norm = eltavolit_ekezet(nev)
+                marka_norm = eltavolit_ekezet(marka)
 
-                talalat_db = sorok.count()
+                while not talalat_megvan and oldal_szamlalo <= max_oldal:
+                    time.sleep(3)
+                    for _ in range(8):
+                        page.keyboard.press("PageDown")
+                        time.sleep(0.2)
+                    page.keyboard.press("Home")
+                    time.sleep(0.5)
 
-                if talalat_db == 0:
-                    lazabb_sorok = page.locator("tr").filter(has=page.locator("td", has_text=keresendo)).filter(
-                        visible=True)
-                    lazabb_db = lazabb_sorok.count()
-                    if lazabb_db == 0:
-                        raise Exception(f"Egyáltalán nem található a rendszerben!")
-                    elif lazabb_db == 1:
-                        sor = lazabb_sorok.first
+                    minden_sor = page.locator("table#productsList tbody tr").filter(visible=True)
+
+                    try:
+                        minden_sor.first.wait_for(state="visible", timeout=3000)
+                    except:
+                        pass
+
+                    sor_count = minden_sor.count()
+
+                    if sor_count > 0:
+                        jo_sorok_indexei = []
+
+                        for idx in range(sor_count):
+                            aktualis_sor = minden_sor.nth(idx)
+                            cellak = aktualis_sor.locator("td").all_inner_texts()
+
+                            is_match = False
+                            for cella_szoveg in cellak:
+                                cella_norm = eltavolit_ekezet(cella_szoveg)
+                                if keresendo_norm == cella_norm:
+                                    is_match = True
+                                    break
+
+                            if is_match:
+                                sor_teljes = " ".join([eltavolit_ekezet(c) for c in cellak])
+                                biztonsagos = True
+
+                                # Csak akkor legyünk szigorúak a névvel és márkával, ha NÉV alapján kerestünk.
+                                # Ha cikkszám alapján van meg az egyezés, bízunk a cikkszám egyediségében.
+                                if kereses_tipusa == "Név":
+                                    if nev_norm and nev_norm not in sor_teljes:
+                                        biztonsagos = False
+                                    if marka_norm and marka_norm not in sor_teljes:
+                                        biztonsagos = False
+
+                                if biztonsagos:
+                                    jo_sorok_indexei.append(idx)
+
+                        if len(jo_sorok_indexei) == 1:
+                            sor = minden_sor.nth(jo_sorok_indexei[0])
+                            talalat_megvan = True
+                        elif len(jo_sorok_indexei) > 1:
+                            raise Exception(
+                                f"DUPLIKÁCIÓ: {len(jo_sorok_indexei)} db teljesen azonos nevű termék van az oldalon!")
+
+                    if not talalat_megvan:
+                        kovetkezo_gomb = page.locator("li.paginationButton").filter(
+                            has_text=re.compile("Következő", re.IGNORECASE))
+                        if kovetkezo_gomb.is_visible(timeout=1000):
+                            print(f"   -> Nincs pontos egyezés a(z) {oldal_szamlalo}. oldalon. Lapozás...")
+                            kovetkezo_gomb.first.click()
+                            oldal_szamlalo += 1
+                        else:
+                            break
+
+                if not talalat_megvan:
+                    if oldal_szamlalo > max_oldal:
+                        raise Exception(f"Túl sok oldal ({max_oldal}), keresés megszakítva.")
                     else:
-                        raise Exception(f"Nincs pontos egyezés, lazább kereséssel pedig {lazabb_db} találat is van!")
-                elif talalat_db == 1:
-                    sor = sorok.first
-                else:
-                    maradek_sorok = sorok
-                    if nem_ures(nev):
-                        szurt_nev = maradek_sorok.filter(has=page.locator("td", has_text=nev))
-                        if szurt_nev.count() >= 1: maradek_sorok = szurt_nev
-                    if maradek_sorok.count() > 1 and nem_ures(marka):
-                        marka_regex = re.compile(f"^\\s*{re.escape(marka)}\\s*$", re.IGNORECASE)
-                        szurt_marka = maradek_sorok.filter(has=page.locator("td", has_text=marka_regex))
-                        if szurt_marka.count() >= 1: maradek_sorok = szurt_marka
-
-                    vegso_db = maradek_sorok.count()
-                    if vegso_db == 1:
-                        sor = maradek_sorok.first
-                    elif vegso_db > 1:
-                        raise Exception(f"DUPLIKÁCIÓ: Név/Márka szűrés után is {vegso_db} db maradt!")
-                    else:
-                        raise Exception("SZŰRÉSI HIBA.")
+                        raise Exception(f"A termék pontos névvel egyáltalán nem található a rendszerben!")
 
                 termek_link = sor.locator("a[href*='view=product']")
                 termek_link.wait_for(state="visible", timeout=15000)
+                termek_link.scroll_into_view_if_needed()
                 termek_link.click()
 
-                cikkszam_mezo = page.locator("input#sku")
-                cikkszam_mezo.wait_for(state="visible", timeout=25000)
-                time.sleep(1)
+                page.locator("a#save_close").wait_for(state="visible", timeout=20000)
+                time.sleep(2)
 
-                cikkszam_mezo.fill(uj_cikkszam)
+                if nem_ures(uj_cikkszam):
+                    cikkszam_mezo = page.locator("input#sku")
+                    cikkszam_mezo.wait_for(state="visible", timeout=10000)
+                    cikkszam_mezo.fill(uj_cikkszam)
 
-                if alt_cikkszam:
-                    try:
-                        page.locator("label.tabLabel[for='vonalkodok']").click(timeout=10000)
+                # VONALKÓD HOZZÁADÁS 2. KÖR
+                if nem_ures(alt_cikkszam):
+                    tab_label = page.locator("label.tabLabel[for='vonalkodok']")
+                    tab_label.wait_for(state="visible", timeout=10000)
+                    tab_label.click(force=True)
+                    time.sleep(1.5)
+
+                    barcode_input = page.locator("input#newBarcode")
+                    barcode_input.wait_for(state="visible", timeout=10000)
+
+                    vonalkodok_lista = [v.strip() for v in alt_cikkszam.split(';') if v.strip()]
+
+                    for vonalkod in vonalkodok_lista:
+                        barcode_input.fill(vonalkod)
+                        time.sleep(0.5)
+                        add_btn = page.locator("div.addBarcode div.pure-button").filter(
+                            has_text=re.compile("Hozzáadás", re.IGNORECASE)).first
+                        add_btn.click(force=True)
                         time.sleep(1)
-                        barcode_input = page.locator("input#newBarcode")
-                        barcode_input.wait_for(state="visible", timeout=10000)
-                        barcode_input.fill(alt_cikkszam)
-                        page.locator("div.addBarcode div.pure-button", has_text="Hozzáadás").first.click()
-                        time.sleep(1)
-                    except:
-                        pass
 
                 page.locator("a#save_close").click(timeout=10000)
                 page.locator("#searchField_all").wait_for(state="visible", timeout=35000)
@@ -353,7 +456,6 @@ def run_processor(context: Context, termek_lista, bemeneti_fajl_neve, base_url, 
 
     page.close()
 
-    # Progress fájl törlése, ha minden sikerült
     if os.path.exists(progress_file_path) and not sikertelen_lista_elso_kor:
         os.remove(progress_file_path)
 
@@ -389,7 +491,7 @@ def run_processor(context: Context, termek_lista, bemeneti_fajl_neve, base_url, 
 
 
 def nem_ures(ertek):
-    return ertek is not None and ertek.strip() != ""
+    return ertek is not None and str(ertek).strip() != "" and str(ertek).strip().lower() != "nan"
 
 
 # --- 3. LÉPÉS: Bejelentkezés ---
@@ -436,7 +538,7 @@ if __name__ == "__main__":
     FAJLOK_MAPPAJA = "input_tablak"
 
     print("\n" + "=" * 50)
-    print(" 🛠️ CIKKSZÁMOZÓ BOT 🛠️")
+    print(" 🛠️ UNIVERZÁLIS CIKKSZÁMOZÓ BOT 🛠️")
     print("=" * 50)
 
     print("\n--- Melyik webshopot szeretnéd használni? ---")

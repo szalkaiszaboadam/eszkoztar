@@ -208,6 +208,9 @@ marimo/_lsp/
 __marimo__/
 
 *.json
+*.xlsx
+*.xls
+*.csv
 !vercel.json
 
 .DS_Store
@@ -218,3 +221,12 @@ __marimo__/
 
 Kollazs_Kepek/*
 Kollazs_Kepek/
+
+kollazs_kepek/*
+kollazs_kepek/
+
+input_tablak/*
+input_tablak/
+
+sikertelen_tablak/*
+sikertelen_tablak/

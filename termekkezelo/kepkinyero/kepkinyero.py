@@ -938,14 +938,17 @@ if __name__ == "__main__":
     # ─────────────────────────────────────────────────────────────────────────
     # INDULÁSKOR: automatikusan felismerjük a jelenlegi állapotot
     # ─────────────────────────────────────────────────────────────────────────
-    kepek_vannak = os.path.exists("kollazs_kepek") and any(
+    cel_mappa = os.path.join("kollazs_kepek", clean_fokat)
+
+    kepek_vannak = os.path.exists(cel_mappa) and any(
         f.lower().endswith(('.jpg', '.jpeg', '.png')) and not f.startswith('_kollazs')
-        for _, _, files in os.walk("kollazs_kepek")
+        for _, _, files in os.walk(cel_mappa)
         for f in files
     )
-    kollazsok_vannak = os.path.exists("kollazs_kepek") and any(
+
+    kollazsok_vannak = os.path.exists(cel_mappa) and any(
         f.startswith('_kollazs') and f.lower().endswith('.png')
-        for _, _, files in os.walk("kollazs_kepek")
+        for _, _, files in os.walk(cel_mappa)
         for f in files
     )
 

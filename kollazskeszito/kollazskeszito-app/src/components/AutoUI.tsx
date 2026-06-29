@@ -27,7 +27,7 @@ export function AutoControlBar({ state }: Props) {
         <div style={{ display: "flex", alignItems: "center", gap: 12, flex: 1 }}>
           <div style={{ display: "flex", flexDirection: "column", justifyContent: "center", minWidth: 40 }}>
             <span style={{ fontSize: 10, fontWeight: 800, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em" }}>Képek</span>
-            <span style={{ fontSize: 16, color: "var(--text)", fontWeight: 800 }}>{images.length}/6</span>
+            <span style={{ fontSize: 16, color: "var(--text)", fontWeight: 800 }}>{images.length}/30</span>
           </div>
           <div style={{ width: 1, height: "100%", background: "var(--border-medium)" }} />
           <div style={{ display: "flex", gap: 8, flex: 1, overflowX: "auto", padding: "4px" }}>
@@ -36,9 +36,9 @@ export function AutoControlBar({ state }: Props) {
             ))}
             
             {/* 💥 ÚJ: KÖZVETLEN FELTÖLTÉS GOMB 💥 */}
-            {images.length < 6 && (
-              <button 
-                onClick={() => fileInputRef.current?.click()} 
+            {images.length < 30 && (
+  <button 
+    onClick={() => fileInputRef.current?.click()}
                 title="További kép feltöltése"
                 style={{ width: 76, height: 76, flexShrink: 0, borderRadius: 8, border: "2px dashed var(--border-medium)", background: "transparent", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-secondary)", cursor: "pointer", transition: "all 0.2s ease" }}
                 onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.color = "var(--accent)"; }}
