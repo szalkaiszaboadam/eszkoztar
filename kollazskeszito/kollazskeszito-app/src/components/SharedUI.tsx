@@ -144,12 +144,15 @@ export function QuickSelect({ label, value, options, onChange }: {
       <span style={{ fontSize: 11, color: "var(--text-secondary)", fontWeight: 800, width: 44, flexShrink: 0, textTransform: "uppercase", letterSpacing: "0.05em" }}>
         {label}
       </span>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", flex: 1, background: "var(--bg-panel)", padding: 4, borderRadius: 8, border: "1px solid var(--border-medium)", gap: 4 }}>
+      {/* 💡 JAVÍTÁS: Dinamikus oszlopszám az opciók száma alapján! */}
+      <div style={{ display: "grid", gridTemplateColumns: `repeat(${options.length}, 1fr)`, flex: 1, background: "var(--bg-panel)", padding: 4, borderRadius: 8, border: "1px solid var(--border-medium)", gap: 4 }}>
         {options.map((opt) => (
           <button
             key={opt} onClick={() => onChange(opt)}
             style={{
-              padding: "6px 0", border: "none", borderRadius: 6, fontSize: 13, fontWeight: 800, cursor: "pointer",
+              padding: "6px 0", border: "none", borderRadius: 6, 
+              fontSize: 12, // 💡 Kicsit finomabb betűméret, hogy elférjenek
+              fontWeight: 800, cursor: "pointer",
               background: value === opt ? "var(--bg-elevated)" : "transparent",
               color: value === opt ? "var(--accent)" : "var(--text-secondary)",
               boxShadow: value === opt ? "0 2px 4px rgba(0,0,0,0.05)" : "none",

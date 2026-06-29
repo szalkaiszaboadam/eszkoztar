@@ -1,10 +1,11 @@
 // src/components/ManualUI.tsx (Tetején lévő importok módosítása)
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 // ÚJ IMPORTOK: Undo2 és Redo2 hozzáadása a lucide-react-ból!
 import { Eye, EyeOff, Trash2, CheckSquare, XSquare, Wand2, Eraser, Layers, Plus, Pointer, Undo2, Redo2 } from "lucide-react";
 import { useManualMode } from "@/src/hooks/useManualMode";
+import { TrashPanel } from "@/src/components/TrashPanel";
 
 type ManualState = ReturnType<typeof useManualMode>;
 type Props = { state: ManualState };
@@ -18,7 +19,9 @@ export function LayerSidebar({ state }: Props) {
     reorderImages, toggleImageBg, setImagesBg
   } = state;
 
-const hasUj = images.some(i => i.name === 'cimke_uj.png');
+  const [isTrashOpen, setIsTrashOpen] = useState(false);
+
+  const hasUj = images.some(i => i.name === 'cimke_uj.png');
   const hasPremium = images.some(i => i.name === 'cimke_premium.png');
 
   const [draggedListIdx, setDraggedListIdx] = useState<number | null>(null);
@@ -135,28 +138,16 @@ const hasUj = images.some(i => i.name === 'cimke_uj.png');
         )}
       </div>
 
-      {/* 💡 ÚJ: LOMTÁR SZEKCIÓ (Közvetlenül a rétegek alatt, de fixen lenn) */}
-      {deletedImages && deletedImages.length > 0 && (
-        <div style={{ padding: "12px", borderTop: "1px solid var(--border)", background: "rgba(0,0,0,0.02)" }}>
-          <div style={{ fontSize: 10, fontWeight: 800, color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8, textAlign: "center" }}>
-            Lomtár (Kattints a visszaállításhoz)
-          </div>
-          <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4, paddingLeft: 2, paddingRight: 2 }}>
-            {deletedImages.map((img) => (
-              <div
-                key={img.uid}
-                onClick={() => restoreImage(img.uid)}
-                title="Kattints a visszaállításhoz"
-                style={{ width: 44, height: 44, borderRadius: 6, background: "#fff", border: "1px solid var(--border-medium)", flexShrink: 0, cursor: "pointer", overflow: "hidden", opacity: 0.7, transition: "all 0.15s ease", boxShadow: "0 2px 4px rgba(0,0,0,0.04)" }}
-                onMouseEnter={e => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.borderColor = "var(--accent)"; e.currentTarget.style.transform = "scale(1.05)"; }}
-                onMouseLeave={e => { e.currentTarget.style.opacity = "0.7"; e.currentTarget.style.borderColor = "var(--border-medium)"; e.currentTarget.style.transform = "scale(1)"; }}
-              >
-                <img src={img.src} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+
+      <div style={{ position: "relative", padding: "12px" }}>
+        <button onClick={() => setIsTrashOpen(!isTrashOpen)} style={{
+          width: "100%", padding: "8px", background: "var(--bg-elevated)", border: "1px solid var(--border)",
+          borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", gap: 6
+        }}>
+          <Trash2 size={14} /> Lomtár megnyitása ({deletedImages.length})
+        </button>
+        {isTrashOpen && <TrashPanel deletedImages={deletedImages} restoreImage={restoreImage} onClose={() => setIsTrashOpen(false)} />}
+      </div>
 
       {/* 💡 DISZKRÉT MATRICA HOZZÁADÁSA SZEKCIÓ */}
       <div style={{ padding: "12px", borderTop: "1px solid var(--border)", background: "var(--bg-elevated)", display: "flex", flexDirection: "column", gap: 6 }}>
@@ -164,35 +155,35 @@ const hasUj = images.some(i => i.name === 'cimke_uj.png');
           Címkék be- és kikapcsolása
         </div>
         <div style={{ display: "flex", gap: 8 }}>
-          
+
           {/* Diszkrét ÚJ gomb */}
-          <button 
-            onClick={() => state.toggleBadge('uj')} 
-            style={{ 
-              flex: 1, padding: "8px 4px", 
-              background: hasUj ? "#fef2f2" : "transparent", 
-              color: hasUj ? "#dc2626" : "var(--text-secondary)", 
-              borderRadius: 6, fontWeight: 800, fontSize: 11, 
-              border: `1px solid ${hasUj ? "#fca5a5" : "var(--border-medium)"}`, 
+          <button
+            onClick={() => state.toggleBadge('uj')}
+            style={{
+              flex: 1, padding: "8px 4px",
+              background: hasUj ? "#fef2f2" : "transparent",
+              color: hasUj ? "#dc2626" : "var(--text-secondary)",
+              borderRadius: 6, fontWeight: 800, fontSize: 11,
+              border: `1px solid ${hasUj ? "#fca5a5" : "var(--border-medium)"}`,
               cursor: "pointer", transition: "all 0.15s ease",
               display: "flex", alignItems: "center", justifyContent: "center"
-            }} 
+            }}
           >
             ÚJ
           </button>
 
           {/* Diszkrét PRÉMIUM gomb */}
-          <button 
-            onClick={() => state.toggleBadge('premium')} 
-            style={{ 
-              flex: 1, padding: "8px 4px", 
-              background: hasPremium ? "#fdfbf0" : "transparent", 
-              color: hasPremium ? "#D4AF37" : "var(--text-secondary)", 
-              borderRadius: 6, fontWeight: 800, fontSize: 11, 
-              border: `1px solid ${hasPremium ? "#D4AF37" : "var(--border-medium)"}`, 
+          <button
+            onClick={() => state.toggleBadge('premium')}
+            style={{
+              flex: 1, padding: "8px 4px",
+              background: hasPremium ? "#fdfbf0" : "transparent",
+              color: hasPremium ? "#D4AF37" : "var(--text-secondary)",
+              borderRadius: 6, fontWeight: 800, fontSize: 11,
+              border: `1px solid ${hasPremium ? "#D4AF37" : "var(--border-medium)"}`,
               cursor: "pointer", transition: "all 0.15s ease",
               display: "flex", alignItems: "center", justifyContent: "center"
-            }} 
+            }}
           >
             PRÉMIUM
           </button>
@@ -239,15 +230,15 @@ export function WorkspaceCanvas({ state }: Props) {
     >
       <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", width: canvasPixelSize, height: canvasPixelSize, background: "#ffffff", boxShadow: "0 10px 40px rgba(0,0,0,0.08)", overflow: "hidden" }}>
         <div style={{ width: 2000, height: 2000, transformOrigin: "top left", transform: `scale(${canvasScale})`, position: "absolute", top: 0, left: 0 }}>
-          
+
           {/* 1. VALÓDI KÉPEK KIRAJZOLÁSA (Matricákat átugorjuk) */}
           {images.map((img, index) => {
             if (img.isBadge) return null; // 💡 A matricákat nem itt, hanem lejjebb rajzoljuk ki!
-            
+
             // 💡 GOLYÓÁLLÓ JAVÍTÁS: Ha véletlenül hiányzik a réteg a memóriából, generálunk egy üreset, így SOSEM omlik össze!
             const l = layers[img.uid] || { x: 0, y: 0, zoom: 0.8, rot: 0, visible: true };
             if (!l.visible) return null;
-            
+
             const isActive = activeUids.includes(img.uid);
             const baseScale = Math.min(2000 / img.el.width, 2000 / img.el.height) * 0.5;
             const w = img.el.width * baseScale;
@@ -279,9 +270,9 @@ export function WorkspaceCanvas({ state }: Props) {
           {images.filter(img => img.isBadge).map((img, i) => (
             <div key={img.uid} style={{
               position: "absolute",
-              top: 40 + i * 620, 
+              top: 40 + i * 620,
               right: 40,
-              width: 600, height: 600, 
+              width: 600, height: 600,
               zIndex: 9999,
               pointerEvents: "none" // 💥 Semmilyen kattintást nem fogad be!
             }}>
@@ -312,7 +303,7 @@ export function WorkspaceCanvas({ state }: Props) {
 
       {/* 4. LEBEGŐ ESZKÖZTÁR (Undo/Redo) */}
       <div
-        onPointerDown={(e) => e.stopPropagation()} 
+        onPointerDown={(e) => e.stopPropagation()}
         style={{
           position: "absolute", bottom: 24, left: "50%", transform: "translateX(-50%)",
           background: "rgba(255, 255, 255, 0.75)",

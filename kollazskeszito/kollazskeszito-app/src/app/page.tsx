@@ -4,8 +4,9 @@
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { useCollage, LoadedImg } from "@/src/components/CollageContext";
-import { Wand2, Zap, Eraser, Target, Wrench, Hand, MonitorX } from "lucide-react";
+import { Wand2, Zap, Eraser, Target, Wrench, Hand, MonitorX, ChevronLeft, ChevronRight, RotateCw, Trash2 } from "lucide-react";
 import { useIsMobile } from "@/src/components/SharedUI";
+import { TrashPanel } from "@/src/components/TrashPanel";
 
 // --- KOMPONENSEK ---
 function ModeCard({ title, desc, href, icon, disabled, mobileDisabledMsg }: { title: string, desc: string, href: string, icon: React.ReactNode, disabled: boolean, mobileDisabledMsg?: string }) {
@@ -55,19 +56,21 @@ export default function HomePage() {
     reorderImages, clearImages, toggleImageBg
   } = useCollage();
 
+  const [isTrashOpen, setIsTrashOpen] = useState(false);
+
   const isMobile = useIsMobile();
 
   const [isDragOverDropzone, setIsDragOverDropzone] = useState(false);
   // JAVÍTÁS: Visszakerültek az állapotok az előnézethez és a drag&drophoz!
-  const [previewImg, setPreviewImg] = useState<LoadedImg | null>(null);
+  const [previewIdx, setPreviewIdx] = useState<number | null>(null);
   const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-// Keresse meg a változókat a fájl elején, a renderelés fölött:
-const photoCount = images.filter(img => !img.isBadge).length; 
+  // Keresse meg a változókat a fájl elején, a renderelés fölött:
+  const photoCount = images.filter(img => !img.isBadge).length;
   const hasImages = photoCount > 0;
-  const isOverLimit = photoCount > 8; 
+  const isOverLimit = photoCount > 8;
   const isModeDisabled = !hasImages || isOverLimit;
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--bg)", padding: isMobile ? "16px 16px 40px 16px" : "24px 24px 64px 24px", boxSizing: "border-box", overflowY: "auto" }}>
@@ -89,6 +92,16 @@ const photoCount = images.filter(img => !img.isBadge).length;
             {hasImages && (
               <button onClick={clearImages} style={{ background: "none", border: "none", color: "var(--accent)", fontWeight: 700, cursor: "pointer", textDecoration: "underline", fontSize: 14 }}>Törlés</button>
             )}
+
+
+            {deletedImages.length > 0 && (
+              <div style={{ position: "relative", marginLeft: 12 }}>
+                <button onClick={() => setIsTrashOpen(!isTrashOpen)} style={{ background: "none", border: "none", color: "var(--text-secondary)", fontWeight: 700, cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", gap: 4 }}>
+                  <Trash2 size={14} /> Lomtár ({deletedImages.length})
+                </button>
+                {isTrashOpen && <TrashPanel deletedImages={deletedImages} restoreImage={restoreImage} onClose={() => setIsTrashOpen(false)} />}
+              </div>
+            )}
           </div>
 
           <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
@@ -103,89 +116,89 @@ const photoCount = images.filter(img => !img.isBadge).length;
                 <div style={{ fontSize: 32, color: isDragOverDropzone ? "var(--accent)" : "var(--text-secondary)", lineHeight: 1 }}>↓</div>
                 <div style={{ textAlign: "center", padding: "0 16px" }}>
                   <div style={{ fontWeight: 700, fontSize: 16, color: "var(--text)", marginBottom: 4 }}>Kattints a feltöltéshez!</div>
-                  
+
                 </div>
               </div>
             ) : (
-<div style={{ display: "flex", gap: 16, overflowX: "auto", width: "100%", alignItems: "center", padding: "4px" }}>
+              <div style={{ display: "flex", gap: 16, overflowX: "auto", width: "100%", alignItems: "center", padding: "4px" }}>
                 {images.map((img, i) => {
                   if (img.isBadge) return null; // 💡 ÚJ: A matricák nem jelennek meg a főoldali listában!
                   return (
                     <div key={img.uid} style={{ width: 88, height: 88, flexShrink: 0 }}>
-                    {/* JAVÍTÁS: Visszakerült a teljes interakciós blokk! */}
-                    <div
-                      onClick={() => setPreviewImg(img)}
-                      draggable
-                      onDragStart={(e) => {
-                        e.dataTransfer.setData("idx", i.toString());
-                        e.dataTransfer.effectAllowed = "move";
-                        setDraggedIdx(i);
-                      }}
-                      onDragOver={(e) => {
-                        e.preventDefault();
-                        e.dataTransfer.dropEffect = "move";
-                        if (draggedIdx !== null && draggedIdx !== i) setDragOverIdx(i);
-                      }}
-                      onDragLeave={() => {
-                        if (dragOverIdx === i) setDragOverIdx(null);
-                      }}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        const from = parseInt(e.dataTransfer.getData("idx"));
-                        if (!isNaN(from) && from !== i) reorderImages(from, i);
-                        setDraggedIdx(null);
-                        setDragOverIdx(null);
-                      }}
-                      style={{
-                        width: "100%", height: "100%", borderRadius: 10, overflow: "hidden", background: "#fff",
-                        border: `2px solid ${dragOverIdx === i ? "var(--accent)" : "var(--border-medium)"}`, position: "relative", cursor: "grab",
-                        boxShadow: dragOverIdx === i ? "0 4px 16px var(--accent-glow)" : "0 2px 6px rgba(0,0,0,0.03)", transition: "all 0.2s ease",
-                        transform: dragOverIdx === i ? "scale(1.05)" : "scale(1)"
-                      }}
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={img.src} alt={img.name} style={{ width: "100%", height: "100%", objectFit: "contain", pointerEvents: "none" }} />
+                      {/* JAVÍTÁS: Visszakerült a teljes interakciós blokk! */}
+                      <div
+                        onClick={() => setPreviewIdx(i)}
+                        draggable
+                        onDragStart={(e) => {
+                          e.dataTransfer.setData("idx", i.toString());
+                          e.dataTransfer.effectAllowed = "move";
+                          setDraggedIdx(i);
+                        }}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          e.dataTransfer.dropEffect = "move";
+                          if (draggedIdx !== null && draggedIdx !== i) setDragOverIdx(i);
+                        }}
+                        onDragLeave={() => {
+                          if (dragOverIdx === i) setDragOverIdx(null);
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          const from = parseInt(e.dataTransfer.getData("idx"));
+                          if (!isNaN(from) && from !== i) reorderImages(from, i);
+                          setDraggedIdx(null);
+                          setDragOverIdx(null);
+                        }}
+                        style={{
+                          width: "100%", height: "100%", borderRadius: 10, overflow: "hidden", background: "#fff",
+                          border: `2px solid ${dragOverIdx === i ? "var(--accent)" : "var(--border-medium)"}`, position: "relative", cursor: "grab",
+                          boxShadow: dragOverIdx === i ? "0 4px 16px var(--accent-glow)" : "0 2px 6px rgba(0,0,0,0.03)", transition: "all 0.2s ease",
+                          transform: dragOverIdx === i ? "scale(1.05)" : "scale(1)"
+                        }}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={img.src} alt={img.name} style={{ width: "100%", height: "100%", objectFit: "contain", pointerEvents: "none" }} />
 
-                      {/* VISSZAKERÜLT A FORGATÁS GOMB */}
-                      <button onClick={(e) => { e.stopPropagation(); rotateImage(i, 90); }} title="Forgatás" style={{
-                        position: "absolute", top: 4, left: 4, width: 24, height: 24, borderRadius: "50%",
-                        background: "rgba(255,255,255,0.95)", border: "1px solid var(--border-medium)", color: "var(--text)",
-                        display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, zIndex: 10
-                      }}>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M21 2v6h-6"></path><path d="M21 13a9 9 0 1 1-3-7.7L21 8"></path>
-                        </svg>
-                      </button>
+                        {/* VISSZAKERÜLT A FORGATÁS GOMB */}
+                        <button onClick={(e) => { e.stopPropagation(); rotateImage(i, 90); }} title="Forgatás" style={{
+                          position: "absolute", top: 4, left: 4, width: 24, height: 24, borderRadius: "50%",
+                          background: "rgba(255,255,255,0.95)", border: "1px solid var(--border-medium)", color: "var(--text)",
+                          display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, zIndex: 10
+                        }}>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M21 2v6h-6"></path><path d="M21 13a9 9 0 1 1-3-7.7L21 8"></path>
+                          </svg>
+                        </button>
 
-                      <button onClick={(e) => { e.stopPropagation(); removeImage(i); }} title="Törlés" style={{
-                        position: "absolute", top: 4, right: 4, width: 24, height: 24, borderRadius: "50%",
-                        background: "rgba(255,255,255,0.95)", border: "1px solid #fca5a5", color: "#dc2626",
-                        display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, zIndex: 10
-                      }}>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                          <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
-                        </svg>
-                      </button>
+                        <button onClick={(e) => { e.stopPropagation(); removeImage(i); }} title="Törlés" style={{
+                          position: "absolute", top: 4, right: 4, width: 24, height: 24, borderRadius: "50%",
+                          background: "rgba(255,255,255,0.95)", border: "1px solid #fca5a5", color: "#dc2626",
+                          display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, zIndex: 10
+                        }}>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
+                          </svg>
+                        </button>
 
-                      <button onClick={(e) => { e.stopPropagation(); toggleImageBg(img.uid); }} title="Háttér eltüntetése" style={{
-                        position: "absolute", bottom: 4, left: 4, width: 24, height: 24, borderRadius: "50%",
-                        background: img.removeBg ? "rgba(91,80,232,0.95)" : "rgba(255,255,255,0.95)",
-                        border: `1px solid ${img.removeBg ? "var(--accent)" : "var(--border-medium)"}`,
-                        color: img.removeBg ? "#fff" : "var(--text-secondary)",
-                        display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, zIndex: 10,
-                        transition: "all 0.2s ease"
-                      }}>
-                       <Eraser size={12} />
-                      </button>
+                        <button onClick={(e) => { e.stopPropagation(); toggleImageBg(img.uid); }} title="Háttér eltüntetése" style={{
+                          position: "absolute", bottom: 4, left: 4, width: 24, height: 24, borderRadius: "50%",
+                          background: img.removeBg ? "rgba(91,80,232,0.95)" : "rgba(255,255,255,0.95)",
+                          border: `1px solid ${img.removeBg ? "var(--accent)" : "var(--border-medium)"}`,
+                          color: img.removeBg ? "#fff" : "var(--text-secondary)",
+                          display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, zIndex: 10,
+                          transition: "all 0.2s ease"
+                        }}>
+                          <Eraser size={12} />
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ); // 💡 ÚJ: A return-t egy pontosvesszővel és zárójellel zárjuk
-              })}
-                
-              {/* Ide is bekerülhet a photoCount a pontosság kedvéért: */}
-              {images.length < 150 && (
-  <div onClick={() => fileInputRef.current?.click()} style={{ width: 88, height: 88, flexShrink: 0, border: "2px dashed var(--border-medium)", borderRadius: 10, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><div style={{ fontSize: 32, fontWeight: 300, lineHeight: 1, color: "var(--text-secondary)" }}>+</div></div>
-)}
+                  ); // 💡 ÚJ: A return-t egy pontosvesszővel és zárójellel zárjuk
+                })}
+
+                {/* Ide is bekerülhet a photoCount a pontosság kedvéért: */}
+                {images.length < 150 && (
+                  <div onClick={() => fileInputRef.current?.click()} style={{ width: 88, height: 88, flexShrink: 0, border: "2px dashed var(--border-medium)", borderRadius: 10, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", cursor: "pointer" }}><div style={{ fontSize: 32, fontWeight: 300, lineHeight: 1, color: "var(--text-secondary)" }}>+</div></div>
+                )}
               </div>
             )}
           </div>
@@ -195,13 +208,13 @@ const photoCount = images.filter(img => !img.isBadge).length;
         <div style={{ display: "flex", flexDirection: "column" }}>
           <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: isMobile ? "flex-start" : "center", gap: 12, marginBottom: 20 }}>
             <h2 style={{ fontSize: isMobile ? 16 : 18, fontWeight: 800, color: "var(--text)" }}>2. Lépés: Válassz módot</h2>
-            
+
             {!hasImages && <span style={{ color: "#ef4444", fontSize: 13, fontWeight: 700, background: "#fef2f2", padding: "4px 10px", borderRadius: 6 }}>Tölts fel képet a kezdéshez!</span>}
-            
+
             {/* 💡 ÚJ: Közös 8 képes hibaüzenet minden módra! */}
             {isOverLimit && <span style={{ color: "#ef4444", fontSize: 13, fontWeight: 700, background: "#fef2f2", padding: "4px 10px", borderRadius: 6 }}>Túl sok az aktív kép! Kérjük, töröljön a lomtárba {photoCount - 8} darabot a folytatáshoz.</span>}
           </div>
-          
+
           <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 24 }}>
             {/* 💡 MIND A HÁROM KÁRTYA MEGKAPJA AZ 'isModeDisabled' TILTÁST */}
             <ModeCard disabled={isModeDisabled || isMobile} mobileDisabledMsg={isMobile ? "Csak számítógépen elérhető" : undefined} href="/manualis" icon={<Hand size={32} strokeWidth={1.5} />} title="Manuális" desc="Teljes szabadság. Te kezeled a rétegeket, méreteket és a pontos pozíciókat." />
@@ -210,34 +223,16 @@ const photoCount = images.filter(img => !img.isBadge).length;
           </div>
 
 
-          {/* LOMTÁR SZEKCIÓ MEGJELENÍTÉSE A KÁRTYÁK ALATT */}
-          {deletedImages.length > 0 && (
-            <div style={{ marginTop: 32, padding: 20, background: "rgba(0,0,0,0.02)", borderRadius: 16, border: "1px dashed var(--border-medium)" }}>
-              <h3 style={{ fontSize: 14, fontWeight: 800, color: "var(--text-secondary)", marginBottom: 12 }}>Törölt képek (Kattintson a visszaállításhoz)</h3>
-              <div style={{ display: "flex", gap: 12, overflowX: "auto" }}>
-                {deletedImages.map(img => (
-                  <div
-                    key={img.uid}
-                    onClick={() => restoreImage(img.uid)}
-                    style={{ width: 64, height: 64, borderRadius: 8, background: "#fff", border: "1px solid var(--border)", cursor: "pointer", opacity: 0.6, transition: "opacity 0.2s" }}
-                    onMouseEnter={e => e.currentTarget.style.opacity = "1"}
-                    onMouseLeave={e => e.currentTarget.style.opacity = "0.6"}
-                    title="Visszaállítás"
-                  >
-                    <img src={img.src} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          
 
         </div>
       </div>
 
       {/* JAVÍTÁS: Visszakerült a nagyítási modal (Preview)! */}
-      {previewImg && (
+      {/* NAGYÍTÁS (PREVIEW) MODAL ÚJ VEZÉRLŐKKEL */}
+      {previewIdx !== null && images[previewIdx] && (
         <div
-          onClick={() => setPreviewImg(null)}
+          onClick={() => setPreviewIdx(null)}
           style={{
             position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh",
             background: "rgba(0, 0, 0, 0.85)", backdropFilter: "blur(4px)",
@@ -245,19 +240,115 @@ const photoCount = images.filter(img => !img.isBadge).length;
             zIndex: 9999, cursor: "zoom-out", padding: 40
           }}
         >
-          <button
-            onClick={() => setPreviewImg(null)}
-            style={{
-              position: "absolute", top: 24, right: 32, width: 44, height: 44, borderRadius: "50%",
-              background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff",
-              fontSize: 20, display: "flex", alignItems: "center", justifyContent: "center",
-              cursor: "pointer", transition: "background 0.2s ease"
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.2)"}
-            onMouseLeave={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.1)"}
-          >✕</button>
+          {/* Felső vezérlők (Forgatás, Törlés, Bezárás) */}
+          <div style={{ position: "absolute", top: 24, right: 32, display: "flex", gap: 12, zIndex: 10000 }}>
+            <button
+              onClick={(e) => { e.stopPropagation(); rotateImage(previewIdx, 90); }}
+              title="Forgatás"
+              style={{
+                width: 44, height: 44, borderRadius: "50%",
+                background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                cursor: "pointer", transition: "all 0.2s ease"
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.2)"}
+              onMouseLeave={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.1)"}
+            >
+              <RotateCw size={20} strokeWidth={2.5} />
+            </button>
+
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                removeImage(previewIdx);
+
+                // Intelligens ugrás a következő vagy előző képre törlés után (matricákat kihagyva)
+                let nextIdx = previewIdx + 1;
+                while (nextIdx < images.length && images[nextIdx].isBadge) nextIdx++;
+                if (nextIdx < images.length) {
+                  setPreviewIdx(nextIdx - 1);
+                } else {
+                  let prevIdx = previewIdx - 1;
+                  while (prevIdx >= 0 && images[prevIdx].isBadge) prevIdx--;
+                  if (prevIdx >= 0) setPreviewIdx(prevIdx);
+                  else setPreviewIdx(null);
+                }
+              }}
+              title="Törlés"
+              style={{
+                width: 44, height: 44, borderRadius: "50%",
+                background: "rgba(239, 68, 68, 0.2)", border: "1px solid rgba(239, 68, 68, 0.4)", color: "#fca5a5",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                cursor: "pointer", transition: "all 0.2s ease"
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(239, 68, 68, 0.4)"; e.currentTarget.style.color = "#fff"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(239, 68, 68, 0.2)"; e.currentTarget.style.color = "#fca5a5"; }}
+            >
+              <Trash2 size={20} strokeWidth={2.5} />
+            </button>
+
+            <button
+              onClick={(e) => { e.stopPropagation(); setPreviewIdx(null); }}
+              title="Bezárás"
+              style={{
+                width: 44, height: 44, borderRadius: "50%",
+                background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff",
+                fontSize: 20, display: "flex", alignItems: "center", justifyContent: "center",
+                cursor: "pointer", transition: "all 0.2s ease"
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.2)"}
+              onMouseLeave={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.1)"}
+            >✕</button>
+          </div>
+
+          {/* Bal nyíl */}
+          {(() => {
+            let prevIdx = previewIdx - 1;
+            while (prevIdx >= 0 && images[prevIdx].isBadge) prevIdx--;
+            if (prevIdx < 0) return null;
+            return (
+              <button
+                onClick={(e) => { e.stopPropagation(); setPreviewIdx(prevIdx); }}
+                style={{
+                  position: "absolute", left: 32, top: "50%", transform: "translateY(-50%)",
+                  width: 56, height: 56, borderRadius: "50%",
+                  background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  cursor: "pointer", transition: "all 0.2s ease", zIndex: 10000
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.2)"}
+                onMouseLeave={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.1)"}
+              >
+                <ChevronLeft size={32} strokeWidth={2} />
+              </button>
+            );
+          })()}
+
+          {/* Jobb nyíl */}
+          {(() => {
+            let nextIdx = previewIdx + 1;
+            while (nextIdx < images.length && images[nextIdx].isBadge) nextIdx++;
+            if (nextIdx >= images.length) return null;
+            return (
+              <button
+                onClick={(e) => { e.stopPropagation(); setPreviewIdx(nextIdx); }}
+                style={{
+                  position: "absolute", right: 32, top: "50%", transform: "translateY(-50%)",
+                  width: 56, height: 56, borderRadius: "50%",
+                  background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  cursor: "pointer", transition: "all 0.2s ease", zIndex: 10000
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.2)"}
+                onMouseLeave={(e) => e.currentTarget.style.background = "rgba(255,255,255,0.1)"}
+              >
+                <ChevronRight size={32} strokeWidth={2} />
+              </button>
+            );
+          })()}
+
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={previewImg?.src} alt={previewImg?.name} onClick={(e) => e.stopPropagation()} style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", borderRadius: 8, boxShadow: "0 10px 40px rgba(0,0,0,0.5)", cursor: "default" }} />
+          <img src={images[previewIdx].src} alt={images[previewIdx].name} onClick={(e) => e.stopPropagation()} style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", borderRadius: 8, boxShadow: "0 10px 40px rgba(0,0,0,0.5)", cursor: "default" }} />
         </div>
       )}
 

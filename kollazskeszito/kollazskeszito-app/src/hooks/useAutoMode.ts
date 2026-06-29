@@ -14,8 +14,9 @@ export function useAutoMode() {
   const [layouts, setLayouts] = useState<AutoLayout[]>([]);
   const [selectedIdx, setSelectedIdx] = useState<number>(0);
   const [gap, setGap] = useState(0);
-  const [margin, setMargin] = useState(0);
-  const [keepOrder, setKeepOrder] = useState(false);
+    const [margin, setMargin] = useState(0);
+    const [keepOrder, setKeepOrder] = useState(false);
+
 
   const [downloading, setDownloading] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
@@ -24,6 +25,21 @@ export function useAutoMode() {
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+
+
+    useEffect(() => {
+        const savedGap = localStorage.getItem("kollazs_auto_gap");
+        if (savedGap !== null) setGap(parseInt(savedGap, 10));
+        
+        const savedMargin = localStorage.getItem("kollazs_auto_margin");
+        if (savedMargin !== null) setMargin(parseInt(savedMargin, 10));
+    }, []);
+
+    // 💡 2. ÚJ: Azonnali mentés a LocalStorage-be minden változtatáskor
+    useEffect(() => {
+        localStorage.setItem("kollazs_auto_gap", gap.toString());
+        localStorage.setItem("kollazs_auto_margin", margin.toString());
+    }, [gap, margin]);
 
 // 💥 JAVÍTOTT FUNKCIÓ: ÁTKÜLDÉS MANUÁLIS MÓDBA 💥
   const handleEditInManual = useCallback(() => {
