@@ -1,1 +1,13 @@
-Cikkszám | Név | Alkategória (több kategóriánál elválasztó: ";") | Márka
+-------------
+Sima kategorizálás:
+Cikkszám | Név | Alkategória | Márka
+
+---------------
+Gyűjtő termékes kategoirzálás (termákváltozatok létrehozásával):
+Márka | Termékjellemző | Név | Termékjellemző Érték | Cikkszám | Név | Hosszú Leírás | Nettó Ár | Alkategória | Kép
+
+----------------
+Gyűjtő termékes kategoirzálás (már meglévő termákváltozataok hozzácsotálásval):
+Márka | Termékjellemző | Név | Termékjellemző Érték | Cikkszám | Név | Hosszú Leírás | Nettó Ár | Alkategória | Kép
+
+----------------

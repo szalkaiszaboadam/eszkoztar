@@ -6,7 +6,9 @@ import datetime
 import os
 import json
 import re
-import math
+import urllib.parse
+import tempfile
+import requests
 from dotenv import load_dotenv
 
 
@@ -60,7 +62,7 @@ def bizonylatkeszito_nezet(page):
     # ==============================================================================
 
 
-# --- 1. LÉPÉS: Adatbeolvasás (SIMA TERMÉK) ---
+# --- 1. LÉPÉS: Adatbeolvasás (SIMA TERMÉK / MÓD 1) ---
 # ==============================================================================
 def adatok_beolvasasa(excel_fajl_neve):
     try:
@@ -105,7 +107,7 @@ def adatok_beolvasasa(excel_fajl_neve):
 
 
 # ==============================================================================
-# --- 1/B. LÉPÉS: Adatbeolvasás (GYŰJTŐ TERMÉK) ---
+# --- 1/B. LÉPÉS: Adatbeolvasás (GYŰJTŐ TERMÉK / MÓD 2 és 3) ---
 # ==============================================================================
 def adatok_beolvasasa_gyujtokhoz(excel_fajl_neve):
     try:
@@ -171,18 +173,109 @@ def adatok_beolvasasa_gyujtokhoz(excel_fajl_neve):
 
 
 # ==============================================================================
+# --- KÉP KEZELÉS ---
+# ==============================================================================
+def kep_elokeszitese(hivatkozas, alap_mappa="input_tablak"):
+    hivatkozas = str(hivatkozas).strip()
+    if not hivatkozas:
+        return None, False
+
+    if hivatkozas.startswith("http://") or hivatkozas.startswith("https://"):
+        try:
+            response = requests.get(hivatkozas, stream=True, timeout=15)
+            if response.status_code == 200:
+                parsed_url = urllib.parse.urlparse(hivatkozas)
+                filename = os.path.basename(parsed_url.path)
+                if not filename:
+                    filename = f"temp_image_{int(time.time())}.jpg"
+
+                filepath = os.path.join(tempfile.gettempdir(), filename)
+
+                with open(filepath, 'wb') as f:
+                    for chunk in response.iter_content(1024):
+                        f.write(chunk)
+                return filepath, True
+        except Exception as e:
+            print(f"      ❌ Hiba a kép letöltésekor ({hivatkozas}): {e}")
+        return None, False
+
+    else:
+        helyi_utvonal = os.path.join(alap_mappa, hivatkozas)
+        if os.path.exists(helyi_utvonal):
+            return helyi_utvonal, False
+        else:
+            print(f"      ❌ Nem található a helyi képfájl: {helyi_utvonal}")
+            return None, False
+
+
+def kepek_feltoltese(page, kepek_string, alap_mappa="input_tablak"):
+    if not kepek_string or str(kepek_string).lower() == 'nan':
+        return
+
+    try:
+        page.locator("label[for='kepek']").click(force=True)
+        time.sleep(1)
+        feltolto_gomb = page.locator("div.pure-button[onclick*='addProductImages']")
+        feltolto_gomb.wait_for(state="visible", timeout=5000)
+    except Exception as e:
+        print(f"      ⚠️ Nem találtam a Képek fület vagy a feltöltő gombot: {e}")
+        return
+
+    hivatkozasok = [u.strip() for u in kepek_string.split(",")]
+
+    for hivatkozas in hivatkozasok:
+        if not hivatkozas: continue
+
+        helyi_kep, is_temp = kep_elokeszitese(hivatkozas, alap_mappa)
+        if not helyi_kep:
+            continue
+
+        try:
+            feltolto_gomb.click(force=True)
+            try:
+                page.locator(".mfp-content, #popup").first.wait_for(state="visible", timeout=5000)
+            except:
+                time.sleep(2)
+
+            file_input = page.locator("input[type='file']").last
+            file_input.set_input_files(helyi_kep)
+            print(f"      🖼️ Kép fájl sikeresen kiválasztva: {os.path.basename(helyi_kep)}")
+            time.sleep(2)
+
+            lehetseges_gombok = page.locator(".mfp-content .pure-button, #popup .pure-button").all()
+            for gomb in lehetseges_gombok:
+                szoveg = gomb.inner_text().lower()
+                if "feltöltés" in szoveg or "mentés" in szoveg or "ok" in szoveg:
+                    gomb.click(force=True)
+                    time.sleep(1.5)
+                    break
+
+            page.keyboard.press("Escape")
+            time.sleep(1)
+        except Exception as e:
+            print(f"      ❌ Belső popupos képfeltöltési hiba: {e}")
+        finally:
+            if is_temp and os.path.exists(helyi_kep):
+                os.remove(helyi_kep)
+
+
+# ==============================================================================
 # --- 2. LÉPÉS: Segédfüggvények ---
 # ==============================================================================
 def biztonsagos_navigacio(page, url, max_proba=3):
     for proba in range(1, max_proba + 1):
         try:
-            page.goto(url, timeout=60000, wait_until="domcontentloaded")
+            page.goto(url, timeout=60000, wait_until="load")
+            try:
+                page.wait_for_load_state("networkidle", timeout=10000)
+            except:
+                pass
             return True
         except Exception as e:
             print(f"   ⚠️ Navigációs hiba ({proba}/{max_proba}): {str(e).splitlines()[0]}")
             if proba < max_proba:
-                print(f"   🔄 Újrapróbálás 3 mp múlva...")
-                time.sleep(3)
+                print(f"   🔄 Újrapróbálás 5 mp múlva...")
+                time.sleep(5)
     print("   ❌ Navigáció végleges hiba.")
     return False
 
@@ -195,14 +288,14 @@ def termek_megkereses(page, cikkszam, marka, nev):
 
     keresendo = cikkszam if van_cikkszam else biztonsagos_nev
     sf = page.locator("#searchField_all")
-    sf.wait_for(state="visible", timeout=10000)
+    sf.wait_for(state="visible", timeout=15000)
     time.sleep(0.5)
     sf.fill(keresendo)
     sf.press("Enter")
     time.sleep(1.5)
 
     sorok = page.locator("tbody tr").filter(has_text=cikkszam if van_cikkszam else biztonsagos_nev)
-    sorok.first.wait_for(timeout=10000)
+    sorok.first.wait_for(timeout=15000)
     talalat_db = sorok.count()
 
     if talalat_db == 1:
@@ -218,7 +311,7 @@ def termek_megkereses(page, cikkszam, marka, nev):
             return pontos.first
 
     szurt = sorok
-    if marka.lower() != 'nan':
+    if marka and marka.lower() != 'nan':
         szurt = szurt.filter(has_text=marka)
 
     van_nev = nev and nev.lower() != 'nan'
@@ -244,12 +337,16 @@ def stabil_kategoria_valasztas(page, input_locator, dropdown_locator, kategoria_
     cel_nev = kategoria_nev.strip()
     gepelendo = cel_nev.split(',')[0].strip()
     try:
-        input_locator.click(timeout=5000)
+        input_locator.wait_for(state="visible", timeout=15000)
+        input_locator.click()
         input_locator.fill("")
         time.sleep(0.5)
-        input_locator.press_sequentially(gepelendo, delay=60)
-        dropdown_locator.wait_for(state="visible", timeout=8000)
-        time.sleep(1.5)
+
+        input_locator.press_sequentially(gepelendo, delay=100)
+
+        dropdown_locator.wait_for(state="visible", timeout=15000)
+        dropdown_locator.locator("div.option").first.wait_for(state="attached", timeout=15000)
+        time.sleep(1)
 
         opciok = dropdown_locator.locator("div.option").all()
         if not opciok:
@@ -260,7 +357,7 @@ def stabil_kategoria_valasztas(page, input_locator, dropdown_locator, kategoria_
         for opcio in opciok:
             tiszta = re.sub(r'^[- \t\xa0]+', '', opcio.inner_text()).strip()
             if tiszta.lower() == cel_nev.lower():
-                print(f"      ✅ Kategória megvan: '{tiszta}'")
+                print(f"      ✅ Kategória/Elem megvan: '{tiszta}'")
                 opcio.click(force=True)
                 time.sleep(0.5)
                 return True
@@ -269,7 +366,7 @@ def stabil_kategoria_valasztas(page, input_locator, dropdown_locator, kategoria_
         input_locator.press("Escape")
         return False
     except Exception as e:
-        print(f"   ❌ Kategória választási hiba: {e}")
+        print(f"   ❌ Választási hiba: {e}")
         try:
             input_locator.press("Escape")
         except:
@@ -285,9 +382,15 @@ def gyujto_termek_letrehozasa(page, base_url, termek_adatok):
 
     if not biztonsagos_navigacio(page, f"{base_url}/administrator/index.php?view=product&new&collector=-1"):
         raise Exception("Nem sikerült megnyitni a gyűjtő létrehozó oldalt.")
-    time.sleep(1)
 
+    page.locator("#name").wait_for(state="visible", timeout=20000)
     page.locator("#name").fill(termek_adatok["nev"])
+
+    db_prefix = ""
+    try:
+        db_prefix = page.locator("input[name='database']").input_value()
+    except:
+        pass
 
     marka = termek_adatok["marka"]
     if marka:
@@ -303,56 +406,80 @@ def gyujto_termek_letrehozasa(page, base_url, termek_adatok):
     leiras = termek_adatok["leiras"]
     if leiras:
         page.locator("label[for='leirasok']").click(force=True)
-        time.sleep(1)
-        js_code = f"CKEDITOR.instances.description.setData(`{leiras}`)"
-        page.evaluate(js_code)
-
-    alapar = termek_adatok["alapar"]
-    if alapar:
         try:
-            page.locator("label[for='price1']").click(force=True)
-            page.locator("#netto").fill(alapar)
-            page.locator("#brutto").click()
-        except:
-            print("   ⚠️ Nem találtam a nettó ár mezőt a gyűjtőnél.")
+            page.wait_for_function("() => window.CKEDITOR && window.CKEDITOR.instances.description", timeout=15000)
+            js_code = f"CKEDITOR.instances.description.setData(`{leiras}`)"
+            page.evaluate(js_code)
+        except Exception as e:
+            print("   ⚠️ Lassan töltött be a CKEditor szövegszerkesztő.")
 
     page.locator("label[for='altalanos']").click(force=True)
-    time.sleep(0.5)
+    page.locator("#name").wait_for(state="visible", timeout=10000)
 
     for i, jellemzo_nev in enumerate(termek_adatok["jellemzo_nevek"]):
-        page.locator("#addProperty").click()
+        gomb = page.locator("#addProperty")
+        gomb.wait_for(state="visible", timeout=10000)
+        gomb.click()
         time.sleep(0.5)
+
         utolso_jellemzo_input = page.locator("table#propertiesTable tbody tr").last.locator("input[type='text']")
+        utolso_jellemzo_input.wait_for(state="visible", timeout=10000)
+        utolso_jellemzo_input.focus()
         utolso_jellemzo_input.fill(jellemzo_nev)
+        utolso_jellemzo_input.press("Tab")
+        time.sleep(0.5)
+        page.evaluate("if (typeof updateProperties === 'function') updateProperties();")
 
-    print("   💾 Gyűjtő termék mentése...")
+    alapkep = termek_adatok.get("alapkep")
+    if alapkep:
+        kepek_feltoltese(page, alapkep)
+        page.locator("label[for='altalanos']").click(force=True)
+        time.sleep(0.5)
+
+    print("   💾 Gyűjtő termék mentése (AJAX)...")
     page.evaluate("saveProduct('save')")
-    page.wait_for_load_state("networkidle")
-    time.sleep(4)
 
-    try:
-        szulo_id = page.locator("input[name='id']").input_value()
-        if not szulo_id or szulo_id == "new":
-            raise Exception("A mentés után nem kaptunk érvényes ID-t.")
-        print(f"   ✅ Gyűjtő létrehozva. ID: {szulo_id}")
-        return szulo_id
-    except Exception as e:
-        print(f"   ❌ Nem sikerült kinyerni a szülő ID-t: {e}")
-        return None
+    szulo_id = None
+    for proba in range(15):
+        time.sleep(1)
+        match = re.search(r'id=(\d+)', page.url)
+        if match:
+            szulo_id = match.group(1)
+            break
+        jelenlegi_id = page.locator("input[name='id']").input_value()
+        if jelenlegi_id and jelenlegi_id != "new":
+            szulo_id = jelenlegi_id
+            break
 
-
-def valtozatok_letrehozasa(page, base_url, szulo_id, valtozatok, jellemzo_nevek):
     if not szulo_id:
+        raise Exception("A mentés után nem kaptunk érvényes ID-t. Szerveridőtúllépés?")
+
+    collector_id = szulo_id
+    if db_prefix and szulo_id.startswith(db_prefix):
+        collector_id = szulo_id[len(db_prefix):]
+
+    print(f"   ✅ Gyűjtő létrehozva. Belső azonosító: {collector_id} / Teljes ID: {szulo_id}")
+    return collector_id, szulo_id, termek_adatok["nev"]
+
+
+# --- MÓD 2: Változatok létrehozása a semmiből ---
+def valtozatok_letrehozasa(page, base_url, collector_id, valtozatok, alapar):
+    if not collector_id:
         return
 
     for i, valtozat in enumerate(valtozatok):
-        print(f"   ↳ {i + 1}. Változat létrehozása: {valtozat['cikkszam']}")
+        print(f"   ↳ {i + 1}. Új változat létrehozása: {valtozat['cikkszam']}")
 
-        url = f"{base_url}/administrator/index.php?view=product&new&collector={szulo_id}"
+        url = f"{base_url}/administrator/index.php?view=product&new&collector={collector_id}"
         if not biztonsagos_navigacio(page, url):
             print(f"      ❌ Változat hiba: Nem töltött be az oldal.")
             continue
-        time.sleep(1)
+
+        try:
+            page.locator("#sku").wait_for(state="visible", timeout=20000)
+        except:
+            print("      ❌ Oldal betöltött, de a szerkesztő form nem jelenik meg időben.")
+            continue
 
         if valtozat['cikkszam']:
             page.locator("#sku").fill(valtozat['cikkszam'])
@@ -360,32 +487,127 @@ def valtozatok_letrehozasa(page, base_url, szulo_id, valtozatok, jellemzo_nevek)
         for idx, ertek in enumerate(valtozat['jellemzo_ertekek']):
             sor_index = idx + 1
             input_locator = page.locator(f"#property_value_{sor_index}")
+
             if input_locator.is_visible():
+                input_locator.focus()
                 input_locator.fill(ertek)
+                input_locator.press("Tab")
+                page.evaluate("if (typeof updateProperties === 'function') updateProperties();")
             else:
                 print(f"      ⚠️ Jellemző input nem található: {ertek}")
 
-        if valtozat['egyedi_ar']:
+        ar_amit_beirunk = valtozat['egyedi_ar'] if valtozat['egyedi_ar'] else alapar
+        if ar_amit_beirunk:
             try:
                 page.locator("label[for='price1']").click(force=True)
-                page.locator("#netto").fill(valtozat['egyedi_ar'])
+                page.locator("#netto").wait_for(state="visible", timeout=10000)
+                page.locator("#netto").fill(ar_amit_beirunk)
                 page.locator("#brutto").click()
-            except:
-                pass
+            except Exception as e:
+                print(f"      ⚠️ Nem találtam a nettó ár mezőt a változatnál: {e}")
 
-        if valtozat['egyedi_kep']:
-            print(
-                f"      ℹ️ (A képek automatikus feltöltése a JS ablakok miatt egyelőre manuális figyelmet igényelhet)")
+        if valtozat.get('egyedi_kep'):
+            kepek_feltoltese(page, valtozat['egyedi_kep'])
+            page.locator("label[for='altalanos']").click(force=True)
+            time.sleep(0.5)
 
         page.evaluate("saveProduct('save')")
-        page.wait_for_load_state("networkidle")
-        time.sleep(2.5)
+        try:
+            page.wait_for_load_state("networkidle", timeout=10000)
+        except:
+            pass
+        time.sleep(2)
 
-    print(f"   ✅ Minden változat hozzáadva a gyűjtőhöz.")
+    print(f"   ✅ Minden új változat hozzáadva a gyűjtőhöz.")
+
+
+# --- MÓD 3: Meglévő termékek becsatolása a gyűjtőhöz ---
+def meglevo_valtozatok_csatolasa(page, base_url, gyujto_nev, valtozatok, marka):
+    for i, valtozat in enumerate(valtozatok):
+        print(f"   ↳ {i + 1}. Meglévő változat becsatolása: {valtozat['cikkszam']}")
+
+        if not biztonsagos_navigacio(page, f"{base_url}/administrator/"):
+            print(f"      ❌ Hiba: Nem töltött be az admin főoldal.")
+            continue
+
+        bizonylatkeszito_nezet(page)
+
+        # 1. Keresés és megnyitás
+        try:
+            sor = termek_megkereses(page, valtozat['cikkszam'], marka, "")
+            sor.locator("a[href*='view=product']").click()
+            page.wait_for_load_state("domcontentloaded")
+            time.sleep(1.5)
+        except Exception as e:
+            print(f"      ❌ Nem találtam a meglévő változatot: {e}")
+            continue
+
+        # 2. Hozzáadás gyűjtő termékhez gomb
+        try:
+            csatolo_gomb = page.locator("a:has-text('Hozzáadás gyűjtő termékhez')")
+            csatolo_gomb.wait_for(state="visible", timeout=5000)
+            csatolo_gomb.click(force=True)
+
+            popup = page.locator("#popup")
+            popup.wait_for(state="visible", timeout=10000)
+            time.sleep(1)
+
+            # 3. Gyűjtő kiválasztása a Selectize-ban
+            select_input = popup.locator("div.selectize-control input[type='text']")
+            select_dropdown = popup.locator("div.selectize-dropdown")
+
+            if not stabil_kategoria_valasztas(page, select_input, select_dropdown, gyujto_nev):
+                print("      ❌ Nem találtam a frissen létrehozott gyűjtőt a popup listában!")
+                page.keyboard.press("Escape")
+                continue
+
+            # 4. Tovább gomb
+            tovabb_gomb = popup.locator("div.pure-button-primary:has-text('Tovább')")
+            tovabb_gomb.click(force=True)
+            time.sleep(1.5)
+
+            # 5. Jellemzők kitöltése a popup második képernyőjén
+            lathato_inputok = [inp for inp in popup.locator("input[type='text']").all() if inp.is_visible()]
+
+            ertek_idx = 0
+            for inp in lathato_inputok:
+                # Kikerüljük a selectize keresőket, amik estleg a popupban lennének
+                if "selectize" in inp.evaluate("el => el.parentElement.className"):
+                    continue
+
+                if ertek_idx < len(valtozat['jellemzo_ertekek']):
+                    inp.focus()
+                    inp.fill(valtozat['jellemzo_ertekek'][ertek_idx])
+                    inp.press("Tab")
+                    ertek_idx += 1
+
+            # 6. Véglegesítés a popupban
+            veglegesito_gombok = popup.locator("div.pure-button-primary").all()
+            for gomb in veglegesito_gombok:
+                szoveg = gomb.inner_text().lower()
+                if "hozzáadás" in szoveg or "mentés" in szoveg or "ok" in szoveg:
+                    gomb.click(force=True)
+                    break
+
+            popup.wait_for(state="hidden", timeout=10000)
+
+        except Exception as e:
+            print(f"      ❌ Hiba a csatoló popup kezelése közben: {e}")
+            page.keyboard.press("Escape")
+            continue
+
+        # 7. Termék mentése
+        page.evaluate("saveProduct('save')")
+        try:
+            page.wait_for_load_state("networkidle", timeout=10000)
+        except:
+            pass
+        time.sleep(1.5)
+        print("      ✅ Meglévő változat sikeresen a gyűjtőhöz csatolva.")
 
 
 # ==============================================================================
-# --- 4. LÉPÉS: Processzorok (SIMA vs GYŰJTŐ) ---
+# --- 4. LÉPÉS: Processzorok (SIMA, GYŰJTŐ 1, GYŰJTŐ 2) ---
 # ==============================================================================
 def kategoriak_feldolgozasa(page, mod, kategoriak):
     if mod == "kategorizalo":
@@ -524,10 +746,9 @@ def run_processor_normal(context: Context, termek_lista, mod, progress_fajl, bem
                                for c, m, n, e, h in veglegesen_sikertelen])
         fnev = os.path.join("sikertelen_tablak", f"hiba_{mod}_{datetime.datetime.now().strftime('%Y%m%d_%H%M')}.xlsx")
         df_err.to_excel(fnev, index=False, engine='openpyxl')
-        print(f"\n💾 Hibalista mentve: {fnev}")
 
 
-def run_processor_gyujto(context: Context, termek_lista, mod, progress_fajl, bemeneti_fajl_neve, base_url):
+def run_processor_gyujto(context: Context, termek_lista, mod, progress_fajl, bemeneti_fajl_neve, base_url, mod_type):
     start_index, retry_list, _ = _progress_betoltes(progress_fajl)
 
     if start_index > 0 or retry_list:
@@ -554,13 +775,17 @@ def run_processor_gyujto(context: Context, termek_lista, mod, progress_fajl, bem
             print(f"\n[{aktualis_sorszam}/{len(termek_lista)}] Gyűjtő: {termek['nev']}")
 
             try:
-                szulo_id = gyujto_termek_letrehozasa(page, base_url, termek)
-                if not szulo_id:
+                collector_id, full_id, gyujto_nev = gyujto_termek_letrehozasa(page, base_url, termek)
+                if not collector_id:
                     raise Exception("Nem kaptunk szülő ID-t a mentés után.")
 
-                valtozatok_letrehozasa(page, base_url, szulo_id, termek["valtozatok"], termek["jellemzo_nevek"])
+                # MÓD 2 vagy MÓD 3 elágazás
+                if mod_type == "uj_valtozat":
+                    valtozatok_letrehozasa(page, base_url, collector_id, termek["valtozatok"], termek["alapar"])
+                elif mod_type == "meglevo_valtozat":
+                    meglevo_valtozatok_csatolasa(page, base_url, gyujto_nev, termek["valtozatok"], termek["marka"])
 
-                print(f"   ✅ Teljes gyűjtő struktúra sikeresen létrehozva.")
+                print(f"   ✅ Teljes gyűjtő struktúra sikeresen feldolgozva.")
                 sikeres_db += 1
             except Exception as e:
                 hiba = str(e)
@@ -579,10 +804,15 @@ def run_processor_gyujto(context: Context, termek_lista, mod, progress_fajl, bem
             print(f"\n[{i + 1}/{len(feldolgozando_retry)}] Retry Gyűjtő: {termek['nev']}")
 
             try:
-                szulo_id = gyujto_termek_letrehozasa(page, base_url, termek)
-                if not szulo_id:
+                collector_id, full_id, gyujto_nev = gyujto_termek_letrehozasa(page, base_url, termek)
+                if not collector_id:
                     raise Exception("Nem kaptunk szülő ID-t a mentés után.")
-                valtozatok_letrehozasa(page, base_url, szulo_id, termek["valtozatok"], termek["jellemzo_nevek"])
+
+                if mod_type == "uj_valtozat":
+                    valtozatok_letrehozasa(page, base_url, collector_id, termek["valtozatok"], termek["alapar"])
+                elif mod_type == "meglevo_valtozat":
+                    meglevo_valtozatok_csatolasa(page, base_url, gyujto_nev, termek["valtozatok"], termek["marka"])
+
                 sikeres_db += 1
             except Exception as e:
                 vegleges_hiba = str(e)
@@ -700,7 +930,7 @@ if __name__ == "__main__":
 
     progress_fajl = valasztott_path + ".progress.json"
 
-    # ── FŐ MŰVELET KIVÁLASZTÁSA (Sima vs Gyűjtő) ──────────────────────────────
+    # ── FŐ MŰVELET KIVÁLASZTÁSA ──────────────────────────────
     folytatas = False
     mod = ""
     fo_mod = ""
@@ -708,11 +938,14 @@ if __name__ == "__main__":
     if os.path.exists(progress_fajl):
         saved_index, saved_retry, saved_mod = _progress_betoltes(progress_fajl)
 
-        # Determine the flow from saved mod
-        if saved_mod == "gyujto_letrehozas":
+        if saved_mod == "gyujto_uj_valtozat":
             fo_mod = "2"
             osszes_termek = len(adatok_beolvasasa_gyujtokhoz(valasztott_path) or [])
-            mod_nev = "Gyűjtő termékek és változatok létrehozása"
+            mod_nev = "Gyűjtő termékek és ÚJ változatok létrehozása"
+        elif saved_mod == "gyujto_meglevo_valtozat":
+            fo_mod = "3"
+            osszes_termek = len(adatok_beolvasasa_gyujtokhoz(valasztott_path) or [])
+            mod_nev = "Gyűjtő létrehozása és MEGLÉVŐ változatok csatolása"
         else:
             fo_mod = "1"
             osszes_termek = len(adatok_beolvasasa(valasztott_path) or [])
@@ -737,14 +970,15 @@ if __name__ == "__main__":
         else:
             os.remove(progress_fajl)
             print("   🗑️ Progress törölve. Tiszta lappal indulunk.")
-            fo_mod = ""  # Resetelünk, hogy újra választhasson
+            fo_mod = ""
 
     if not folytatas:
         print("\n--- Fő Művelet Választás ---")
         print("  1: Sima termékek kategorizálása (Meglévőekhez kategória adás/cserélés)")
-        print("  2: Gyűjtő termékek és változatok LÉTREHOZÁSA (Új felvitel)")
-        while fo_mod not in ["1", "2"]:
-            fo_mod = input("Választás (1-2): ").strip()
+        print("  2: Gyűjtő termékek és ÚJ változatok LÉTREHOZÁSA (A nulláról)")
+        print("  3: Gyűjtő létrehozása + MEGLÉVŐ termékek hozzáadása változatként")
+        while fo_mod not in ["1", "2", "3"]:
+            fo_mod = input("Választás (1-3): ").strip()
 
         if fo_mod == "1":
             print("\n--- Alkategória Mód választás ---")
@@ -755,9 +989,12 @@ if __name__ == "__main__":
                 mod_v = input("Választás (1-2): ").strip()
             mod = "kategorizalo" if mod_v == "1" else "atkategorizalo"
             mod_nev = "Kategorizáló (Hozzáadás)" if mod == "kategorizalo" else "Átkategorizáló (Törlés + Új)"
-        else:
-            mod = "gyujto_letrehozas"
-            mod_nev = "Gyűjtő termékek és változatok létrehozása"
+        elif fo_mod == "2":
+            mod = "gyujto_uj_valtozat"
+            mod_nev = "Gyűjtő termékek és ÚJ változatok létrehozása"
+        elif fo_mod == "3":
+            mod = "gyujto_meglevo_valtozat"
+            mod_nev = "Gyűjtő létrehozása és MEGLÉVŐ változatok csatolása"
 
         print(f"   Mód rögzítve: {mod_nev}")
 
@@ -773,14 +1010,17 @@ if __name__ == "__main__":
     print(f"\n📋 {len(termekek)} elem betöltve az Excel fájlból.")
 
     with sync_playwright() as p:
-        browser = p.chromium.launch(
-            headless=False)  # Headless=False jó lehet debugra, de ha serveren futtatod írd át True-ra
+        browser = p.chromium.launch(headless=False)
         ctx = bejelentkezes_kezelese(browser, FELHASZNALONEV, JELSZO, BASE_URL, STATE_FAJL)
         if ctx:
             if fo_mod == "1":
                 run_processor_normal(ctx, termekek, mod, progress_fajl, valasztott_path, base_url=BASE_URL)
-            else:
-                run_processor_gyujto(ctx, termekek, mod, progress_fajl, valasztott_path, base_url=BASE_URL)
+            elif fo_mod == "2":
+                run_processor_gyujto(ctx, termekek, mod, progress_fajl, valasztott_path, base_url=BASE_URL,
+                                     mod_type="uj_valtozat")
+            elif fo_mod == "3":
+                run_processor_gyujto(ctx, termekek, mod, progress_fajl, valasztott_path, base_url=BASE_URL,
+                                     mod_type="meglevo_valtozat")
         browser.close()
 
     print("\n🎉 Program befejeződött!")
