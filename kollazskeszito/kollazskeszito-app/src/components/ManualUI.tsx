@@ -265,14 +265,14 @@ export function WorkspaceCanvas({ state }: Props) {
               </div>
             );
           })}
-
-          {/* 💡 MATRICÁK MEGJELENÍTÉSE FIXEN A SAROKBAN (Gombok nélkül) */}
-          {images.filter(img => img.isBadge).map((img, i) => (
-            <div key={img.uid} style={{
-              position: "absolute",
-              top: 40 + i * 620,
-              right: 40,
-              width: 600, height: 600,
+{images.filter(img => img.isBadge).map((img, i) => (
+  <div key={img.uid} style={{
+    position: "absolute",
+    top: 0,                                // 💡 Teljesen feltolva a tetejére
+    right: i === 0 ? 0 : "auto",           // 💡 Első matrica teljesen a jobb szélen
+    left: i === 0 ? "auto" : 0,            // 💡 Második matrica teljesen a bal szélen
+    width: 700, 
+    height: 700,
               zIndex: 9999,
               pointerEvents: "none" // 💥 Semmilyen kattintást nem fogad be!
             }}>

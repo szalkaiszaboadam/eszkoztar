@@ -19,10 +19,10 @@ type HistorySnapshot = {
 };
 
 export function useManualMode() {
-const {
+  const {
     images, deletedImages, setImages, removeImage, removeImages, restoreImage, reorderImages,
     toggleImageBg, setImagesBg, setAllImagesBg, addFiles,
-    manualLayersOverride, setManualLayersOverride, 
+    manualLayersOverride, setManualLayersOverride,
     toggleBadge // 💡 addBadge HELYETT toggleBadge
   } = useCollage();
 
@@ -50,7 +50,7 @@ const {
 
 
 
-const saveSnapshot = useCallback((currentImages: LoadedImg[], currentLayers: Record<string, LayerState>) => {
+  const saveSnapshot = useCallback((currentImages: LoadedImg[], currentLayers: Record<string, LayerState>) => {
     if (isRestoringRef.current) return;
 
     // 💥 A FŐ JAVÍTÁS: img.isBadge bekerült a listába, így az Undo sosem felejti el, hogy ez egy matrica!
@@ -63,7 +63,7 @@ const saveSnapshot = useCallback((currentImages: LoadedImg[], currentLayers: Rec
       if (isImagesSame && isLayersSame) return;
     }
 
-const newHistory = historyRef.current.slice(0, historyIndexRef.current + 1);
+    const newHistory = historyRef.current.slice(0, historyIndexRef.current + 1);
     newHistory.push({ images: mappedImages as LoadedImg[], layers: JSON.parse(JSON.stringify(currentLayers)) });
 
     if (newHistory.length > 30) newHistory.shift();
@@ -384,15 +384,23 @@ const newHistory = historyRef.current.slice(0, historyIndexRef.current + 1);
         ctx.restore();
       });
 
-      // 💡 Matricák rárajzolása a JOBB FELSŐ SAROKBA
-      let badgeIndex = 0;
+// 💡 Matricák rárajzolása a bal és jobb felső sarkokba
+      let manualBadgeIndex = 0; 
       images.forEach(img => {
         if (!img.isBadge) return;
-        const w = 400; const h = 400;
-        const x = 2000 - w - 40; // 40px táv a jobb széltől
-        const y = 40 + (badgeIndex * (h + 20)); // Több matrica esetén egymás alá kerülnek
+        const w = 700; const h = 700;
+        
+        const y = 0; // 💡 Felső margó teljesen 0
+        let x = 0;
+
+        if (manualBadgeIndex === 0) {
+          x = 2000 - w;      // 💡 Jobb sarok, teljesen a szélen (levettük a -10-et)
+        } else {
+          x = 0;             // 💡 Bal sarok, teljesen a szélen (10 helyett 0)
+        }
+
         ctx.drawImage(img.el, x, y, w, h);
-        badgeIndex++;
+        manualBadgeIndex++; 
       });
 
       downloadCanvasAsImage(canvas, "kollazs_manualis");

@@ -43,58 +43,58 @@ export interface AutoLayout {
 // ── KÉPVÁGÁS ───────────────────────────────────────────────
 
 export async function processAndCrop(img: HTMLImageElement, originalIndex: number, removeBg: boolean = true) {
-    let finalImg = img;
+  let finalImg = img;
 
-    // 1. Közös háttéreltávolító meghívása (ha a felhasználó bekapcsolta)
-    if (removeBg) {
-        const processed = await processWhiteBackground(img);
-        finalImg = processed.el;
+  // 1. Közös háttéreltávolító meghívása (ha a felhasználó bekapcsolta)
+  if (removeBg) {
+    const processed = await processWhiteBackground(img);
+    finalImg = processed.el;
+  }
+
+  // 2. Kép vágása a látható pixelek mentén (Hitbox optimalizálás)
+  const tempCanvas = document.createElement("canvas");
+  tempCanvas.width = finalImg.width;
+  tempCanvas.height = finalImg.height;
+  const tCtx = tempCanvas.getContext("2d");
+
+  // JAVÍTÁS: Ha hiba van, visszaadjuk a 0-ás offseteket is
+  if (!tCtx) return { canvas: tempCanvas, ar: 1, originalIndex, cropW: finalImg.width, cropH: finalImg.height, cropOffsetX: 0, cropOffsetY: 0 };
+
+  tCtx.drawImage(finalImg, 0, 0);
+
+  const imageData = tCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+  const data = imageData.data;
+  let minX = tempCanvas.width, minY = tempCanvas.height, maxX = 0, maxY = 0;
+
+  // Megkeressük a termék tényleges széleit
+  for (let y = 0; y < tempCanvas.height; y++) {
+    for (let x = 0; x < tempCanvas.width; x++) {
+      const idx = (y * tempCanvas.width + x) * 4;
+      const a = data[idx + 3];
+      if (a > 10) { // Ha a pixel nem átlátszó
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      }
     }
+  }
 
-    // 2. Kép vágása a látható pixelek mentén (Hitbox optimalizálás)
-    const tempCanvas = document.createElement("canvas");
-    tempCanvas.width = finalImg.width;
-    tempCanvas.height = finalImg.height;
-    const tCtx = tempCanvas.getContext("2d");
-    
-    // JAVÍTÁS: Ha hiba van, visszaadjuk a 0-ás offseteket is
-    if (!tCtx) return { canvas: tempCanvas, ar: 1, originalIndex, cropW: finalImg.width, cropH: finalImg.height, cropOffsetX: 0, cropOffsetY: 0 };
+  const cropW = maxX - minX + 1;
+  const cropH = maxY - minY + 1;
 
-    tCtx.drawImage(finalImg, 0, 0);
+  // JAVÍTÁS: Biztonsági ellenőrzésnél is visszaadjuk a 0-ás offseteket
+  if (cropW <= 0 || cropH <= 0 || minX === tempCanvas.width) {
+    return { canvas: tempCanvas, ar: 1, originalIndex, cropW: finalImg.width, cropH: finalImg.height, cropOffsetX: 0, cropOffsetY: 0 };
+  }
 
-    const imageData = tCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
-    const data = imageData.data;
-    let minX = tempCanvas.width, minY = tempCanvas.height, maxX = 0, maxY = 0;
+  const cropped = document.createElement("canvas");
+  cropped.width = cropW;
+  cropped.height = cropH;
+  cropped.getContext("2d")!.drawImage(tempCanvas, minX, minY, cropW, cropH, 0, 0, cropW, cropH);
 
-    // Megkeressük a termék tényleges széleit
-    for (let y = 0; y < tempCanvas.height; y++) {
-        for (let x = 0; x < tempCanvas.width; x++) {
-            const idx = (y * tempCanvas.width + x) * 4;
-            const a = data[idx + 3];
-            if (a > 10) { // Ha a pixel nem átlátszó
-                if (x < minX) minX = x;
-                if (x > maxX) maxX = x;
-                if (y < minY) minY = y;
-                if (y > maxY) maxY = y;
-            }
-        }
-    }
-
-    const cropW = maxX - minX + 1;
-    const cropH = maxY - minY + 1;
-
-    // JAVÍTÁS: Biztonsági ellenőrzésnél is visszaadjuk a 0-ás offseteket
-    if (cropW <= 0 || cropH <= 0 || minX === tempCanvas.width) {
-        return { canvas: tempCanvas, ar: 1, originalIndex, cropW: finalImg.width, cropH: finalImg.height, cropOffsetX: 0, cropOffsetY: 0 };
-    }
-
-    const cropped = document.createElement("canvas");
-    cropped.width = cropW;
-    cropped.height = cropH;
-    cropped.getContext("2d")!.drawImage(tempCanvas, minX, minY, cropW, cropH, 0, 0, cropW, cropH);
-
-    // JAVÍTÁS: Itt adjuk át a pontos levágási koordinátákat (minX, minY)
-    return { canvas: cropped, ar: cropW / cropH, originalIndex, cropW, cropH, cropOffsetX: minX, cropOffsetY: minY };
+  // JAVÍTÁS: Itt adjuk át a pontos levágási koordinátákat (minX, minY)
+  return { canvas: cropped, ar: cropW / cropH, originalIndex, cropW, cropH, cropOffsetX: minX, cropOffsetY: minY };
 }
 
 // ── PERMUTÁCIÓK & PARTÍCIÓK ────────────────────────────────
@@ -312,14 +312,25 @@ function drawLayout(
 }
 
 // 💡 Készítsünk egy új segédfüggvényt a matricák rajzolására:
+// 💡 Készítsünk egy új segédfüggvényt a matricák rajzolására:
 function drawBadges(ctx: CanvasRenderingContext2D, images: LoadedImg[], canvasSize: number, marginPx: number, scale: number = 1) {
   let badgeIndex = 0;
   const badges = images.filter(img => img.isBadge);
   for (const img of badges) {
-    const w = 600 * scale; // 💡 400 helyett 600
-    const h = 600 * scale; // 💡 400 helyett 600
-    const x = canvasSize - w - Math.max(marginPx, 40 * scale);
-    const y = Math.max(marginPx, 40 * scale) + (badgeIndex * (h + 20 * scale));
+    const w = 700 * scale; 
+    const h = 700 * scale;
+    
+    // 💡 10 * scale helyett 0, így teljesen rátapad a szélére!
+    const edgeOffset = Math.max(marginPx, 0); 
+    const y = edgeOffset; 
+
+    let x = 0;
+    if (badgeIndex === 0) {
+      x = canvasSize - w - edgeOffset;
+    } else {
+      x = edgeOffset;
+    }
+
     ctx.drawImage(img.el, x, y, w, h);
     badgeIndex++;
   }

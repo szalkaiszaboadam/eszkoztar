@@ -54,7 +54,7 @@ export function CollageProvider({ children }: { children: ReactNode }) {
   const [manualLayersOverride, setManualLayersOverride] = useState<Record<string, any> | null>(null);
 
 
-const toggleBadge = useCallback((type: 'uj' | 'premium') => {
+  const toggleBadge = useCallback((type: 'uj' | 'premium') => {
     const badgeName = `cimke_${type}.png`;
     let existed = false;
 
@@ -71,15 +71,15 @@ const toggleBadge = useCallback((type: 'uj' | 'premium') => {
 
     // HA NINCS, AKKOR LEGENERÁLJUK:
     const canvas = document.createElement("canvas");
-    canvas.width = 600; // 💡 NAGYOBB MÉRET (400 helyett 600)
-    canvas.height = 600;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    canvas.width = 700; 
+canvas.height = 700;
+const ctx = canvas.getContext("2d");
+if (!ctx) return;
 
-    ctx.scale(1.5, 1.5); // 💡 Felnagyítjuk az eddigi rajzolást másfélszeresére!
+ctx.scale(1.75, 1.75); // 💡 Felnagyítjuk 1.75-szörösére
 
     ctx.shadowColor = "rgba(0, 0, 0, 0.35)"; ctx.shadowBlur = 18; ctx.shadowOffsetY = 8;
-    const cx = 200; const cy = 200; const outerRadius = 135; const innerRadius = 115; const points = 16;       
+    const cx = 200; const cy = 200; const outerRadius = 135; const innerRadius = 115; const points = 16;
     ctx.beginPath();
     for (let i = 0; i < points * 2; i++) {
       const angle = (i * Math.PI) / points;
@@ -88,34 +88,34 @@ const toggleBadge = useCallback((type: 'uj' | 'premium') => {
       if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
     }
     ctx.closePath();
-    ctx.lineJoin = "round"; ctx.lineWidth = 18; 
+    ctx.lineJoin = "round"; ctx.lineWidth = 18;
     const badgeColor = type === 'uj' ? "#FF0000" : "#F4C430";
     ctx.strokeStyle = badgeColor; ctx.fillStyle = badgeColor;
     ctx.stroke(); ctx.shadowColor = "transparent"; ctx.fill();
-    
+
     if (type === 'uj') {
-      ctx.font = "900 125px 'Montserrat', 'Inter', 'Helvetica Neue', 'Segoe UI', sans-serif"; 
+      ctx.font = "900 125px 'Montserrat', 'Inter', 'Helvetica Neue', 'Segoe UI', sans-serif";
       ctx.textAlign = "center"; ctx.textBaseline = "middle";
       ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 4; ctx.lineJoin = "round";
-      ctx.strokeText("ÚJ", 200, 205); ctx.fillStyle = "#ffffff"; ctx.fillText("ÚJ", 200, 205); 
+      ctx.strokeText("ÚJ", 200, 205); ctx.fillStyle = "#ffffff"; ctx.fillText("ÚJ", 200, 205);
     } else {
-    // --- 💡 ÚJ PRÉMIUM MATRICA: Elegáns Ötágú Csillag ---
-      const darkColor = "#1A1A1A"; 
+      // --- 💡 ÚJ PRÉMIUM MATRICA: Elegáns Ötágú Csillag ---
+      const darkColor = "#1A1A1A";
 
       ctx.save();
-      ctx.translate(200, 200); 
+      ctx.translate(200, 200);
       ctx.scale(7, 7); // A csillag méretezése
-      
+
       // Tökéletes, klasszikus 5 ágú csillag SVG útvonala
       const starPath = new Path2D("M 0 -10 L 3.09 -3.74 L 10 -2.73 L 5 2.14 L 6.18 9.02 L 0 5.77 L -6.18 9.02 L -5 2.14 L -10 -2.73 L -3.09 -3.74 Z");
-      
+
       ctx.lineJoin = "round";
       ctx.lineCap = "round";
       ctx.strokeStyle = darkColor;
       ctx.lineWidth = 1.5;
-      ctx.stroke(starPath); 
+      ctx.stroke(starPath);
       ctx.fillStyle = darkColor;
-      ctx.fill(starPath);   
+      ctx.fill(starPath);
       ctx.restore();
     }
 
@@ -174,7 +174,7 @@ const toggleBadge = useCallback((type: 'uj' | 'premium') => {
   // A korábbi restoreImage helyett ezt másolja be:
   const restoreImage = useCallback((uid: string) => {
     // 💡 1. Szigorú ellenőrzés: ha már van 8 képünk, megállítjuk a folyamatot!
-    
+
 
     const found = deletedImages.find(img => img.uid === uid);
     if (!found) return;
@@ -184,7 +184,7 @@ const toggleBadge = useCallback((type: 'uj' | 'premium') => {
       return [...curr, found].slice(0, 150); // 💡 30 helyett 150
     });
 
-   setDeletedImages(del => del.filter(img => img.uid !== uid));
+    setDeletedImages(del => del.filter(img => img.uid !== uid));
   }, [deletedImages]); // 💡 Fontos: a függőségi tömbbe bekerült az 'images' és 'deletedImages'
 
   // --- HIÁNYZÓ FÜGGVÉNYEK VISSZAPÓTLÁSA ---
