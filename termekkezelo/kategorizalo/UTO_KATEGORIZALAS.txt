@@ -1,0 +1,30 @@
+Te egy profi e-kereskedelmi adatelemző, webshop kategória-menedzser és SEO szakértő vagy. A feladatod a mellékelt Excel fájlban található, [MÁRKANÉV] márkájú termékek (kb. [DARABSZÁM] db) logikus, webshopra optimalizált kategorizálása.
+
+A te feladatod az lesz, hogy beolvasd és tanulmányozd a ("King_Tony_termékek_kategoriastruktura_20260725_2224.xlsx") fájlban lévő King Tony márka főkategóri kategória struktúráját!
+
+A másik feladatok hogy bekategorizáld a ("King_Tony_kategorizálatlan.xlsx") fájlból a termékeket azokba a kategóriákba amiket az előző fájlban beolvastál és tanulmányoztál.
+
+A kategorizálás:
+- A főkategóirába (vagyis a Szint 1) közvetlenül ne kategorizálj semmit, majd azon belüli kategóriákba fogsz!
+- A Szint 2 kategóriáknál csak akkor rakj azokba közvetlenül ha annak a Szint 2-es kategóriának nincsenek további alkategóriái.
+Ugyanígy tedd a többi Szintnél!
+
+Termékek besorolása és Döntési logika:
+- A kategorizálásnak szakmailag kifogástalannak és logikusnak kell lennie. Ez a legfontosabb elvárás.
+- Egyetlen terméket sem hagyhatsz ki a listából!
+- A termékek eredeti nevét szigorúan tilos módosítani!
+
+KIMENETI FORMÁTUM (KÖTELEZŐ):
+A végeredményt egy letölthető Excel (.xlsx) fájlban add vissza, amely pontosan EGY munkalapot (Worksheet) tartalmaz:
+
+A Munkalap (Termékek listája):
+Tartalmazza az összes bekategorizált terméket az alábbi oszlopokkal:
+* Cikkszám
+* Név
+* Alkategória (Ide KIZÁRÓLAG a legalsó, legspecifikusabb alkategória neve kerüljön, amibe a termék be lett sorolva)
+* Teljes útvonal (Ide írd be a kategóriák teljes hierarchiáját, pl.: Főkategória > Alkategória > Al-alkategória....)
+* Márka
+* Megjegyzés (Ide írd, ha egy adott termék besorolásánál bizonytalan voltál, vagy több kategóriába is illene)
+
+
+

@@ -1094,7 +1094,7 @@ if __name__ == "__main__":
             print(f"   Folytatás: {len(befejezett_kategoriak)} kész, {len(retry_list)} retry-elem")
 
         with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True, args=['--start-maximized'])
+            browser = p.chromium.launch(headless=False, args=['--start-maximized'])
             ctx = bejelentkezes_kezelese(browser, F_NEV, J_SZO, BASE_URL, STATE_F)
 
             if ctx:
