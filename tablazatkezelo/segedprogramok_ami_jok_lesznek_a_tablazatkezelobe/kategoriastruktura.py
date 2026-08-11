@@ -23,7 +23,8 @@ def bejelentkezes(browser: Browser, base_url, username, password):
 def termekek_kiolvasasa(page, url, melyseg=0):
     """
     Elmegy a kategória URL-jére és kinyeri a termékek nevét + cikkszámát
-    közvetlenül a table#productsList táblából.
+    közvetlenül a table#productsList táblából. Gyűjtőtermékeket és
+    azok változatait is hibátlanul feldolgozza.
     """
     termekek = []
     try:
@@ -38,27 +39,65 @@ def termekek_kiolvasasa(page, url, melyseg=0):
         page.goto(lim_url, timeout=60000)
         time.sleep(0.8)
 
-        if page.locator("table#productsList tbody tr").count() == 0:
+        # A "> tbody > tr" biztosítja, hogy a változatok belső táblázatát 
+        # első körben ne keverje össze a főkategóriás sorokkal.
+        if page.locator("table#productsList > tbody > tr").count() == 0:
             return termekek
 
-        sorok = page.locator("table#productsList tbody tr").all()
+        sorok = page.locator("table#productsList > tbody > tr").all()
+        utolso_foprofil_nev = ""
+
         for sor in sorok:
             try:
+                osztaly = sor.get_attribute("class") or ""
+
+                # 1. Ha ez egy VÁLTOZATOKAT tartalmazó sor (a gyűjtőtermék lenyíló része)
+                if "variantsList" in osztaly:
+                    valtozat_sorok = sor.locator("table.notEdge > tbody > tr").all()
+                    for v_sor in valtozat_sorok:
+                        v_id = v_sor.get_attribute("id")
+                        if not v_id:  # Az "Új változat hozzáadása" gomb sorát így kihagyja
+                            continue
+
+                        # Változat neve (pl. "Méret: D5")
+                        v_nev_el = v_sor.locator("td").nth(2).locator("a").first
+                        if v_nev_el.count():
+                            v_nev = v_nev_el.inner_text().strip()
+                        else:
+                            v_nev = v_sor.locator("td").nth(2).inner_text().strip()
+
+                        # Változat cikkszáma
+                        v_cikkszam = v_sor.locator("td").nth(5).inner_text().strip()
+
+                        # Szebb formázás: Főtermék neve + [Változat megnevezése]
+                        teljes_nev = f"{utolso_foprofil_nev} [{v_nev}]" if v_nev else utolso_foprofil_nev
+
+                        termekek.append({'nev': teljes_nev, 'cikkszam': v_cikkszam})
+                        print(f"{'  ' * (melyseg+1)}🏷️  {teljes_nev}; {v_cikkszam}")
+                    
+                    continue # Ezzel a (variantsList) sorral készen vagyunk
+
+                # 2. Normál termék vagy gyűjtőtermék (fő sor)
                 t_id = sor.get_attribute("id")
                 if not t_id or t_id == "p0":
                     continue
 
-                # Név: td[2] > b
-                nev_el = sor.locator("td").nth(2).locator("b")
-                nev = nev_el.inner_text().strip() if nev_el.count() else ""
+                # Név kinyerése 
+                nev_el = sor.locator("td").nth(2).locator("a").first
+                if nev_el.count():
+                    nev = nev_el.inner_text().strip()
+                else:
+                    # Fallback ha véletlenül nincs <a> tag
+                    nev = sor.locator("td").nth(2).inner_text().strip()
 
-                # Cikkszám: a HTML alapján a 6. cellában van, ami a 5-ös index
-                cikkszam = sor.locator("td").nth(5).inner_text().strip()
+                # Cikkszám kinyerése és a "#" gyűjtő jelző eltávolítása
+                cikkszam = sor.locator("td").nth(5).inner_text().replace("#", "").strip()
 
                 if nev:
+                    utolso_foprofil_nev = nev  # Megjegyezzük, ha a következő sorban jönnek a változatai
                     termekek.append({'nev': nev, 'cikkszam': cikkszam})
-                    # A konzolba is pontosvesszővel írjuk ki
                     print(f"{'  ' * (melyseg+1)}🏷️  {nev}; {cikkszam}")
+
             except Exception as e:
                 print(f"{'  ' * melyseg}⚠️ Termék sor kihagyva: {e}")
                 continue
