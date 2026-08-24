@@ -1,0 +1,15 @@
+A kategóriafa tökéletes, jóváhagyom! Lépjünk a 2. fázisra.
+
+FÁZIS 2: Tömeges Kategorizálás
+Mivel a fájl nagy (kb. [DARABSZÁM] sor), az egyenkénti szöveggenerálás nem lesz pontos. Kérlek, írj és futtass le a háttérben egy adatfeldolgozó szkriptet (pl. Python/Pandas), amely kulcsszavas és szemantikai szabályok alapján az összes terméket hozzárendeli az imént jóváhagyott kategóriafához.
+
+Szabályok az algoritmushoz:
+
+Minden terméket a Kategóriafa legalsó, legspecifikusabb szintjére kell besorolni.
+
+A termékek eredeti nevét és cikkszámát szigorúan tilos módosítani.
+
+Hozz létre egy "Biztonsági háló" kategóriát: "[MÁRKANÉV] – Ellenőrzendő". Ha a szkript egy terméknél nem tud 100%-os biztonsággal dönteni, tegye ebbe a kategóriába. Ne tippeljen vakon!
+
+Ha a háttérfolyamat (besorolás) lefutott, ne generálj még fájlt! Csak írj egy rövid statisztikát: hány terméket sikerült besorolni, és hány került az "Ellenőrzendő" kategóriába. Mutass be 10 véletlenszerűen kiválasztott, már besorolt terméket mintaként. Várj az utasításomra!
+

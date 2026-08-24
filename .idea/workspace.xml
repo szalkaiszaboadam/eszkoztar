@@ -5,51 +5,12 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="f4d015ee-e875-4790-906f-59e82f48dfe6" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/termekkezelo/kategorizalo/KATEG_AI_PROMPT_FAZIS_1.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/termekkezelo/kategorizalo/KATEG_AI_PROMPT_FAZIS_2.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/termekkezelo/kategorizalo/KATEG_AI_PROMPT_FAZIS_3.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kepkinyero/kesz_kollazsok/3L147XV_COSMO_01-b6f44e9b (1).jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kepkinyero/kesz_kollazsok/névtelen mappa/3L025C_VEGA_01-d28aef0a.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kepkinyero/kesz_kollazsok/névtelen mappa/3L037C_SUPERNOVA_01-c54c068b.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kepkinyero/kesz_kollazsok/névtelen mappa/3L144XV_SPACE_01-41f62ff7.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kepkinyero/kesz_kollazsok/névtelen mappa/3L147XV_COSMO_01-b6f44e9b.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kepkinyero/kesz_kollazsok/névtelen mappa/3L166N_ECLIPSE_01-29a4dd56.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kepkinyero/kesz_kollazsok/névtelen mappa/3M002I-1b7e7490.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kepkinyero/kesz_kollazsok/névtelen mappa/3M002O-eeb452b8.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kepkinyero/kesz_kollazsok/névtelen mappa/3M025NG-5f198261.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kepkinyero/kesz_kollazsok/névtelen mappa/3M037NG-19a702f9.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kepkinyero/kesz_kollazsok/névtelen mappa/3M095T-ea75ee60.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kepkinyero/kesz_kollazsok/névtelen mappa/3M144XV_GRIZZLY_01-25585036.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kepkinyero/kesz_kollazsok/névtelen mappa/3M147NV_WOLVERINE_01-4795df1f.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kepkinyero/kesz_kollazsok/névtelen mappa/3M174V_MAKONEW_01-2478b5fb.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kepkinyero/kesz_kollazsok/névtelen mappa/3M184K_LION_RESTYLING-f36010ba.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kepkinyero/kesz_kollazsok/névtelen mappa/3M184Y_CHEETAH_S1P-df22df30.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kepkinyero/kesz_kollazsok/névtelen mappa/3M453N_FOX_S1P-4f078aeb.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kepkinyero/kesz_kollazsok/névtelen mappa/3M454T_LEOPARD_S1P-3382aa78.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kepkinyero/kesz_kollazsok/névtelen mappa/3M457N_TIGER_S3-141b50df.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kepkinyero/kesz_kollazsok/névtelen mappa/3M474NA_FALCON_S3-c2a395e9.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kepkinyero/kesz_kollazsok/névtelen mappa/3RUB011L_WINTER_NEW_NEW-8b5b96b4.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kepkinyero/kesz_kollazsok/névtelen mappa/3RUB179E_MARMOLADA_S7S_NUOVO-40f9fadc.webp" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kepkinyero/kesz_kollazsok/névtelen mappa/3RUB451L_ETICHETTE-4727bb54.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kepkinyero/kesz_kollazsok/névtelen mappa/3RUB451L_STELVIO_NEW_new-370f8443.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kepkinyero/kesz_kollazsok/névtelen mappa/3U011G_TITAN_NEW_NEW-50aedebd.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kepkinyero/kesz_kollazsok/névtelen mappa/3U017G_QUARTZ_RESTYLING-f16574a6.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kepkinyero/kesz_kollazsok/névtelen mappa/3U159D_DEFENDER_NEW_NEW-17836190.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kepkinyero/kesz_kollazsok/névtelen mappa/3U179L_KRYPTON_NEW-a1da456c.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kepkinyero/kesz_kollazsok/névtelen mappa/3U458G_TITANIUM_NEW-afe08944.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kepkinyero/kesz_kollazsok/névtelen mappa/3U458N_ONYX_01-e0ac275a.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kepkinyero/kesz_kollazsok/névtelen mappa/AROLLA_3RUB458L-e62551fe.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kepkinyero/kesz_kollazsok/névtelen mappa/COMET_3L182NG_NEW-b8f6077b.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kepkinyero/kesz_kollazsok/névtelen mappa/GALAXY_3L184K_NEW-ca5ff2d6.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kepkinyero/kesz_kollazsok/névtelen mappa/GOLD_3U458L-c485981e.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kepkinyero/kesz_kollazsok/névtelen mappa/LYNKS_3M144N_NEW-fc4035ea.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kepkinyero/kesz_kollazsok/névtelen mappa/OPAL_ETICHETTE-27b331e2.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kepkinyero/kesz_kollazsok/névtelen mappa/SILVER_ETICHETTE-212cb3fa.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kepkinyero/kesz_kollazsok/névtelen mappa/SKY_3L144N_NUOVO-d3e30ef2.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kepkinyero/kesz_kollazsok/névtelen mappa/STAR_3L131AC_NUOVO-3eddc757.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kepkinyero/kesz_kollazsok/névtelen mappa/SUN_3L454T_NEW-04a351e8.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kepkinyero/kesz_kollazsok/névtelen mappa/TRIGLAV_3RUB458L-4963d4a3.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/kepkinyero/kesz_kollazsok/névtelen mappa/UNIVERSE_3L135SA_NEW-178ba733.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/termekcsatolo(meg nem modositott)/AI_PROMPT.txt" beforeDir="false" afterPath="$PROJECT_DIR$/termekkezelo/termekcsatolo/AI_PROMPT.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/termekkezelo/termekcsatolo(meg nem modositott)/termekcsatolo.py" beforeDir="false" afterPath="$PROJECT_DIR$/termekkezelo/termekcsatolo/termekcsatolo.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/termekkezelo/kategorizalo/KOTOJEL_NELKULI_AI_PROMPT.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/termekkezelo/kategorizalo/UTO_KATEGORIZALAS.txt" beforeDir="false" afterPath="$PROJECT_DIR$/termekkezelo/kategorizalo/UTO_KATEG_AI_PROMPT.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -87,42 +48,42 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ASKED_MARK_IGNORED_FILES_AS_EXCLUDED": "true",
-    "DefaultHtmlFileTemplate": "HTML File",
-    "JavaScript Debug.gabcsi.html.executor": "Run",
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "Python._cimkezoProgram.executor": "Run",
-    "Python._kategorizaloProgram.executor": "Run",
-    "Python._kep-scraperProgram.executor": "Run",
-    "Python._kep-scraper_kollazsoloProgram.executor": "Run",
-    "Python.cikkszamozo.executor": "Run",
-    "Python.cimkezo (1).executor": "Run",
-    "Python.cimkezo.executor": "Run",
-    "Python.kategoriaepito.executor": "Run",
-    "Python.kategorialetolto.executor": "Run",
-    "Python.kategorizalo (1).executor": "Run",
-    "Python.kategorizalo.executor": "Run",
-    "Python.kepkinyero (1).executor": "Run",
-    "Python.kepkinyero.executor": "Run",
-    "Python.kepkinyero_es_kollazskeszito_es_feltolto.executor": "Run",
-    "Python.termekcsatolo.executor": "Run",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "main",
-    "junie.onboarding.icon.badge.shown": "true",
-    "last_opened_file_path": "/Users/szalkaiadaam/Documents/GitHub/eszkoztar/termekkezelo/termekcsatolo/input_tablak",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "to.speed.mode.migration.done": "true",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ASKED_MARK_IGNORED_FILES_AS_EXCLUDED&quot;: &quot;true&quot;,
+    &quot;DefaultHtmlFileTemplate&quot;: &quot;HTML File&quot;,
+    &quot;JavaScript Debug.gabcsi.html.executor&quot;: &quot;Run&quot;,
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;Python._cimkezoProgram.executor&quot;: &quot;Run&quot;,
+    &quot;Python._kategorizaloProgram.executor&quot;: &quot;Run&quot;,
+    &quot;Python._kep-scraperProgram.executor&quot;: &quot;Run&quot;,
+    &quot;Python._kep-scraper_kollazsoloProgram.executor&quot;: &quot;Run&quot;,
+    &quot;Python.cikkszamozo.executor&quot;: &quot;Run&quot;,
+    &quot;Python.cimkezo (1).executor&quot;: &quot;Run&quot;,
+    &quot;Python.cimkezo.executor&quot;: &quot;Run&quot;,
+    &quot;Python.kategoriaepito.executor&quot;: &quot;Run&quot;,
+    &quot;Python.kategorialetolto.executor&quot;: &quot;Run&quot;,
+    &quot;Python.kategorizalo (1).executor&quot;: &quot;Run&quot;,
+    &quot;Python.kategorizalo.executor&quot;: &quot;Run&quot;,
+    &quot;Python.kepkinyero (1).executor&quot;: &quot;Run&quot;,
+    &quot;Python.kepkinyero.executor&quot;: &quot;Run&quot;,
+    &quot;Python.kepkinyero_es_kollazskeszito_es_feltolto.executor&quot;: &quot;Run&quot;,
+    &quot;Python.termekcsatolo.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/Users/szalkaiadaam/Documents/GitHub/eszkoztar/termekkezelo/termekcsatolo/input_tablak&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$/termekkezelo/termekcsatolo/input_tablak" />
@@ -139,7 +100,7 @@
       <recent name="$PROJECT_DIR$" />
     </key>
   </component>
-  <component name="RunManager">
+  <component name="RunManager" selected="Python.cimkezo">
     <configuration name="cimkezo (1)" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
       <module name="eszkoztar" />
       <option name="ENV_FILES" value="" />
@@ -302,7 +263,8 @@
       <workItem from="1782028494872" duration="11529000" />
       <workItem from="1782157945715" duration="55136000" />
       <workItem from="1785322037794" duration="18900000" />
-      <workItem from="1785742803730" duration="32953000" />
+      <workItem from="1785742803730" duration="36928000" />
+      <workItem from="1787507388045" duration="3439000" />
     </task>
     <servers />
   </component>

@@ -1,0 +1,11 @@
+Te egy profi e-kereskedelmi adatelemző, webshop kategória-menedzser és SEO szakértő vagy. Mellékeltem egy kb. [DARABSZÁM] soros Excel fájlt [MÁRKANÉV] termékekkel. A feladatunk a termékek webshopra optimalizált kategorizálása lesz 3 fázisban.
+
+FÁZIS 1: Kategóriafa megtervezése
+
+Olvasd be a fájlt, és elemezd a 'Név' oszlopban található kifejezéseket és mintázatokat.
+
+Alkosd meg a leglogikusabb, szakmailag helytálló kategóriastruktúrát (fő- és alkategóriák). Mehetsz olyan mélyre az alkategóriákban, amilyen mélyre a termékek jellege alapján szükséges (pl. Fő > Al > Al-al).
+
+Névadási szabály: 1–4 szavas, webshop-barát nevek. Minden kategória neve szigorúan ezt a formátumot kövesse: "[MÁRKANÉV] – Kategória név". (Például: "[MÁRKANÉV] – Akkumulátoros fúrógépek").
+
+FONTOS: Még NE kategorizáld be a termékeket, és ne generálj Excelt! Csak a javasolt Kategóriafát írd ki ide a chatbe egy átlátható, vázlatos listaként. Várj a visszajelzésemre és a jóváhagyásomra a továbblépéshez!

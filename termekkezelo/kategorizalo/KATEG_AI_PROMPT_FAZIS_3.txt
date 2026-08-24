@@ -1,0 +1,34 @@
+Az eredmények jónak tűnnek, jöhet a végső fázis!
+
+FÁZIS 3: Minőségellenőrzés és Excel Generálás
+
+Futtass le egy utolsó ellenőrzést: biztosan megvan-e mind a [DARABSZÁM] termék? Nincs-e olyan sor, ahol kimaradt a kategória?
+
+Ha minden rendben, generáld le a letölthető Excel (.xlsx) fájlt, amely pontosan KÉT munkalapot tartalmaz:
+
+1. Munkalap (Termékek listája):
+Oszlopok:
+
+Cikkszám
+
+Név
+
+Főkategória
+
+Alkategória (KIZÁRÓLAG a legalsó szint neve)
+
+Teljes útvonal (Pl.: [MÁRKANÉV] - Főkategória > [MÁRKANÉV] - Alkategória)
+
+Márka
+
+Megjegyzés (Ide kerüljön az "Ellenőrzendő" címke, ha oda lett sorolva)
+
+2. Munkalap (Kategóriafa):
+A létrehozott struktúra vizuális térképe kötőjeles formátumban az alábbiak szerint:
+Fő-fő kategória: [MÁRKANÉV]
+
+[MÁRKANÉV] – Főkategória 1
+-- [MÁRKANÉV] – Alkategória 1a
+--- [MÁRKANÉV] – Al-alkategória (ha van)
+
+Végezd el a formázást, és add meg a letöltési linket!
