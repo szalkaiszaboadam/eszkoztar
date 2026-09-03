@@ -1,15 +1,112 @@
-A kategóriafa tökéletes, jóváhagyom! Lépjünk a 2. fázisra.
+A kategóriafát jóváhagytam.
 
-FÁZIS 2: Tömeges Kategorizálás
-Mivel a fájl nagy (kb. [DARABSZÁM] sor), az egyenkénti szöveggenerálás nem lesz pontos. Kérlek, írj és futtass le a háttérben egy adatfeldolgozó szkriptet (pl. Python/Pandas), amely kulcsszavas és szemantikai szabályok alapján az összes terméket hozzárendeli az imént jóváhagyott kategóriafához.
+Most kizárólag a **2. fázist** hajtsd végre.
 
-Szabályok az algoritmushoz:
+# 2. FÁZIS – TÖMEGES TERMÉKKATEGORIZÁLÁS
 
-Minden terméket a Kategóriafa legalsó, legspecifikusabb szintjére kell besorolni.
+A feladat az Excel fájl összes termékének hozzárendelése a jóváhagyott kategóriafához.
 
-A termékek eredeti nevét és cikkszámát szigorúan tilos módosítani.
+A fájl körülbelül [DARABSZÁM] terméket tartalmaz, ezért a feldolgozást ne manuális, egyenkénti szöveggenerálással végezd.
 
-Hozz létre egy "Biztonsági háló" kategóriát: "[MÁRKANÉV] – Ellenőrzendő". Ha a szkript egy terméknél nem tud 100%-os biztonsággal dönteni, tegye ebbe a kategóriába. Ne tippeljen vakon!
+Használj háttérben futtatott adatfeldolgozást, például Python/Pandas alapú feldolgozást, hogy minden sor következetesen és ellenőrizhetően kerüljön feldolgozásra.
 
-Ha a háttérfolyamat (besorolás) lefutott, ne generálj még fájlt! Csak írj egy rövid statisztikát: hány terméket sikerült besorolni, és hány került az "Ellenőrzendő" kategóriába. Mutass be 10 véletlenszerűen kiválasztott, már besorolt terméket mintaként. Várj az utasításomra!
+## KÖTELEZŐ SZABÁLYOK
 
+### 1. A kategóriafa zárt
+
+Kizárólag az **1. fázisban jóváhagyott kategóriákból** választhatsz.
+
+Tilos:
+
+* új kategóriát létrehozni;
+* kategóriát átnevezni;
+* kategóriát összevonni;
+* kategóriát megszüntetni;
+* saját kategóriát kitalálni.
+
+### 2. Minden termékhez pontosan egy kategóriaútvonal tartozzon
+
+Egy termék csak egy kategóriába kerülhet.
+
+Mindig a **legspecifikusabb, legalsó releváns kategóriát** válaszd.
+
+### 3. Ne tippelj
+
+A kategorizálásnál vizsgáld meg a termék nevét, és a benne szereplő egyértelmű terméktípusokat, megnevezéseket és jellemzőket.
+
+Ha egyértelműen eldönthető, melyik kategóriába tartozik a termék, kategorizáld.
+
+Ha nem dönthető el megbízhatóan, használd ezt a biztonsági kategóriát:
+
+**[MÁRKANÉV] – Ellenőrzendő**
+
+Az „Ellenőrzendő” kategóriába kerüljön például az a termék, amely:
+
+* több kategóriába is egyformán jól illene;
+* túl kevés információt tartalmaz;
+* nem illeszkedik egyértelműen a kategóriafába;
+* ellentmondásos információt tartalmaz;
+* csak feltételezés alapján lenne kategorizálható.
+
+**A bizonytalan terméket inkább tedd Ellenőrzendőbe, mintsem hibásan kategorizáld.**
+
+### 4. Konfliktus esetén
+
+Ha egy terméknév több kategóriára is utal, először a **konkrét terméktípust** keresd, ne egy általános jellemzőt.
+
+Ha egyértelmű prioritás alapján eldönthető, válaszd a specifikusabb kategóriát.
+
+Ha nem dönthető el egyértelműen, legyen:
+
+**[MÁRKANÉV] – Ellenőrzendő**
+
+### 5. Az eredeti adatokhoz nem nyúlhatsz
+
+A termék eredeti:
+
+* **Cikkszámát**
+* **Nevét**
+
+semmilyen módon nem módosíthatod.
+
+Nem javíthatod, nem rövidítheted, nem formázhatod át és nem fordíthatod le.
+
+Az eredeti Excel minden sora maradjon meg.
+
+Ne törölj duplikált vagy hasonló termékeket.
+
+## FELDOLGOZÁS UTÁNI ELLENŐRZÉS
+
+A háttérben ellenőrizd, hogy:
+
+**bemeneti sorok száma = feldolgozott sorok száma**
+
+Ellenőrizd továbbá, hogy:
+
+* nincs elveszett sor;
+* nincs kihagyott termék;
+* nincs termék kategória nélkül;
+* nincs termék több kategóriába sorolva;
+* nincs a jóváhagyott kategóriafán kívüli kategória.
+
+Ha valamelyik ellenőrzés hibát jelez, azt jelezd.
+
+## MOST MÉG NE GENERÁLJ EXCELT
+
+A 2. fázis végén csak az alábbi statisztikát add meg:
+
+* Összes termék:
+* Sikeresen kategorizált:
+* Ellenőrzendő:
+* Kategória nélkül maradt:
+* Feldolgozási hiba:
+* Adatvesztés:
+
+Ezután mutass **10 véletlenszerűen kiválasztott, sikeresen kategorizált terméket**:
+
+| Cikkszám | Név | Kategória | Teljes útvonal |
+| -------- | --- | --------- | -------------- |
+
+A minták valóban véletlenszerűek legyenek.
+
+**Ne generálj még Excel fájlt. Várj a további utasításomra.**

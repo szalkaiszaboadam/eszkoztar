@@ -1,34 +1,187 @@
-Az eredmények jónak tűnnek, jöhet a végső fázis!
+A kategorizálás eredményeit jóváhagytam.
 
-FÁZIS 3: Minőségellenőrzés és Excel Generálás
+Most következik a **3. és egyben végső fázis**.
 
-Futtass le egy utolsó ellenőrzést: biztosan megvan-e mind a [DARABSZÁM] termék? Nincs-e olyan sor, ahol kimaradt a kategória?
+# 3. FÁZIS – MINŐSÉGELLENŐRZÉS ÉS EXCEL-GENERÁLÁS
 
-Ha minden rendben, generáld le a letölthető Excel (.xlsx) fájlt, amely pontosan KÉT munkalapot tartalmaz:
+Mielőtt elkészíted a végleges Excel fájlt, végezz teljes körű ellenőrzést.
 
-1. Munkalap (Termékek listája):
-Oszlopok:
+## 1. ADATMENNYISÉG ELLENŐRZÉSE
 
-Cikkszám
+Ellenőrizd, hogy a bemeneti Excel összes eredeti sora megtalálható-e a feldolgozott adatok között.
 
-Név
+Ellenőrizd:
 
-Főkategória
+* eredeti sorok száma;
+* feldolgozott sorok száma;
+* sikeresen kategorizált sorok száma;
+* Ellenőrzendő sorok száma;
+* kategória nélküli sorok száma.
 
-Alkategória (KIZÁRÓLAG a legalsó szint neve)
+A bemeneti és kimeneti sorok számának pontosan egyeznie kell.
 
-Teljes útvonal (Pl.: [MÁRKANÉV] - Főkategória > [MÁRKANÉV] - Alkategória)
+**Egyetlen termék sem veszhet el.**
 
-Márka
+## 2. EREDETI ADATOK ELLENŐRZÉSE
 
-Megjegyzés (Ide kerüljön az "Ellenőrzendő" címke, ha oda lett sorolva)
+Ellenőrizd, hogy minden termék:
 
-2. Munkalap (Kategóriafa):
-A létrehozott struktúra vizuális térképe kötőjeles formátumban az alábbiak szerint:
-Fő-fő kategória: [MÁRKANÉV]
+* eredeti Cikkszáma változatlan;
+* eredeti Neve változatlan.
 
-[MÁRKANÉV] – Főkategória 1
--- [MÁRKANÉV] – Alkategória 1a
---- [MÁRKANÉV] – Al-alkategória (ha van)
+Ha bármelyik módosult vagy hiányzik, **ne készítsd el a végleges fájlt**.
 
-Végezd el a formázást, és add meg a letöltési linket!
+## 3. KATEGÓRIA ELLENŐRZÉSE
+
+Ellenőrizd, hogy:
+
+* minden termék pontosan egy kategóriához tartozik;
+* minden kategória szerepel a jóváhagyott kategóriafában;
+* nincs saját maga által létrehozott kategória;
+* az Alkategória mindig a kiválasztott útvonal legalsó kategóriája;
+* a Teljes útvonal helyes és teljes;
+* nincs üres kategória.
+
+## 4. ELLENŐRZENDŐ TERMÉKEK
+
+Az „Ellenőrzendő” kategóriába került termékeknél a Megjegyzés mező értéke legyen:
+
+**Ellenőrzendő**
+
+Normál kategorizált termékeknél a Megjegyzés maradjon üres.
+
+## 5. HIBÁS QC ESETÉN
+
+Ha bármilyen kötelező ellenőrzés hibát talál:
+
+**NE GENERÁLD LE AZ EXCEL FÁJLT.**
+
+Írd ki:
+
+* melyik ellenőrzés hibázott;
+* hány terméket érint;
+* mi a probléma.
+
+Csak hibamentes QC után készítsd el a végleges Excel fájlt.
+
+# VÉGLEGES EXCEL
+
+Készíts egy `.xlsx` fájlt.
+
+A fájl **pontosan 2 munkalapot** tartalmazzon.
+
+## 1. munkalap: Termékek listája
+
+Az első munkalap neve:
+
+**Termékek listája**
+
+Az oszlopok pontos sorrendje:
+
+1. Cikkszám
+2. Név
+3. Főkategória
+4. Alkategória
+5. Teljes útvonal
+6. Márka
+7. Megjegyzés
+
+### Cikkszám
+
+Az eredeti Excelből változtatás nélkül.
+
+Szövegként kezeld, hogy a kezdő nullák ne vesszenek el.
+
+### Név
+
+Az eredeti Excelből változtatás nélkül.
+
+### Főkategória
+
+A termékhez tartozó legfelső kategória.
+
+### Alkategória
+
+**Kizárólag a termékhez kiválasztott legalsó kategória neve.**
+
+Ha például:
+
+[ MÁRKANÉV ] – Fúrógépek
+→ [ MÁRKANÉV ] – Akkumulátoros fúrógépek
+→ [ MÁRKANÉV ] – 18 V-os fúrógépek
+
+akkor az Alkategória:
+
+**[MÁRKANÉV] – 18 V-os fúrógépek**
+
+### Teljes útvonal
+
+A teljes kategóriaútvonal minden szinttel.
+
+Formátum:
+
+**[MÁRKANÉV] – Főkategória > [MÁRKANÉV] – Alkategória > [MÁRKANÉV] – Al-alkategória**
+
+### Márka
+
+Minden terméknél:
+
+**[MÁRKANÉV]**
+
+### Megjegyzés
+
+Normál terméknél üres.
+
+Ellenőrzendő terméknél:
+
+**Ellenőrzendő**
+
+---
+
+# 2. munkalap: Kategóriafa
+
+A második munkalap neve:
+
+**Kategóriafa**
+
+A jóváhagyott kategóriafát jelenítsd meg hierarchikus formában.
+
+Példa:
+
+[ MÁRKANÉV ] termékek
+- [ MÁRKANÉV ] – Főkategória
+-- [ MÁRKANÉV ] – Alkategória 1
+--- [ MÁRKANÉV ] – Al-alkategória
+-- [ MÁRKANÉV ] – Alkategória 2
+
+Az „Ellenőrzendő” kategóriát külön jelöld, és jelezd mellette, hogy ez **biztonsági/ellenőrzési kategória, nem normál termékkategória**.
+
+# FORMÁZÁS
+
+Az Excel legyen professzionális és jól használható.
+
+Használj:
+
+* formázott fejlécet;
+* szűrhető oszlopokat;
+* megfelelő oszlopszélességet;
+* sortörést a hosszú szövegeknél;
+* fagyasztott fejlécsort;
+* áttekinthető táblázatos megjelenést.
+
+Ne módosítsd az eredeti termékneveket és cikkszámokat.
+
+A fájlban **pontosan két munkalap** lehet.
+
+# VÉGSŐ JELENTÉS
+
+A fájl elkészítése után röviden írd ki:
+
+**Összes termék:** [db]
+**Sikeresen kategorizált:** [db]
+**Ellenőrzendő:** [db]
+**Kategória nélkül:** [db]
+**Elveszett sor:** [db]
+**QC státusz:** SIKERES
+
+Ezután add meg a létrehozott Excel fájl letöltési linkjét.

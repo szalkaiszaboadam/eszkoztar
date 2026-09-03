@@ -1,11 +1,89 @@
-Te egy profi e-kereskedelmi adatelemző, webshop kategória-menedzser és SEO szakértő vagy. Mellékeltem egy kb. [DARABSZÁM] soros Excel fájlt [MÁRKANÉV] termékekkel. A feladatunk a termékek webshopra optimalizált kategorizálása lesz 3 fázisban.
+Te egy profi e-kereskedelmi adatelemző, webshop kategória-menedzser és SEO szakértő vagy.
 
-FÁZIS 1: Kategóriafa megtervezése
+A mellékelt Excel fájlban körülbelül [DARABSZÁM] db [MÁRKANÉV] termék található.
 
-Olvasd be a fájlt, és elemezd a 'Név' oszlopban található kifejezéseket és mintázatokat.
+A feladatot 3 külön fázisban végezzük. Most kizárólag az **1. fázist** hajtsd végre.
 
-Alkosd meg a leglogikusabb, szakmailag helytálló kategóriastruktúrát (fő- és alkategóriák). Mehetsz olyan mélyre az alkategóriákban, amilyen mélyre a termékek jellege alapján szükséges (pl. Fő > Al > Al-al).
+# 1. FÁZIS – KATEGÓRIAFA MEGTERVEZÉSE
 
-Névadási szabály: 1–4 szavas, webshop-barát nevek. Minden kategória neve szigorúan ezt a formátumot kövesse: "[MÁRKANÉV] – Kategória név". (Például: "[MÁRKANÉV] – Akkumulátoros fúrógépek").
+Olvasd be és elemezd az Excel fájlt.
 
-FONTOS: Még NE kategorizáld be a termékeket, és ne generálj Excelt! Csak a javasolt Kategóriafát írd ki ide a chatbe egy átlátható, vázlatos listaként. Várj a visszajelzésemre és a jóváhagyásomra a továbblépéshez!
+Elsősorban a **„Név”** oszlopban található termékneveket vizsgáld, és keresd meg a visszatérő terméktípusokat, termékcsoportokat, funkciókat és egyéb olyan mintázatokat, amelyek alapján logikus webshop-kategóriák hozhatók létre.
+
+A cél egy olyan kategóriafa létrehozása, amely:
+
+* logikus a vásárló számára;
+* webshopban könnyen navigálható;
+* szakmailag helytálló;
+* nem túl általános;
+* nem bontja túl indokolatlanul a termékeket;
+* a hasonló termékeket megfelelően csoportosítja;
+* a különböző terméktípusokat egyértelműen elkülöníti.
+
+A kategóriafa több szintű lehet, ha ezt a termékek sokfélesége indokolja.
+
+Például:
+
+Főkategória
+→ Alkategória
+→ Al-alkategória
+
+Csak akkor hozz létre mélyebb szintet, ha annak valódi gyakorlati értelme van.
+
+## KATEGÓRIAELNEVEZÉS
+
+Minden kategórianév legyen:
+
+* 1–4 szavas;
+* magyar nyelvű;
+* természetes;
+* webshop-barát;
+* egyértelmű;
+* lehetőleg SEO-szempontból is értelmes.
+
+A kategóriák neve kövesse ezt a formátumot:
+
+**[MÁRKANÉV] – Kategória neve**
+
+Példa:
+
+**[MÁRKANÉV] – Akkumulátoros fúrógépek**
+
+Ne használj felesleges marketingkifejezéseket.
+
+Ne hozz létre olyan kategóriát, amelynek csak 1–2 termék miatt nincs valódi létjogosultsága, kivéve, ha az adott terméktípus szakmailag önálló kategóriát indokol.
+
+A kategóriákat úgy alakítsd ki, hogy lehetőség szerint egy termék csak egyetlen kategóriaágba tartozzon.
+
+## FONTOS DÖNTÉSI SZABÁLY
+
+Ne a terméknevek egyszerű kulcsszavait másold kategóriaként.
+
+A termékek mögötti **valódi terméktípusokat és webshopos vásárlói logikát** keresd.
+
+Például ne hozz létre külön kategóriát minden feszültség, méret, szín vagy cikkszám alapján, ha ezek csak termékváltozatok.
+
+## MOST NE KATEGORIZÁLD A TERMÉKEKET
+
+Ebben a fázisban:
+
+* ne rendelj kategóriát egyetlen termékhez sem;
+* ne módosítsd az eredeti adatokat;
+* ne generálj Excel fájlt;
+* ne készíts végleges terméklistát.
+
+Csak a javasolt kategóriafát mutasd meg.
+
+A kategóriafát hierarchikus, könnyen áttekinthető formában írd ki.
+
+Például:
+
+- [MÁRKANÉV] – Fúrógépek
+-- MÁRKANÉV] – Akkumulátoros fúrógépek
+--- [MÁRKANÉV] – 18 V-os fúrógépek
+--- [MÁRKANÉV] – 12 V-os fúrógépek
+-- [MÁRKANÉV] – Vezetékes fúrógépek
+
+A végén röviden írd le, ha volt olyan kategória, amelynek kialakításánál különösen fontos szakmai döntést kellett hoznod.
+
+**Várj a jóváhagyásomra. Ne lépj tovább a 2. fázisra önállóan.**

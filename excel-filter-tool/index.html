@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel Összehasonlító & Szűrő Alkalmazás</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between font-sans">
+
+    <!-- Header -->
+    <header class="bg-indigo-600 text-white py-6 shadow-md">
+        <div class="max-w-6xl mx-auto px-4 flex justify-between items-center">
+            <h1 class="text-2xl font-bold">Excel Cikkszám Összehasonlító</h1>
+            <span class="text-sm bg-indigo-500 px-3 py-1 rounded-full">Böngésző alapú eszköz</span>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-6xl mx-auto px-4 py-8 flex-grow w-full">
+
+        <!-- Instructions / Card -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 mb-8">
+            <h2 class="text-lg font-semibold text-slate-700 mb-2">Hogyan működik?</h2>
+            <p class="text-slate-600 text-sm mb-4">
+                Töltsd fel az <strong>"A" táblát</strong> (amelyből szűrni szeretnél) és a <strong>"B" táblát</strong> (amely a keresett cikkszámokat tartalmazza). Az alkalmazás a <em>"cikkszám"</em> oszlop alapján megkeresi az A táblában azokat a sorokat, amelyek szerepelnek a B táblában, és egy harmadik, letölthető táblába menti őket.
+            </p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                <!-- Upload A -->
+                <div class="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center hover:border-indigo-500 transition bg-slate-50">
+                    <label class="cursor-pointer block">
+                        <span class="block text-sm font-medium text-slate-700 mb-2">📁 "A" Fájl (Forrás tábla)</span>
+                        <input type="file" id="fileA" accept=".xlsx, .xls, .csv" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"/>
+                    </label>
+                    <p id="fileNameA" class="text-xs text-slate-500 mt-2">Nincs fájl kiválasztva</p>
+                    <div id="columnsA" class="text-xs text-indigo-600 mt-2 font-medium"></div>
+                </div>
+
+                <!-- Upload B -->
+                <div class="border-2 border-dashed border-slate-300 rounded-lg p-6 text-center hover:border-indigo-500 transition bg-slate-50">
+                    <label class="cursor-pointer block">
+                        <span class="block text-sm font-medium text-slate-700 mb-2">📁 "B" Fájl (Keresendő cikkszámok)</span>
+                        <input type="file" id="fileB" accept=".xlsx, .xls, .csv" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100"/>
+                    </label>
+                    <p id="fileNameB" class="text-xs text-slate-500 mt-2">Nincs fájl kiválasztva</p>
+                    <div id="columnsB" class="text-xs text-emerald-600 mt-2 font-medium"></div>
+                </div>
+            </div>
+
+            <!-- Configuration / Column Selectors -->
+            <div id="configSection" class="hidden mt-6 pt-6 border-t border-slate-200 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Cikkszám oszlop az "A" táblában:</label>
+                    <select id="colSelectA" class="w-full border border-slate-300 rounded-md p-2 text-sm bg-white"></select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1">Cikkszám oszlop a "B" táblában:</label>
+                    <select id="colSelectB" class="w-full border border-slate-300 rounded-md p-2 text-sm bg-white"></select>
+                </div>
+            </div>
+
+            <!-- Action Button -->
+            <div class="mt-6 text-center">
+                <button id="processBtn" disabled class="bg-indigo-600 text-white font-medium px-6 py-2.5 rounded-lg shadow hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition">
+                    3. Tábla Generálása és Összehasonlítás
+                </button>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        <div id="resultSection" class="hidden bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+            <div class="flex justify-between items-center mb-4">
+                <div>
+                    <h3 class="text-lg font-semibold text-slate-700">Eredmények (3. Tábla)</h3>
+                    <p id="resultStats" class="text-sm text-slate-500"></p>
+                </div>
+                <button id="downloadBtn" class="bg-emerald-600 text-white font-medium px-4 py-2 rounded-lg shadow hover:bg-emerald-700 transition flex items-center gap-2 text-sm">
+                    📥 Letöltés Excelként (.xlsx)
+                </button>
+            </div>
+
+            <div class="overflow-x-auto border border-slate-200 rounded-lg max-h-96">
+                <table id="resultTable" class="w-full text-left border-collapse text-sm">
+                    <thead id="resultTableHead" class="bg-slate-100 text-slate-700 sticky top-0"></thead>
+                    <tbody id="resultTableBody" class="divide-y divide-slate-200"></tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500">
+        Excel Cikkszám Szűrő &bull; Biztonságos helyi feldolgozás (a fájlok nem hagyják el a böngészőt)
+    </footer>
+
+    <!-- Logic Script -->
+    <script>
+        let dataA = null;
+        let dataB = null;
+        let headersA = [];
+        let headersB = [];
+        let rawJsonA = [];
+        let rawJsonB = [];
+        let matchedRows = [];
+
+        const fileAInput = document.getElementById('fileA');
+        const fileBInput = document.getElementById('fileB');
+        const fileNameA = document.getElementById('fileNameA');
+        const fileNameB = document.getElementById('fileNameB');
+        const configSection = document.getElementById('configSection');
+        const colSelectA = document.getElementById('colSelectA');
+        const colSelectB = document.getElementById('colSelectB');
+        const processBtn = document.getElementById('processBtn');
+        const resultSection = document.getElementById('resultSection');
+        const resultStats = document.getElementById('resultStats');
+        const resultTableHead = document.getElementById('resultTableHead');
+        const resultTableBody = document.getElementById('resultTableBody');
+        const downloadBtn = document.getElementById('downloadBtn');
+
+        fileAInput.addEventListener('change', (e) => handleFile(e, 'A'));
+        fileBInput.addEventListener('change', (e) => handleFile(e, 'B'));
+
+        function handleFile(e, type) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            if (type === 'A') fileNameA.textContent = file.name;
+            if (type === 'B') fileNameB.textContent = file.name;
+
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                const data = new Uint8Array(evt.target.result);
+                const workbook = XLSX.read(data, {type: 'array'});
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const json = XLSX.utils.sheet_to_json(worksheet, {header: 1});
+
+                if (json.length > 0) {
+                    const headers = json[0];
+                    const rows = json.slice(1).map(row => {
+                        let obj = {};
+                        headers.forEach((h, i) => obj[h] = row[i] !== undefined ? row[i] : "");
+                        return obj;
+                    });
+
+                    if (type === 'A') {
+                        headersA = headers;
+                        rawJsonA = rows;
+                        populateSelect(colSelectA, headersA, ['cikkszám', 'cikk', 'item', 'sku', 'code']);
+                    } else {
+                        headersB = headers;
+                        rawJsonB = rows;
+                        populateSelect(colSelectB, headersB, ['cikkszám', 'cikk', 'item', 'sku', 'code']);
+                    }
+
+                    checkReady();
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function populateSelect(selectElem, headers, preferredKeywords) {
+            selectElem.innerHTML = '';
+            let bestIndex = 0;
+            headers.forEach((h, index) => {
+                const opt = document.createElement('option');
+                opt.value = h;
+                opt.textContent = h;
+                // auto-select if matches keyword
+                if (h && preferredKeywords.some(kw => String(h).toLowerCase().includes(kw))) {
+                    bestIndex = index;
+                }
+                selectElem.appendChild(opt);
+            });
+            if (headers.length > 0) {
+                selectElem.selectedIndex = bestIndex;
+            }
+        }
+
+        function checkReady() {
+            if (headersA.length > 0 && headersB.length > 0) {
+                configSection.classList.remove('hidden');
+                processBtn.disabled = false;
+            }
+        }
+
+        processBtn.addEventListener('click', () => {
+            const colA = colSelectA.value;
+            const colB = colSelectB.value;
+
+            // Collect all items from B into a Set for fast lookup (normalized as string)
+            const setB = new Set();
+            rawJsonB.forEach(row => {
+                let val = row[colB];
+                if (val !== undefined && val !== null && val !== '') {
+                    setB.add(String(val).trim().toLowerCase());
+                }
+            });
+
+            // Filter rows of A where colA exists in setB
+            matchedRows = rawJsonA.filter(row => {
+                let val = row[colA];
+                if (val === undefined || val === null || val === '') return false;
+                return setB.has(String(val).trim().toLowerCase());
+            });
+
+            renderResults(headersA, matchedRows);
+        });
+
+        function renderResults(headers, rows) {
+            resultSection.classList.remove('hidden');
+            resultStats.textContent = `Találatok száma: ${rows.length} sor (az A táblából)`;
+
+            // Table header
+            resultTableHead.innerHTML = '<tr>' + headers.map(h => `<th class="px-4 py-2 border-b font-semibold">${h}</th>`).join('') + '</tr>';
+
+            // Table body (first 100 rows preview)
+            let previewRows = rows.slice(0, 100);
+            resultTableBody.innerHTML = previewRows.map(row => {
+                return '<tr class="hover:bg-slate-50">' + headers.map(h => `<td class="px-4 py-2 border-b text-slate-600">${row[h] !== undefined ? row[h] : ''}</td>`).join('') + '</tr>';
+            }).join('');
+
+            if (rows.length > 100) {
+                resultTableBody.innerHTML += `<tr><td colspan="${headers.length}" class="px-4 py-3 text-center text-xs text-amber-600 bg-amber-50">Csak az első 100 találat jelenik meg előnézetben, de a letöltés az összes ${rows.length} sort tartalmazza!</td></tr>`;
+            }
+        }
+
+        downloadBtn.addEventListener('click', () => {
+            if (matchedRows.length === 0) return;
+
+            // Convert matchedRows back to array of arrays for XLSX
+            const worksheetData = [headersA, ...matchedRows.map(row => headersA.map(h => row[h] !== undefined ? row[h] : ''))];
+            const ws = XLSX.utils.aoa_to_sheet(worksheetData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Szűrt_Adatok");
+
+            XLSX.writeFile(wb, "harmadik_tabla_szurt.xlsx");
+        });
+    </script>
+</body>
+</html>
