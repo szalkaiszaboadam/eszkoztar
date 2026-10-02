@@ -41,7 +41,7 @@ const toolsData: Tool[] = [
       { label: "Megnyitás", type: "open", href: "/kollazskeszito" },
     ]
   },
-  {
+ /* {
     title: "Táblázatkezelő",
     description: "Adatok rendszerezése, szerkesztése és áttekinthető táblázatos megjelenítése.",
     brandColor: "text-emerald-700",
@@ -64,7 +64,7 @@ const toolsData: Tool[] = [
       { label: "Megnyitás", type: "open", href: "/termekkezelo", disabled: true},
       { label: "Letöltés", type: "download", href: "/termekkezelo/letoltes" , disabled: true}
     ]
-  },
+  },*/
 ];
 
 export default function Home() {
